@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface StoredFileRepository extends JpaRepository<StoredFile, UUID> {
 
+    @Query("select coalesce(sum(f.sizeBytes), 0) from StoredFile f")
+    long usedBytes();
+
     List<StoredFile> findByOwnerTypeAndOwnerId(String ownerType, UUID ownerId);
 
     @Query("select f from StoredFile f where f.ownerId is null and f.createdAt < :before")

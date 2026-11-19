@@ -138,6 +138,15 @@ public class MemberService implements WorkspaceMembers {
         return result;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Set<UUID> managers() {
+        UUID workspaceId = TenantContext.requireWorkspaceId();
+        java.util.Set<UUID> ids = new java.util.HashSet<>(memberships.findActiveManagerIds(workspaceId));
+        users.findAllById(ids).stream().filter(u -> !u.isActive()).forEach(u -> ids.remove(u.getId()));
+        return ids;
+    }
+
     public record MemberView(Membership membership, User user) {
     }
 }

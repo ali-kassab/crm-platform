@@ -17,9 +17,15 @@ final class JobSpecs {
     private JobSpecs() {
     }
 
-    static Specification<Job> matching(JobFilter f) {
+    static Specification<Job> matching(JobFilter f, java.time.Instant now) {
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
+            if (Boolean.TRUE.equals(f.slaBreached())) {
+                var due = root.<java.time.Instant>get("responseDueAt");
+                var started = root.<java.time.Instant>get("actualStartAt");
+                p.add(cb.isNotNull(due));
+                p.add(cb.or(cb.and(cb.isNull(started), cb.lessThan(due, now)), cb.greaterThan(started, due)));
+            }
             if (f.projectId() != null) {
                 p.add(cb.equal(root.get("projectId"), f.projectId()));
             }

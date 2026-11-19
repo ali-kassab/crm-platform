@@ -1,5 +1,6 @@
 package com.crmplatform.operations.visits.application;
 
+import com.crmplatform.operations.OperationsEvents.VisitScheduled;
 import com.crmplatform.operations.jobs.application.JobAccess;
 import com.crmplatform.operations.jobs.application.JobService;
 import com.crmplatform.operations.jobs.domain.Job;
@@ -7,17 +8,20 @@ import com.crmplatform.operations.visits.domain.JobVisit;
 import com.crmplatform.operations.visits.domain.JobVisitRepository;
 import com.crmplatform.shared.error.ApiException;
 import com.crmplatform.shared.events.AuditTrail;
+import com.crmplatform.shared.tenant.TenantContext;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,8 +42,11 @@ public class VisitService {
     private final JobService jobs;
     private final AuditTrail audit;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    public VisitService(JobVisitRepository visits, JobService jobs, AuditTrail audit, Clock clock) {
+    public VisitService(JobVisitRepository visits, JobService jobs, AuditTrail audit, Clock clock,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.visits = visits;
         this.jobs = jobs;
         this.audit = audit;
@@ -84,6 +91,7 @@ public class VisitService {
         jobs.advanceForVisit(jobId, Job.Status.SCHEDULED);
         audit.created("VISIT", saved.getId(), job.getProjectId(), jobId,
                 Map.of("scheduledStart", start.toString(), "scheduledEnd", end.toString()));
+        notifyScheduled(job, saved);
         return saved;
     }
 
@@ -130,6 +138,7 @@ public class VisitService {
         JobVisit next = visits.save(new JobVisit(job.getId(), start, end, assignees, old.getNotes(), old.getId()));
         audit.action("RESCHEDULE", "VISIT", old.getId(), job.getProjectId(), job.getId(),
                 Map.of("newVisitId", next.getId().toString(), "scheduledStart", start.toString()));
+        notifyScheduled(job, next);
         return next;
     }
 
@@ -141,6 +150,20 @@ public class VisitService {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /** Tells the visit's technicians (except whoever scheduled it) when they are expected on site. */
+    private void notifyScheduled(Job job, JobVisit visit) {
+        UUID actor = TenantContext.userId().orElse(null);
+        Set<UUID> recipients = new HashSet<>(visit.getAssigneeUserIds());
+        if (actor != null) {
+            recipients.remove(actor);
+        }
+        if (!recipients.isEmpty()) {
+            events.publishEvent(new VisitScheduled(TenantContext.requireWorkspaceId(), visit.getId(), job.getId(),
+                    job.getTitle(), visit.getScheduledStart(), visit.getScheduledEnd(), visit.getRescheduledFromId(),
+                    actor, recipients));
+        }
+    }
 
     /** Explicit assignees, else the job's technicians, else (one-person workspaces) the caller. */
     private Set<UUID> assignees(Job job, Collection<UUID> requested) {

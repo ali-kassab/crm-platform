@@ -44,7 +44,7 @@ public class Transaction extends TenantEntity {
         }
     }
 
-    @Column(name = "job_id", nullable = false, updatable = false)
+    @Column(name = "job_id", updatable = false)
     private UUID jobId;
 
     @Column(name = "project_id", nullable = false, updatable = false)

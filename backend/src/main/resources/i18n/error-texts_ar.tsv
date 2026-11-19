@@ -133,3 +133,34 @@ The image could not be read	تعذّرت قراءة الصورة
 Documents must be 10 MB or smaller	يجب ألا يتجاوز حجم المستند 10 ميجابايت
 Documents must be PDF, Word, Excel or PowerPoint files	يجب أن يكون المستند بصيغة PDF أو Word أو Excel أو PowerPoint
 Images must be at most 40 megapixels	يجب ألا تتجاوز دقة الصورة 40 ميجابكسل
+contactId is required	العميل مطلوب
+locationId is required	الموقع مطلوب
+contactId and locationId are required	العميل والموقع مطلوبان
+The device is not installed at this job's site	الجهاز غير مركّب في موقع أمر العمل هذا
+Another device already has this serial number	يوجد جهاز آخر بنفس الرقم التسلسلي
+A job can list at most 100 devices	يمكن أن يتضمن أمر العمل 100 جهاز كحد أقصى
+Unknown equipment category	فئة الجهاز غير معروفة
+Unknown equipment status	حالة الجهاز غير معروفة
+The job belongs to another customer	أمر العمل يخص عميلاً آخر
+intervalDays is required for a custom frequency	عدد الأيام مطلوب عند اختيار تكرار مخصص
+Unknown maintenance frequency	تكرار الصيانة غير معروف
+Unknown maintenance plan status	حالة خطة الصيانة غير معروفة
+Your plan's limit has been reached; upgrade your plan to add more	وصلت إلى الحد المسموح في باقتك؛ قم بترقية الباقة لإضافة المزيد
+Your subscription is not active; renew it to make changes. Your data is safe and still readable	اشتراكك غير نشط؛ جدّد الاشتراك لتتمكن من التعديل. بياناتك محفوظة ويمكنك الاطلاع عليها
+This workspace is suspended; contact support to reactivate it	تم إيقاف مساحة العمل هذه؛ تواصل مع الدعم لإعادة تفعيلها
+A payment request is already waiting for review	يوجد طلب دفع قيد المراجعة بالفعل
+paidOn must be within the last 60 days	يجب أن يكون تاريخ الدفع خلال آخر 60 يوماً
+payerReference is required	رقم العملية أو رقم المحوِّل مطلوب
+Upload the payment receipt first (purpose RECEIPT)	ارفع إيصال الدفع أولاً
+This plan allows fewer users than the workspace has; choose a larger plan	هذه الباقة تسمح بعدد مستخدمين أقل من الموجودين؛ اختر باقة أكبر
+Only a pending request can be changed	لا يمكن تعديل إلا الطلبات قيد المراجعة
+billingPeriod must be MONTHLY or YEARLY	مدة الاشتراك يجب أن تكون شهرية أو سنوية
+code must be 2-30 letters, digits or underscores	الكود يجب أن يكون من 2 إلى 30 حرفاً أو رقماً أو شرطة سفلية
+A plan with this code already exists	توجد باقة بنفس الكود
+Reactivate the workspace before approving a payment	أعد تفعيل مساحة العمل قبل اعتماد الدفع
+Unknown payment method kind	نوع وسيلة الدفع غير معروف
+days must be between 1 and 366	عدد الأيام يجب أن يكون بين 1 و366
+The workspace is not suspended	مساحة العمل غير موقوفة
+Unknown request status	حالة الطلب غير معروفة
+Unknown subscription action	إجراء الاشتراك غير معروف
+A transaction needs a job or a project	يجب ربط المعاملة بأمر عمل أو مشروع

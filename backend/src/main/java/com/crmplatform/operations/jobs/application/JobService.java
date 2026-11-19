@@ -7,6 +7,7 @@ import com.crmplatform.files.Files;
 import com.crmplatform.files.Files.FileSummary;
 import com.crmplatform.identity.WorkspaceMembers;
 import com.crmplatform.operations.Jobs;
+import com.crmplatform.operations.OperationsEvents.JobAssigned;
 import com.crmplatform.operations.jobs.domain.Job;
 import com.crmplatform.operations.jobs.domain.JobRepository;
 import com.crmplatform.shared.error.ApiException;
@@ -64,11 +65,15 @@ public class JobService implements JobDirectory, Jobs {
     private final AuditTrail audit;
     private final Clock clock;
     private final com.crmplatform.operations.jobs.domain.JobMaterialRepository materials;
+    private final SlaPolicy slaPolicy;
 
     public JobService(JobRepository jobs, Projects projects, Contacts contacts, WorkspaceMembers members, Boards boards,
             LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock,
-            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials) {
+            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials, SlaPolicy slaPolicy,
+            org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard) {
+        this.usageGuard = usageGuard;
         this.materials = materials;
+        this.slaPolicy = slaPolicy;
         this.jobs = jobs;
         this.projects = projects;
         this.contacts = contacts;
@@ -88,7 +93,7 @@ public class JobService implements JobDirectory, Jobs {
     public Page<Job> search(JobFilter filter, Pageable pageable) {
         JobFilter effective = JobAccess.limitedToAssigned()
                 ? filter.withAssignee(JobAccess.currentUser()) : filter;
-        return jobs.findAll(JobSpecs.matching(effective), pageable);
+        return jobs.findAll(JobSpecs.matching(effective, Instant.now(clock)), pageable);
     }
 
     /** Throws 404 (not 403) for a job the caller may not see, so ids of others' work don't leak. */
@@ -106,10 +111,24 @@ public class JobService implements JobDirectory, Jobs {
         return files.ownedBy(OWNER, jobId);
     }
 
+    private org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard;
+
+    /** Plan limits (billing); a no-op when no guard is configured. */
+    private void requireUsage(UUID workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage usage, long amount) {
+        if (usageGuard != null) {
+            usageGuard.ifAvailable(g -> g.require(workspaceId, usage, amount));
+        }
+    }
+
     // ------------------------------------------------------------------ commands
 
     @Transactional
     public Job create(JobData d) {
+        requireUsage(TenantContext.requireWorkspaceId(), com.crmplatform.shared.limits.UsageGuard.Usage.JOBS_PER_MONTH, 1);
+        return createJob(d);
+    }
+
+    private Job createJob(JobData d) {
         Site site = resolveSite(d.projectId(), d.contactId(), d.locationId());
         validateDates(d.startDate(), d.estimatedEndDate());
         Team team = d.projectId() == null ? requireNoTeam(d) : resolveTeam(d.projectId(), d.teamManagerUserId(),
@@ -126,12 +145,14 @@ public class JobService implements JobDirectory, Jobs {
         job.setTeam(team.manager(), team.members());
         job.assign(validAssignees(d.assigneeUserIds()));
         job.replaceTags(tags);
+        job.setResponseDueAt(responseDeadline(d.responseHours(), job, Instant.now(clock)));
         Job saved = jobs.save(job);
 
         files.attach(d.mediaFileIds(), FileKind.IMAGE, OWNER, saved.getId(), "mediaFileIds");
         files.attach(d.documentFileIds(), FileKind.DOCUMENT, OWNER, saved.getId(), "documentFileIds");
         boards.createBoard(OwnerType.JOB, saved.getId(), saved.getTitle() + " board", d.boardTemplateId()); // BR-062
         publishTags(saved.getId(), tags, Set.of());
+        notifyAssigned(saved, Set.of());
         audit.created("JOB", saved.getId(), saved.getProjectId(), saved.getId(), snapshot(saved));
         return saved;
     }
@@ -142,6 +163,7 @@ public class JobService implements JobDirectory, Jobs {
         JobData d = patch.value();
         Map<String, Object> before = snapshot(job);
         Set<UUID> previousTags = job.getTagIds();
+        Set<UUID> previousAssignees = Set.copyOf(job.getAssigneeUserIds());
 
         patch.ifPresent("title", d.title(), v -> job.setTitle(required(v, "title")));
         patch.ifPresent("description", d.description(), job::setDescription);
@@ -184,6 +206,10 @@ public class JobService implements JobDirectory, Jobs {
         if (patch.has("assigneeUserIds")) {
             job.assign(validAssignees(d.assigneeUserIds()));
         }
+        if (patch.has("responseHours")) {
+            job.setResponseDueAt(d.responseHours() == null ? null
+                    : job.getCreatedAt().plus(java.time.Duration.ofHours(d.responseHours())));
+        }
         if (patch.has("tagIds")) {
             Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
             labels.requireTags(tags, "tagIds");
@@ -202,6 +228,7 @@ public class JobService implements JobDirectory, Jobs {
         }
         jobs.saveAndFlush(job);
         publishTags(id, minus(job.getTagIds(), previousTags), minus(previousTags, job.getTagIds()));
+        notifyAssigned(job, previousAssignees);
         audit.updated("JOB", id, job.getProjectId(), id, before, snapshot(job));
         return job;
     }
@@ -245,6 +272,41 @@ public class JobService implements JobDirectory, Jobs {
         Set<UUID> all = new HashSet<>(job.getAssigneeUserIds());
         if (all.addAll(validAssignees(userIds))) {
             job.assign(all);
+        }
+    }
+
+    /** A preventive-maintenance plan generated this job (no default SLA: it is planned work). */
+    @Transactional
+    public Job createForPlan(JobData d, UUID planId, Set<UUID> equipmentIds) {
+        Job job = createJob(d); // contractual visits do not count toward the monthly job limit
+        job.originateFromPlan(planId);
+        job.replaceEquipment(equipmentIds);
+        return jobs.saveAndFlush(job);
+    }
+
+    /**
+     * Explicit hours win; otherwise unplanned work at a site covered by an active maintenance agreement
+     * gets that agreement's response time (the shortest one if several apply).
+     */
+    private Instant responseDeadline(Integer hours, Job job, Instant now) {
+        Integer h = hours;
+        if (h == null && job.getType() != Job.Type.PREVENTIVE_MAINTENANCE) {
+            h = slaPolicy.responseHoursAt(job.getLocationId()).orElse(null);
+        }
+        return h == null ? null : now.plus(java.time.Duration.ofHours(h));
+    }
+
+    /** Tells newly assigned technicians (not the person who assigned them) about the work order. */
+    private void notifyAssigned(Job job, Set<UUID> before) {
+        UUID actor = TenantContext.userId().orElse(null);
+        Set<UUID> added = new HashSet<>(job.getAssigneeUserIds());
+        added.removeAll(before);
+        if (actor != null) {
+            added.remove(actor);
+        }
+        if (!added.isEmpty()) {
+            events.publishEvent(new JobAssigned(TenantContext.requireWorkspaceId(), job.getId(), job.getTitle(), actor,
+                    added));
         }
     }
 
@@ -545,16 +607,16 @@ public class JobService implements JobDirectory, Jobs {
             LocalDate estimatedEndDate, BigDecimal budget, UUID teamManagerUserId, List<UUID> teamMemberUserIds,
             UUID boardTemplateId, List<UUID> mediaFileIds, List<UUID> documentFileIds, Set<UUID> tagIds,
             UUID contactId, UUID locationId, String type, String priority, String reportedIssue, String internalNotes,
-            Set<UUID> assigneeUserIds) {
+            Set<UUID> assigneeUserIds, Integer responseHours) {
     }
 
     public record JobFilter(UUID projectId, UUID tagId, LocalDate startFrom, LocalDate startTo, String q,
             UUID contactId, UUID locationId, String type, String status, String priority, UUID assigneeUserId,
-            Boolean standalone) {
+            Boolean standalone, Boolean slaBreached) {
 
         JobFilter withAssignee(UUID userId) {
             return new JobFilter(projectId, tagId, startFrom, startTo, q, contactId, locationId, type, status, priority,
-                    userId, standalone);
+                    userId, standalone, slaBreached);
         }
     }
 }

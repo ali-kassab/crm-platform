@@ -23,8 +23,14 @@
 | R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
 | R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
 | R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
-| R5 Notifications (in-app) | ⏭ next (not started) |
-| R6–R13 | ⚪ not started |
+| R5 Notifications (in-app) | ✅ complete (2026-11-19, `20cfa98`) |
+| R6 Equipment, warranties, preventive maintenance, SLA | ✅ complete (2026-11-19, `17ed30a`) |
+| R7 Subscriptions & Platform Admin | ✅ complete (2026-11-19, `c9d34e0`) |
+| R8 Finance alignment | ✅ complete (2026-11-19, `f8c850a`) |
+| R9 Frontend foundation | ✅ complete (2026-11-19, `a06072d`) |
+| R10 Frontend workflows | ✅ core done (2026-11-19, `14bf98c`) — see 4k for what is left |
+| R11 NestJS realtime | ⏭ next (not started) |
+| R12–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -90,10 +96,64 @@
 - Finance: `materialsCost` in job/project/customer rollups (`Jobs.materialsCostOf*`), profit = contract − actual cost − materials cost; `finance.Accounting.Totals` and history `Totals` include it.
 - Tests: `operations/FieldEvidenceIT` (2).
 
-## 5. Current phase & exact next steps — R5 Notifications (in-app)
-Not started. Plan: new `notifications` module (table `notifications`: workspace, recipient user, type, payload jsonb, read_at, created_at); listeners via `TenantWork` for existing events (`TaskAssigned`, `ProjectMembersChanged`, `ProjectDeletedNotice`) plus job assignment and visit scheduling; `GET /api/v1/notifications` (mine, unread filter), `POST /notifications/{id}/read`, `POST /notifications/read-all`; Arabic/English text rendered by the client from `type` + payload; strict per-user isolation tests. Then R6 equipment, warranties, preventive maintenance and SLA.
+## 4f. Completed — R5 In-app notifications — commit `20cfa98`
+- Flyway `V14__notifications.sql`: `notifications` (workspace, recipient_user_id, type, entity_type, entity_id, actor_user_id, payload jsonb, read_at + TenantEntity columns); indexes for "mine newest first" and unread.
+- Module `notifications`: `domain/Notification` (enum `Type`: TASK_ASSIGNED, PROJECT_MEMBER_ADDED, PROJECT_MEMBER_REMOVED, PROJECT_MANAGER_ASSIGNED, PROJECT_DELETED, JOB_ASSIGNED, VISIT_SCHEDULED, VISIT_RESCHEDULED), `NotificationRepository` (all queries bound to the recipient; `markAllRead` also filters the workspace explicitly), `application/NotificationService`, `application/NotificationHandlers` (`@TransactionalEventListener` + `TenantWork`), `web/NotificationController`.
+- APIs (any signed-in user, own rows only): `GET /api/v1/notifications?unread=`, `GET /notifications/unread-count`, `POST /notifications/{id}/read` (404 for anyone else's), `POST /notifications/read-all`. Text is rendered by the client from `type` + `payload` (ar/en).
+- New events `operations/OperationsEvents.JobAssigned` (published by `JobService.create/update` for newly added assignees only) and `VisitScheduled` (`VisitService.schedule/reschedule`). `JobService.ensureAssigned` (visit-driven) publishes nothing — the visit notification covers it. The actor is never notified of their own action.
+- `resource.Notification` added to `messages_ar.properties`.
+- Tests: `notifications/NotificationsIT` (3).
+- Not done (by design for now): no retention/cleanup of old notifications, no e-mail/push delivery, no realtime push (R11).
+
+## 4g. Completed — R6 Equipment, warranties, maintenance plans, SLA — commit `17ed30a`
+- Flyway `V15__equipment_maintenance_sla.sql`: `equipment` (unique lower(serial) per workspace), `job_equipment`, warranties +`contact_id`/`location_id`/`equipment_id`/`reminder_days` (default 30)/`reminder_sent_at`, `maintenance_plans` (+assignees, +equipment), `maintenance_occurrences` UNIQUE(plan_id, due_date), jobs +`response_due_at`, +`maintenance_plan_id`.
+- `operations/equipment`: `Equipment`, `EquipmentService`, `EquipmentController` — `/api/v1/equipment` CRUD (filters contactId, locationId, category, status, q), detail has `serviceHistory` + `warranties`; `GET/PUT /jobs/{id}/equipment` (technicians on own jobs). Codes `DUPLICATE_SERIAL`, `EQUIPMENT_NOT_AT_SITE`.
+- Warranties: device implies customer + site; job/project imply customer; `JOB_NOT_OF_CUSTOMER`; filters `contactId`, `equipmentId`; reminder resets when end date or reminder days change.
+- `operations/maintenance`: `MaintenancePlan` (due dates computed from start date, no month drift; bounded by end date and `includedVisits`), `MaintenanceOccurrence`, `MaintenanceService` (`generateDue` idempotent, max 3 catch-up per run), `MaintenanceIntegration` (`SlaPolicy` bean, `siteAssetsUsage` delete guard, `MaintenanceDaily.runOnce()` @ `app.operations.maintenance-cron` default `0 15 0 * * *`, ShedLock `maintenance-daily`: generate → overdue reminders → warranty reminders → renewal reminders (30 days) → end expired plans). `/api/v1/maintenance-plans` CRUD, `GET /overdue`, `POST /{id}/generate`.
+- SLA: job `responseHours` (1–720) → `response_due_at`; unplanned jobs at a site with an active plan get its shortest `responseHours`; PM jobs get none. `JobResponse.sla {responseDueAt, respondedAt, breached}`; `GET /jobs?slaBreached=true`.
+- `WorkspaceMembers.managers()` (active OWNER/ADMIN). Notifications: `WARRANTY_EXPIRING`, `MAINTENANCE_OVERDUE`, `MAINTENANCE_PLAN_ENDING`.
+- Tests: `operations/MaintenanceIT` (3; uses JDBC to move dates into the past — no controllable clock).
+- Known limits: dates use the server clock (UTC), not the workspace time zone; generation runs daily (or on demand).
+
+## 4h. Completed — R7 Subscriptions & Platform Admin — commit `c9d34e0`
+- Flyway `V16__billing.sql`: `billing_plans` (seeded **provisional** SOLO 300/3000 EGP 1 user, TEAM 900/9000 5 users, BUSINESS 2500/25000 25 users — prices are placeholders for the owner to set), `billing_payment_methods`, `subscriptions` (UNIQUE workspace), `subscription_requests` (one PENDING per workspace), `subscription_events` (append-only trigger); `RECEIPT` file purpose; existing workspaces backfilled with a 14-day TEAM trial.
+- Module `billing` (platform-level, explicit workspace filters): `domain/{Plan, PaymentMethod, Subscription, SubscriptionRequest, SubscriptionEvent, BillingPeriod, BillingRepositories}`, `application/{BillingProperties (app.billing.*), SubscriptionService, BillingAdminService, PlanLimits (UsageGuard impl), UsageCounter (read-only JDBC counts), BillingIntegration (trial on WorkspaceCreated in the same tx; daily `SubscriptionLifecycle` ShedLock `subscription-lifecycle`)}`, `web/{SubscriptionController, BillingAdminController, SubscriptionEnforcement}`; `BillingEvents.SubscriptionNotice` → notifications `SUBSCRIPTION_*`.
+- Lifecycle: TRIAL/ACTIVE → GRACE (7 d, writable) → EXPIRED (read-only); SUSPENDED (admin, read-only); status is computed on read too (`effectiveStatus`), so access never depends on the scheduler. Read-only = every non-GET `/api/**` returns **402 `SUBSCRIPTION_INACTIVE`** except `/subscription`, `/auth/`, `/me`, `/notifications`, `/admin/` and receipt upload (`POST /files?purpose=RECEIPT`). Nothing is ever deleted. Flag `BILLING_ENFORCEMENT_ENABLED=false` disables read-only mode and limits.
+- Tenant APIs: `GET /subscription` (status, plan, limits, usage, daysLeft, pendingRequest), `GET /subscription/plans`, `GET /subscription/payment-methods`, `GET/POST /subscription/requests` + `POST /requests/{id}/cancel` (`workspace:manage`). Tenants can never change status.
+- Admin APIs (`platform:admin`): `/admin/plans` (GET/POST/PATCH), `/admin/payment-methods` (GET/POST/PATCH), `/admin/subscription-requests` (list by status, detail, `receipt-url`, `approve`, `reject` with reason), `/admin/workspaces` (list with status/q), `/admin/workspaces/{id}` (subscription + history + requests), `POST /admin/workspaces/{id}/subscription` `{action: EXTEND|SUSPEND|REACTIVATE|CHANGE_PLAN}`. All audited via `AuditTrail.platform`.
+- Limits (`shared/limits/UsageGuard`): USERS (invite + accept), ACTIVE_PROJECTS, JOBS_PER_MONTH (plan-generated PM jobs exempt), STORAGE_BYTES → 409 `PLAN_LIMIT_REACHED`. Injected as `ObjectProvider<UsageGuard>` constructor params (ArchUnit forbids `@Autowired`).
+- `Files` API: `downloadUrlOfOwned`, `usedBytes`.
+- Tests: `billing/BillingIT` (3; admin sessions via `AccessTokenService.issuePlatform` for a throwaway user so `PlatformAdminIT` keeps its fresh-bootstrap path).
+- Not done: subscription e-mails (in-app notices only); `PlatformAdminIT`-style UI is R10.
+
+## 4i. Completed — R8 Finance alignment — commit `f8c850a`
+- Flyway `V17__finance_alignment.sql`: `transactions.job_id` nullable + `ck_transactions_parent` (job or project); reversal documented in the file.
+- `TransactionService.record`: job (project or standalone) or project alone; contact defaults to the job's/project's customer; `TRANSACTION_PARENT_REQUIRED`.
+- `finance/transactions/application/OutstandingBalances` + `GET /api/v1/accounting/outstanding?page&size` (finance:read): per customer contract (project budgets + standalone job budgets) − received > 0, largest first; `pageRemaining`, `lastPaymentDate`.
+- Tests: `finance/FinanceAlignmentIT` (1, hand-computed figures).
+
+## 4j. Completed — R9 Frontend foundation — commit `a06072d`
+- `frontend/` (see `frontend/README.md`): Vite 8, React 19, TypeScript ~5.9 (template pulled 7.0 — pinned to the approved 5.9), Tailwind 4, shadcn/ui (`components.json`: radix-nova, `rtl: true`; add components only via `pnpm dlx shadcn@latest add`), TanStack Query, React Router 8, i18next, react-hook-form + zod 4, IBM Plex Sans Arabic font.
+- `src/i18n` (ar default, en; `<html lang dir>` synced; `localStorage` key `ui-language`), `src/lib/api.ts` (fetch wrapper: Bearer in memory, `Accept-Language`, `X-Requested-With`, one-shot refresh on 401, Problem Details → `ApiError`), `src/auth` (AuthProvider restores session via `/auth/refresh`), `src/components/layout` (AppShell with shadcn Sidebar on the right in RTL, LanguageSwitcher, SubscriptionBanner), pages: login, register (sector), home (subscription status), customers (list/search/paging/create dialog), settings. Nav entries for jobs, visits, maintenance, finance, subscription are present but disabled until R10.
+- Bundle budget: `scripts/check-bundle.mjs` runs in `pnpm build` (each JS chunk ≤ 200 kB gzip, total ≤ 350 kB); now 222.7 kB total. Vendor chunks via `build.rolldownOptions.output.codeSplitting`; secondary pages lazy.
+- Tests: `pnpm test:e2e` — Playwright vs `vite preview` with a mocked API (`e2e/fixtures.ts`): **14 passed, 2 skipped** (sidebar position checks on mobile) — ar/en, RTL/LTR screenshot baselines (`*-win32.png`), login errors, language switch, customers create/search, read-only banner. `pnpm lint` (oxlint): 0 errors.
+- **Not verified:** a live run against the real backend. `docker compose up` works, but the backend could not connect: the existing Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fixing needs the owner (reset the dev volume or align `.env`) — not done. Containers were stopped again (`docker compose stop`).
+
+## 4k. Completed — R10 Frontend workflows (core) — commit `14bf98c`
+- Pages: `src/pages/jobs/{JobsPage, JobDetailPage, NewJobDialog, JobBadges, api.ts}`, `src/pages/visits/{VisitsPage, VisitActions, api.ts}`, `src/pages/finance/FinancePage` (`/accounting/outstanding`), `src/pages/subscription/SubscriptionPage` (usage vs limits, plan/period/method, receipt upload `POST /files?kind=IMAGE&purpose=RECEIPT`, request + history); `src/lib/format.ts`; shadcn `checkbox` added. Nav: jobs, visits, finance, subscription enabled; maintenance still disabled.
+- Tests: `e2e/workflows.spec.ts` (work order end-to-end, technician visits, finance, subscription renewal) — full suite **22 passed, 2 skipped**; lint 0 errors; bundle 241.1 kB gzip.
+- **Not done in R10 (carry to R13 polish):** maintenance-plan and equipment screens, platform-admin screens (plans, payment methods, request review — decision: admin UI at the final stage), calendar view, dashboard KPIs beyond the home cards, sector onboarding wizard, visit reports/photos/materials UI. Still not run against the real backend (see 4j).
+
+## 5. Current phase & exact next steps — R11 NestJS realtime
+Not started. Directive: a **separate NestJS service** (`realtime-service/`) only for genuinely real-time features, fed by Java (outbox/broker to evaluate), Java stays the source of truth. Decision D4: evaluate STOMP vs Redis Streams and HS256-shared-secret vs RS256 before changing anything. Minimum useful scope: push new in-app notifications and job/visit status changes to connected users of the same workspace; authenticate the socket with the existing access token; strict per-workspace/per-user rooms.
 
 ## 6. Tests (actual results)
+- 2026-11-19, frontend @ `14bf98c`: `pnpm test:e2e` **22 passed, 2 skipped**, `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip).
+- 2026-11-19, frontend @ `a06072d`: `pnpm build` OK (budget 222.7 kB gzip), `pnpm lint` 0 errors, `pnpm test:e2e` 14 passed / 2 skipped. Backend unchanged since `f8c850a` (124 tests green).
+- 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
+- 2026-11-19, `./mvnw test` @ `c9d34e0` (R7): **123 tests, 0 failures, 0 errors, 0 skipped**.
+- 2026-11-19, `./mvnw test` @ `17ed30a` (R6): **120 tests, 0 failures, 0 errors, 0 skipped**.
+- 2026-11-19, `./mvnw test` @ `20cfa98` (R5): **117 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
@@ -129,7 +189,18 @@ Not started. Plan: new `notifications` module (table `notifications`: workspace,
 | `7438edf` | feat(operations): work orders, visits and technician scoping |
 | `eefd676` | docs: update handoff - R3 work orders complete |
 | `376987b` | feat(operations): visit reports, photo purposes and thumbnails, materials, approvals |
-| (next commit) | docs: update handoff - R4 complete |
+| `271797b` | docs: update handoff - R4 field evidence complete |
+| `20cfa98` | feat(notifications): in-app notifications for assignments, visits and project teams |
+| `424e421` | docs: update handoff - R5 notifications complete |
+| `17ed30a` | feat(operations): equipment register, warranty links and reminders, maintenance plans, SLA |
+| `af1c310` | docs: update handoff - R6 maintenance and SLA complete |
+| `c9d34e0` | feat(billing): subscriptions with manual payments, read-only expiry and plan limits |
+| `936a3be` | docs: update handoff - R7 billing complete |
+| `f8c850a` | feat(finance): project-level payments and outstanding balances |
+| `4111550` | docs: update handoff - R8 finance alignment complete |
+| `a06072d` | feat(frontend): Arabic-first RTL shell, auth, i18n and customers screen |
+| `28bdca3` | docs: update handoff - R9 frontend foundation complete |
+| `14bf98c` | feat(frontend): work orders, visits, finance and subscription screens |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.

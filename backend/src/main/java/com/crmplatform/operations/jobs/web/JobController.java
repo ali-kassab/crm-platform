@@ -108,11 +108,12 @@ public class JobController {
             @RequestParam(required = false) UUID locationId, @RequestParam(required = false) String type,
             @RequestParam(required = false) String status, @RequestParam(required = false) String priority,
             @RequestParam(required = false) UUID assigneeUserId, @RequestParam(required = false) Boolean standalone,
+            @RequestParam(required = false) Boolean slaBreached,
             @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size,
             @RequestParam(required = false) List<String> sort) {
         var pageable = Pagination.pageable(page, size, sort, SORT, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Job> result = jobs.search(new JobFilter(projectId, tagId, startFrom, startTo, q, contactId, locationId, type,
-                status, priority, assigneeUserId, standalone), pageable);
+                status, priority, assigneeUserId, standalone, slaBreached), pageable);
         Assembler assembler = new Assembler(result.getContent());
         return PageResponse.of(result.map(j -> assembler.toResponse(j, null, null, null)));
     }
@@ -223,7 +224,7 @@ public class JobController {
                     assignees, j.getStartDate(), j.getEstimatedEndDate(), j.getActualStartAt(), j.getCompletedAt(),
                     money(j.getBudget()), manager, teamMembers, tags,
                     files == null ? null : files.media(), files == null ? null : files.documents(), boardId,
-                    j.getCreatedAt(), j.getUpdatedAt(), j.getVersion());
+                    Sla.of(j, Instant.now()), j.getMaintenancePlanId(), j.getCreatedAt(), j.getUpdatedAt(), j.getVersion());
         }
     }
 
@@ -258,12 +259,13 @@ public class JobController {
             @Pattern(regexp = PRIORITY) String priority,
             @Size(max = 2000) String reportedIssue,
             @Size(max = 5000) String internalNotes,
-            @Size(max = 20) Set<UUID> assigneeUserIds) {
+            @Size(max = 20) Set<UUID> assigneeUserIds,
+            @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(720) Integer responseHours) {
 
         JobData toData() {
             return new JobData(projectId, title, description, startDate, estimatedEndDate, budget, teamManagerUserId,
                     teamMemberUserIds, boardTemplateId, mediaFileIds, documentFileIds, tagIds, contactId, locationId,
-                    type, priority, reportedIssue, internalNotes, assigneeUserIds);
+                    type, priority, reportedIssue, internalNotes, assigneeUserIds, responseHours);
         }
     }
 
@@ -305,7 +307,15 @@ public class JobController {
             String description, String reportedIssue, String internalNotes, Customer customer, Site site,
             List<Technician> assignees, LocalDate startDate, LocalDate estimatedEndDate, Instant actualStartAt,
             Instant completedAt, String budget, Member teamManager, List<Member> teamMembers, List<LabelSummary> tags,
-            List<FileRef> media, List<FileRef> documents, UUID boardId, Instant createdAt, Instant updatedAt,
-            long version) {
+            List<FileRef> media, List<FileRef> documents, UUID boardId, Sla sla, UUID maintenancePlanId,
+            Instant createdAt, Instant updatedAt, long version) {
+    }
+
+    /** Response-time SLA: due, when work actually started, and whether the promise was broken. */
+    public record Sla(Instant responseDueAt, Instant respondedAt, boolean breached) {
+        static Sla of(Job j, Instant now) {
+            return j.getResponseDueAt() == null ? null
+                    : new Sla(j.getResponseDueAt(), j.getActualStartAt(), j.isResponseBreached(now));
+        }
     }
 }

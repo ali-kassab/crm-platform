@@ -19,9 +19,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountingController {
 
     private final AccountingService accounting;
+    private final com.crmplatform.finance.transactions.application.OutstandingBalances outstanding;
 
-    public AccountingController(AccountingService accounting) {
+    public AccountingController(AccountingService accounting,
+            com.crmplatform.finance.transactions.application.OutstandingBalances outstanding) {
         this.accounting = accounting;
+        this.outstanding = outstanding;
+    }
+
+    /** Customers who still owe money (contract − received &gt; 0), largest balance first. */
+    @GetMapping("/accounting/outstanding")
+    @PreAuthorize("hasAuthority('finance:read')")
+    public OutstandingResponse outstanding(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "20") int size) {
+        var r = outstanding.list(page, size);
+        return new OutstandingResponse(r.rows().stream().map(row -> new OutstandingRow(row.contactId(),
+                row.customerName(), row.phone(), AccountingResponse.money(row.contract()),
+                AccountingResponse.money(row.received()), AccountingResponse.money(row.remaining()),
+                row.lastPaymentDate())).toList(), r.totalCustomers(), AccountingResponse.money(r.pageRemaining()));
+    }
+
+    public record OutstandingRow(UUID contactId, String customerName, String phone, String contract, String received,
+            String remaining, java.time.LocalDate lastPaymentDate) {
+    }
+
+    public record OutstandingResponse(java.util.List<OutstandingRow> content, long totalElements, String pageRemaining) {
     }
 
     @GetMapping("/jobs/{id}/accounting")
@@ -52,7 +74,7 @@ public class AccountingController {
                     money(s.remaining()), money(s.profitLoss()), s.transactionCount(), s.overpaid());
         }
 
-        private static String money(BigDecimal v) {
+        static String money(BigDecimal v) {
             return v.setScale(2, RoundingMode.HALF_UP).toPlainString();
         }
     }
