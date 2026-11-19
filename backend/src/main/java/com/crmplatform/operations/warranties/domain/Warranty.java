@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +31,22 @@ public class Warranty extends TenantEntity {
 
     @Column(name = "job_id")
     private UUID jobId;
+
+    @Column(name = "contact_id")
+    private UUID contactId;
+
+    @Column(name = "location_id")
+    private UUID locationId;
+
+    @Column(name = "equipment_id")
+    private UUID equipmentId;
+
+    /** Remind this many days before the end date (0 = no reminder). */
+    @Column(name = "reminder_days", nullable = false)
+    private int reminderDays = 30;
+
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
 
     @Column(nullable = false, length = 100)
     private String title;
@@ -81,6 +98,9 @@ public class Warranty extends TenantEntity {
     }
 
     public void setPeriod(LocalDate start, LocalDate end) {
+        if (endDate != null && !endDate.equals(end)) {
+            reminderSentAt = null; // extended or shortened: remind again for the new end date
+        }
         this.startDate = start;
         this.endDate = end;
     }
@@ -88,6 +108,43 @@ public class Warranty extends TenantEntity {
     public void link(UUID projectId, UUID jobId) {
         this.projectId = projectId;
         this.jobId = jobId;
+    }
+
+    public void attachTo(UUID contactId, UUID locationId, UUID equipmentId) {
+        this.contactId = contactId;
+        this.locationId = locationId;
+        this.equipmentId = equipmentId;
+    }
+
+    public void setReminderDays(int days) {
+        if (days != reminderDays) {
+            reminderSentAt = null; // a new reminder window
+        }
+        this.reminderDays = days;
+    }
+
+    public void reminderSent(Instant at) {
+        this.reminderSentAt = at;
+    }
+
+    public UUID getContactId() {
+        return contactId;
+    }
+
+    public UUID getLocationId() {
+        return locationId;
+    }
+
+    public UUID getEquipmentId() {
+        return equipmentId;
+    }
+
+    public int getReminderDays() {
+        return reminderDays;
+    }
+
+    public Instant getReminderSentAt() {
+        return reminderSentAt;
     }
 
     public void replaceTags(Set<UUID> tags) {

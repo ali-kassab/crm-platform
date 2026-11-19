@@ -29,7 +29,10 @@ public class Notification extends TenantEntity {
         PROJECT_DELETED,
         JOB_ASSIGNED,
         VISIT_SCHEDULED,
-        VISIT_RESCHEDULED
+        VISIT_RESCHEDULED,
+        WARRANTY_EXPIRING,
+        MAINTENANCE_OVERDUE,
+        MAINTENANCE_PLAN_ENDING
     }
 
     @Column(name = "recipient_user_id", nullable = false, updatable = false)

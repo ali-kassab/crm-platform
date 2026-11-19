@@ -2,6 +2,9 @@ package com.crmplatform.notifications.application;
 
 import com.crmplatform.notifications.domain.Notification.Type;
 import com.crmplatform.operations.OperationsEvents.JobAssigned;
+import com.crmplatform.operations.OperationsEvents.MaintenanceOverdue;
+import com.crmplatform.operations.OperationsEvents.MaintenancePlanEnding;
+import com.crmplatform.operations.OperationsEvents.WarrantyExpiring;
 import com.crmplatform.operations.OperationsEvents.VisitScheduled;
 import com.crmplatform.shared.tenant.TenantWork;
 import com.crmplatform.work.WorkEvents.ProjectDeletedNotice;
@@ -69,6 +72,25 @@ class NotificationHandlers {
                 "rescheduledFromId", e.rescheduledFromId());
         send(e.workspaceId(), e.actorUserId(), e.userIds(),
                 e.rescheduledFromId() == null ? Type.VISIT_SCHEDULED : Type.VISIT_RESCHEDULED, "VISIT", e.visitId(), p);
+    }
+
+    @TransactionalEventListener
+    void on(WarrantyExpiring e) {
+        send(e.workspaceId(), null, e.userIds(), Type.WARRANTY_EXPIRING, "WARRANTY", e.warrantyId(),
+                payload("title", e.title(), "provider", e.provider(), "endDate", e.endDate(),
+                        "equipmentId", e.equipmentId(), "contactId", e.contactId()));
+    }
+
+    @TransactionalEventListener
+    void on(MaintenanceOverdue e) {
+        send(e.workspaceId(), null, e.userIds(), Type.MAINTENANCE_OVERDUE, "JOB", e.jobId(),
+                payload("planId", e.planId(), "planTitle", e.planTitle(), "dueDate", e.dueDate()));
+    }
+
+    @TransactionalEventListener
+    void on(MaintenancePlanEnding e) {
+        send(e.workspaceId(), null, e.userIds(), Type.MAINTENANCE_PLAN_ENDING, "MAINTENANCE_PLAN", e.planId(),
+                payload("planTitle", e.planTitle(), "endDate", e.endDate(), "contactId", e.contactId()));
     }
 
     private void send(java.util.UUID workspaceId, java.util.UUID actor, Set<java.util.UUID> recipients, Type type,

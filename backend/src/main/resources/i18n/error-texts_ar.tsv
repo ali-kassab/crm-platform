@@ -133,3 +133,15 @@ The image could not be read	تعذّرت قراءة الصورة
 Documents must be 10 MB or smaller	يجب ألا يتجاوز حجم المستند 10 ميجابايت
 Documents must be PDF, Word, Excel or PowerPoint files	يجب أن يكون المستند بصيغة PDF أو Word أو Excel أو PowerPoint
 Images must be at most 40 megapixels	يجب ألا تتجاوز دقة الصورة 40 ميجابكسل
+contactId is required	العميل مطلوب
+locationId is required	الموقع مطلوب
+contactId and locationId are required	العميل والموقع مطلوبان
+The device is not installed at this job's site	الجهاز غير مركّب في موقع أمر العمل هذا
+Another device already has this serial number	يوجد جهاز آخر بنفس الرقم التسلسلي
+A job can list at most 100 devices	يمكن أن يتضمن أمر العمل 100 جهاز كحد أقصى
+Unknown equipment category	فئة الجهاز غير معروفة
+Unknown equipment status	حالة الجهاز غير معروفة
+The job belongs to another customer	أمر العمل يخص عميلاً آخر
+intervalDays is required for a custom frequency	عدد الأيام مطلوب عند اختيار تكرار مخصص
+Unknown maintenance frequency	تكرار الصيانة غير معروف
+Unknown maintenance plan status	حالة خطة الصيانة غير معروفة

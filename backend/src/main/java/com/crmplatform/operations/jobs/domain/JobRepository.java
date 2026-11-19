@@ -17,6 +17,9 @@ public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificatio
     @Query("select j.projectId, sum(j.budget) from Job j where j.projectId in :projectIds group by j.projectId")
     List<Object[]> budgetTotals(Collection<UUID> projectIds);
 
+    @Query("select j from Job j join j.equipmentIds e where e = :equipmentId order by j.createdAt desc")
+    java.util.List<Job> findByEquipment(UUID equipmentId);
+
     @Query("select j from Job j join j.tagIds t where t = :tagId")
     List<Job> findByTag(UUID tagId);
 

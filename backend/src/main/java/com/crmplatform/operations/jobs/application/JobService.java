@@ -65,11 +65,13 @@ public class JobService implements JobDirectory, Jobs {
     private final AuditTrail audit;
     private final Clock clock;
     private final com.crmplatform.operations.jobs.domain.JobMaterialRepository materials;
+    private final SlaPolicy slaPolicy;
 
     public JobService(JobRepository jobs, Projects projects, Contacts contacts, WorkspaceMembers members, Boards boards,
             LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock,
-            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials) {
+            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials, SlaPolicy slaPolicy) {
         this.materials = materials;
+        this.slaPolicy = slaPolicy;
         this.jobs = jobs;
         this.projects = projects;
         this.contacts = contacts;
@@ -89,7 +91,7 @@ public class JobService implements JobDirectory, Jobs {
     public Page<Job> search(JobFilter filter, Pageable pageable) {
         JobFilter effective = JobAccess.limitedToAssigned()
                 ? filter.withAssignee(JobAccess.currentUser()) : filter;
-        return jobs.findAll(JobSpecs.matching(effective), pageable);
+        return jobs.findAll(JobSpecs.matching(effective, Instant.now(clock)), pageable);
     }
 
     /** Throws 404 (not 403) for a job the caller may not see, so ids of others' work don't leak. */
@@ -127,6 +129,7 @@ public class JobService implements JobDirectory, Jobs {
         job.setTeam(team.manager(), team.members());
         job.assign(validAssignees(d.assigneeUserIds()));
         job.replaceTags(tags);
+        job.setResponseDueAt(responseDeadline(d.responseHours(), job, Instant.now(clock)));
         Job saved = jobs.save(job);
 
         files.attach(d.mediaFileIds(), FileKind.IMAGE, OWNER, saved.getId(), "mediaFileIds");
@@ -186,6 +189,10 @@ public class JobService implements JobDirectory, Jobs {
         }
         if (patch.has("assigneeUserIds")) {
             job.assign(validAssignees(d.assigneeUserIds()));
+        }
+        if (patch.has("responseHours")) {
+            job.setResponseDueAt(d.responseHours() == null ? null
+                    : job.getCreatedAt().plus(java.time.Duration.ofHours(d.responseHours())));
         }
         if (patch.has("tagIds")) {
             Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
@@ -250,6 +257,27 @@ public class JobService implements JobDirectory, Jobs {
         if (all.addAll(validAssignees(userIds))) {
             job.assign(all);
         }
+    }
+
+    /** A preventive-maintenance plan generated this job (no default SLA: it is planned work). */
+    @Transactional
+    public Job createForPlan(JobData d, UUID planId, Set<UUID> equipmentIds) {
+        Job job = create(d);
+        job.originateFromPlan(planId);
+        job.replaceEquipment(equipmentIds);
+        return jobs.saveAndFlush(job);
+    }
+
+    /**
+     * Explicit hours win; otherwise unplanned work at a site covered by an active maintenance agreement
+     * gets that agreement's response time (the shortest one if several apply).
+     */
+    private Instant responseDeadline(Integer hours, Job job, Instant now) {
+        Integer h = hours;
+        if (h == null && job.getType() != Job.Type.PREVENTIVE_MAINTENANCE) {
+            h = slaPolicy.responseHoursAt(job.getLocationId()).orElse(null);
+        }
+        return h == null ? null : now.plus(java.time.Duration.ofHours(h));
     }
 
     /** Tells newly assigned technicians (not the person who assigned them) about the work order. */
@@ -563,16 +591,16 @@ public class JobService implements JobDirectory, Jobs {
             LocalDate estimatedEndDate, BigDecimal budget, UUID teamManagerUserId, List<UUID> teamMemberUserIds,
             UUID boardTemplateId, List<UUID> mediaFileIds, List<UUID> documentFileIds, Set<UUID> tagIds,
             UUID contactId, UUID locationId, String type, String priority, String reportedIssue, String internalNotes,
-            Set<UUID> assigneeUserIds) {
+            Set<UUID> assigneeUserIds, Integer responseHours) {
     }
 
     public record JobFilter(UUID projectId, UUID tagId, LocalDate startFrom, LocalDate startTo, String q,
             UUID contactId, UUID locationId, String type, String status, String priority, UUID assigneeUserId,
-            Boolean standalone) {
+            Boolean standalone, Boolean slaBreached) {
 
         JobFilter withAssignee(UUID userId) {
             return new JobFilter(projectId, tagId, startFrom, startTo, q, contactId, locationId, type, status, priority,
-                    userId, standalone);
+                    userId, standalone, slaBreached);
         }
     }
 }

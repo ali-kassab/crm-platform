@@ -20,4 +20,8 @@ public interface MembershipRepository extends JpaRepository<Membership, UUID> {
     long countActiveOwners(UUID workspaceId);
 
     boolean existsByWorkspaceIdAndUserIdAndActiveTrue(UUID workspaceId, UUID userId);
+
+    @Query("select m.userId from Membership m where m.workspaceId = :workspaceId and m.active = true "
+            + "and m.role in (com.crmplatform.identity.domain.Role.OWNER, com.crmplatform.identity.domain.Role.ADMIN)")
+    List<UUID> findActiveManagerIds(UUID workspaceId);
 }

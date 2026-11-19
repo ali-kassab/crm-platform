@@ -20,6 +20,14 @@ public interface WarrantyRepository extends JpaRepository<Warranty, UUID>, JpaSp
 
     List<Warranty> findByJobId(UUID jobId);
 
+    List<Warranty> findByEquipmentIdOrderByEndDateAsc(UUID equipmentId);
+
+    /** Platform scope (native, no tenant filter): [id, workspace_id] of warranties due for their reminder. */
+    @Query(value = "select w.id, w.workspace_id from warranties w where w.deleted_at is null and w.status = 'ACTIVE' "
+            + "and w.reminder_days > 0 and w.reminder_sent_at is null and w.end_date >= :today "
+            + "and w.end_date - w.reminder_days <= :today", nativeQuery = true)
+    List<Object[]> dueForReminder(LocalDate today);
+
     @Query("select w from Warranty w join w.tagIds t where t = :tagId")
     List<Warranty> findByTag(UUID tagId);
 

@@ -73,6 +73,7 @@ public class WarrantyController {
             @RequestParam(required = false) UUID jobId, @RequestParam(required = false) String status,
             @RequestParam(required = false) String provider,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endingBefore,
+            @RequestParam(required = false) UUID contactId, @RequestParam(required = false) UUID equipmentId,
             @RequestParam(required = false) String q, @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size, @RequestParam(required = false) List<String> sort) {
         if (status != null && !status.matches(STATUS)) {
@@ -80,7 +81,7 @@ public class WarrantyController {
         }
         var pageable = Pagination.pageable(page, size, sort, SORT, Sort.by(Sort.Direction.ASC, "endDate"));
         Page<Warranty> result = warranties.search(new WarrantyFilter(projectId, jobId, status, provider, endingBefore,
-                q), pageable);
+                q, contactId, equipmentId), pageable);
         Map<UUID, LabelSummary> tags = tagsOf(result.getContent());
         return PageResponse.of(result.map(w -> WarrantyResponse.of(w, tags, null)));
     }
@@ -134,11 +135,15 @@ public class WarrantyController {
             UUID projectId,
             UUID jobId,
             @Size(max = 20) Set<UUID> tagIds,
-            @Size(max = 20) List<UUID> documentFileIds) {
+            @Size(max = 20) List<UUID> documentFileIds,
+            UUID contactId,
+            UUID locationId,
+            UUID equipmentId,
+            @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(365) Integer reminderDays) {
 
         WarrantyData toData() {
             return new WarrantyData(title, provider, status, note, startDate, endDate, projectId, jobId, tagIds,
-                    documentFileIds);
+                    documentFileIds, contactId, locationId, equipmentId, reminderDays);
         }
     }
 
@@ -146,7 +151,8 @@ public class WarrantyController {
     }
 
     public record WarrantyResponse(UUID id, String title, String provider, String status, String note,
-            LocalDate startDate, LocalDate endDate, UUID projectId, UUID jobId, List<LabelSummary> tags,
+            LocalDate startDate, LocalDate endDate, UUID projectId, UUID jobId, UUID contactId, UUID locationId,
+            UUID equipmentId, int reminderDays, Instant reminderSentAt, List<LabelSummary> tags,
             List<DocumentRef> documents, Instant createdAt, Instant updatedAt, long version) {
 
         static WarrantyResponse of(Warranty w, Map<UUID, LabelSummary> tagMap, List<FileSummary> docs) {
@@ -154,7 +160,8 @@ public class WarrantyController {
                     .filter(Objects::nonNull).toList());
             tags.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
             return new WarrantyResponse(w.getId(), w.getTitle(), w.getProvider(), w.getStatus().name(), w.getNote(),
-                    w.getStartDate(), w.getEndDate(), w.getProjectId(), w.getJobId(), tags,
+                    w.getStartDate(), w.getEndDate(), w.getProjectId(), w.getJobId(), w.getContactId(), w.getLocationId(),
+                    w.getEquipmentId(), w.getReminderDays(), w.getReminderSentAt(), tags,
                     docs == null ? null : docs.stream()
                             .map(f -> new DocumentRef(f.id(), f.name(), f.contentType(), f.sizeBytes())).toList(),
                     w.getCreatedAt(), w.getUpdatedAt(), w.getVersion());

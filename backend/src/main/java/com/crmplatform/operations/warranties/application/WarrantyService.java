@@ -1,6 +1,10 @@
 package com.crmplatform.operations.warranties.application;
 
+import com.crmplatform.crm.Contacts;
 import com.crmplatform.crm.LabelCatalog;
+import com.crmplatform.operations.OperationsEvents.WarrantyExpiring;
+import com.crmplatform.operations.equipment.domain.Equipment;
+import com.crmplatform.operations.equipment.domain.EquipmentRepository;
 import com.crmplatform.files.FileKind;
 import com.crmplatform.files.Files;
 import com.crmplatform.files.Files.FileSummary;
@@ -23,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,9 +46,16 @@ public class WarrantyService implements Warranties {
     private final Files files;
     private final AuditTrail audit;
     private final Clock clock;
+    private final Contacts contacts;
+    private final EquipmentRepository equipment;
+    private final ApplicationEventPublisher events;
 
     public WarrantyService(WarrantyRepository warranties, Projects projects, Jobs jobs, LabelCatalog labels,
-            Files files, AuditTrail audit, Clock clock) {
+            Files files, AuditTrail audit, Clock clock, Contacts contacts, EquipmentRepository equipment,
+            ApplicationEventPublisher events) {
+        this.contacts = contacts;
+        this.equipment = equipment;
+        this.events = events;
         this.warranties = warranties;
         this.projects = projects;
         this.jobs = jobs;
@@ -99,6 +111,8 @@ public class WarrantyService implements Warranties {
         w.setNote(d.note());
         w.setStatus(d.status() == null ? Warranty.Status.ACTIVE : Warranty.Status.valueOf(d.status()));
         link(w, d.projectId(), d.jobId());
+        attach(w, d.contactId(), d.locationId(), d.equipmentId());
+        w.setReminderDays(d.reminderDays() == null ? 30 : d.reminderDays());
         Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
         labels.requireTags(tags, "tagIds");
         w.replaceTags(tags);
@@ -127,6 +141,13 @@ public class WarrantyService implements Warranties {
             link(w, patch.has("projectId") ? d.projectId() : w.getProjectId(),
                     patch.has("jobId") ? d.jobId() : w.getJobId());
         }
+        if (patch.has("contactId") || patch.has("locationId") || patch.has("equipmentId") || patch.has("jobId")
+                || patch.has("projectId")) {
+            attach(w, patch.has("contactId") ? d.contactId() : w.getContactId(),
+                    patch.has("locationId") ? d.locationId() : w.getLocationId(),
+                    patch.has("equipmentId") ? d.equipmentId() : w.getEquipmentId());
+        }
+        patch.ifPresent("reminderDays", d.reminderDays(), v -> w.setReminderDays(v == null ? 30 : v));
         if (patch.has("tagIds")) {
             Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
             labels.requireTags(tags, "tagIds");
@@ -153,6 +174,34 @@ public class WarrantyService implements Warranties {
     @Transactional
     public int expireEnded() {
         return warranties.expireEndedBefore(LocalDate.now(clock), Instant.now(clock));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Warranty> ofEquipment(UUID equipmentId) {
+        return warranties.findByEquipmentIdOrderByEndDateAsc(equipmentId);
+    }
+
+    /** Platform scope: ACTIVE warranties entering their reminder window, not yet reminded. */
+    @Transactional(readOnly = true)
+    public List<Object[]> dueForReminder() {
+        return warranties.dueForReminder(LocalDate.now(clock));
+    }
+
+    /** Workspace scope: sends the expiry reminder once (re-checked under the tenant). */
+    @Transactional
+    public boolean remind(UUID id, java.util.Set<UUID> recipients) {
+        Warranty w = warranties.findById(id).orElse(null);
+        LocalDate today = LocalDate.now(clock);
+        if (w == null || w.getReminderSentAt() != null || w.getStatus() != Warranty.Status.ACTIVE
+                || w.getReminderDays() == 0 || w.getEndDate().minusDays(w.getReminderDays()).isAfter(today)) {
+            return false;
+        }
+        w.reminderSent(Instant.now(clock));
+        if (!recipients.isEmpty()) {
+            events.publishEvent(new WarrantyExpiring(TenantContext.requireWorkspaceId(), w.getId(), w.getTitle(),
+                    w.getProvider(), w.getEndDate(), w.getEquipmentId(), w.getContactId(), recipients));
+        }
+        return true;
     }
 
     /** Project deleted → its warranties are soft-deleted (BR-056). */
@@ -196,6 +245,49 @@ public class WarrantyService implements Warranties {
         w.link(project, jobId);
     }
 
+    /**
+     * Direct customer/site/device links. A device implies its customer and site; a job or project
+     * implies its customer when none is given. Everything given must agree.
+     */
+    private void attach(Warranty w, UUID contactId, UUID locationId, UUID equipmentId) {
+        UUID contact = contactId;
+        UUID location = locationId;
+        if (equipmentId != null) {
+            Equipment e = equipment.findById(equipmentId)
+                    .orElseThrow(() -> ApiException.referenceNotFound("equipmentId"));
+            if ((contact != null && !contact.equals(e.getContactId()))
+                    || (location != null && !location.equals(e.getLocationId()))) {
+                throw ApiException.badRequest("EQUIPMENT_NOT_AT_SITE", "The device is not installed at this job's site");
+            }
+            contact = e.getContactId();
+            location = e.getLocationId();
+        }
+        if (w.getJobId() != null) {
+            Jobs.JobSummary job = jobs.find(w.getJobId()).orElseThrow(() -> ApiException.referenceNotFound("jobId"));
+            if (contact == null) {
+                contact = job.contactId();
+                location = location == null ? job.locationId() : location;
+            } else if (!contact.equals(job.contactId())) {
+                throw ApiException.badRequest("JOB_NOT_OF_CUSTOMER", "The job belongs to another customer");
+            }
+        } else if (contact == null && w.getProjectId() != null) {
+            contact = projects.find(w.getProjectId()).map(Projects.ProjectSummary::contactId).orElse(null);
+        }
+        if (location != null) {
+            if (contact == null) {
+                throw ApiException.badRequest("VALIDATION_ERROR", "contactId is required");
+            }
+            Contacts.LocationSummary l = contacts.location(location)
+                    .orElseThrow(() -> ApiException.referenceNotFound("locationId"));
+            if (!l.contactId().equals(contact)) {
+                throw ApiException.badRequest("LOCATION_NOT_OF_CUSTOMER", "The site does not belong to this customer");
+            }
+        } else if (contact != null && contacts.find(contact).isEmpty()) {
+            throw ApiException.referenceNotFound("contactId");
+        }
+        w.attachTo(contact, location, equipmentId);
+    }
+
     private static void validatePeriod(LocalDate start, LocalDate end) {
         if (start == null || end == null) {
             throw ApiException.badRequest("VALIDATION_ERROR", "startDate and endDate are required");
@@ -225,10 +317,11 @@ public class WarrantyService implements Warranties {
     }
 
     public record WarrantyData(String title, String provider, String status, String note, LocalDate startDate,
-            LocalDate endDate, UUID projectId, UUID jobId, Set<UUID> tagIds, List<UUID> documentFileIds) {
+            LocalDate endDate, UUID projectId, UUID jobId, Set<UUID> tagIds, List<UUID> documentFileIds,
+            UUID contactId, UUID locationId, UUID equipmentId, Integer reminderDays) {
     }
 
     public record WarrantyFilter(UUID projectId, UUID jobId, String status, String provider, LocalDate endingBefore,
-            String q) {
+            String q, UUID contactId, UUID equipmentId) {
     }
 }

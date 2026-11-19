@@ -15,6 +15,9 @@ public interface WorkspaceMembers {
 
     Map<UUID, MemberSummary> findAll(Collection<UUID> userIds);
 
+    /** Active owners and admins of the active workspace (recipients of workspace-level reminders). */
+    java.util.Set<UUID> managers();
+
     record MemberSummary(UUID userId, String firstName, String lastName, String email, String role) {
         public String fullName() {
             return firstName + " " + lastName;

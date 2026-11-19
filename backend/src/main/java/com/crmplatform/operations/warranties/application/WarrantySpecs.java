@@ -24,6 +24,12 @@ final class WarrantySpecs {
             if (f.jobId() != null) {
                 p.add(cb.equal(root.get("jobId"), f.jobId()));
             }
+            if (f.contactId() != null) {
+                p.add(cb.equal(root.get("contactId"), f.contactId()));
+            }
+            if (f.equipmentId() != null) {
+                p.add(cb.equal(root.get("equipmentId"), f.equipmentId()));
+            }
             if (f.status() != null) {
                 p.add(cb.equal(root.get("status"), Warranty.Status.valueOf(f.status())));
             }
