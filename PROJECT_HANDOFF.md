@@ -27,8 +27,9 @@
 | R6 Equipment, warranties, preventive maintenance, SLA | ✅ complete (2026-11-19, `17ed30a`) |
 | R7 Subscriptions & Platform Admin | ✅ complete (2026-11-19, `c9d34e0`) |
 | R8 Finance alignment | ✅ complete (2026-11-19, `f8c850a`) |
-| R9 Frontend foundation | ⏭ next (not started) |
-| R10–R13 | ⚪ not started |
+| R9 Frontend foundation | ✅ complete (2026-11-19, `a06072d`) |
+| R10 Frontend workflows | ⏭ next (not started) |
+| R11–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -130,10 +131,18 @@
 - `finance/transactions/application/OutstandingBalances` + `GET /api/v1/accounting/outstanding?page&size` (finance:read): per customer contract (project budgets + standalone job budgets) − received > 0, largest first; `pageRemaining`, `lastPaymentDate`.
 - Tests: `finance/FinanceAlignmentIT` (1, hand-computed figures).
 
-## 5. Current phase & exact next steps — R9 Frontend foundation
-Not started. `PRODUCT_AUDIT.md` R9 row: new `frontend/` — React + Vite + TypeScript 5.9 + Tailwind + shadcn/ui only (never hand-built components), Arabic-first RTL shell, auth, i18n (ar default, en), layout, core CRUD; Playwright ar/en + RTL/LTR snapshots, bundle budget. Portable Node 24 + pnpm at `D:\Workspace\tools` (system Node 18 is too old).
+## 4j. Completed — R9 Frontend foundation — commit `a06072d`
+- `frontend/` (see `frontend/README.md`): Vite 8, React 19, TypeScript ~5.9 (template pulled 7.0 — pinned to the approved 5.9), Tailwind 4, shadcn/ui (`components.json`: radix-nova, `rtl: true`; add components only via `pnpm dlx shadcn@latest add`), TanStack Query, React Router 8, i18next, react-hook-form + zod 4, IBM Plex Sans Arabic font.
+- `src/i18n` (ar default, en; `<html lang dir>` synced; `localStorage` key `ui-language`), `src/lib/api.ts` (fetch wrapper: Bearer in memory, `Accept-Language`, `X-Requested-With`, one-shot refresh on 401, Problem Details → `ApiError`), `src/auth` (AuthProvider restores session via `/auth/refresh`), `src/components/layout` (AppShell with shadcn Sidebar on the right in RTL, LanguageSwitcher, SubscriptionBanner), pages: login, register (sector), home (subscription status), customers (list/search/paging/create dialog), settings. Nav entries for jobs, visits, maintenance, finance, subscription are present but disabled until R10.
+- Bundle budget: `scripts/check-bundle.mjs` runs in `pnpm build` (each JS chunk ≤ 200 kB gzip, total ≤ 350 kB); now 222.7 kB total. Vendor chunks via `build.rolldownOptions.output.codeSplitting`; secondary pages lazy.
+- Tests: `pnpm test:e2e` — Playwright vs `vite preview` with a mocked API (`e2e/fixtures.ts`): **14 passed, 2 skipped** (sidebar position checks on mobile) — ar/en, RTL/LTR screenshot baselines (`*-win32.png`), login errors, language switch, customers create/search, read-only banner. `pnpm lint` (oxlint): 0 errors.
+- **Not verified:** a live run against the real backend. `docker compose up` works, but the backend could not connect: the existing Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fixing needs the owner (reset the dev volume or align `.env`) — not done. Containers were stopped again (`docker compose stop`).
+
+## 5. Current phase & exact next steps — R10 Frontend workflows
+Not started. `PRODUCT_AUDIT.md` R10 row: dashboards, customers/sites, work orders, calendar, technician mobile flow, finance, subscription & admin screens, sector onboarding; scenario tests. Build on the R9 patterns (page folder with `api.ts` hooks + shadcn components, extend `e2e/fixtures.ts` for new endpoints, enable the nav entries in `AppShell.tsx`).
 
 ## 6. Tests (actual results)
+- 2026-11-19, frontend @ `a06072d`: `pnpm build` OK (budget 222.7 kB gzip), `pnpm lint` 0 errors, `pnpm test:e2e` 14 passed / 2 skipped. Backend unchanged since `f8c850a` (124 tests green).
 - 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `c9d34e0` (R7): **123 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `17ed30a` (R6): **120 tests, 0 failures, 0 errors, 0 skipped**.
@@ -181,6 +190,8 @@ Not started. `PRODUCT_AUDIT.md` R9 row: new `frontend/` — React + Vite + TypeS
 | `c9d34e0` | feat(billing): subscriptions with manual payments, read-only expiry and plan limits |
 | `936a3be` | docs: update handoff - R7 billing complete |
 | `f8c850a` | feat(finance): project-level payments and outstanding balances |
+| `4111550` | docs: update handoff - R8 finance alignment complete |
+| `a06072d` | feat(frontend): Arabic-first RTL shell, auth, i18n and customers screen |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
