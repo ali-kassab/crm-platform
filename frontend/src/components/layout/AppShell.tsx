@@ -52,13 +52,13 @@ export function AppShell() {
   const operations: NavItem[] = [
     { to: '/', label: t('nav.home'), icon: Home, ready: true },
     { to: '/customers', label: t('nav.customers'), icon: Users, permission: 'crm:read', ready: true },
-    { to: '/jobs', label: t('nav.jobs'), icon: ClipboardList },
-    { to: '/visits', label: t('nav.visits'), icon: CalendarClock },
+    { to: '/jobs', label: t('nav.jobs'), icon: ClipboardList, ready: true },
+    { to: '/visits', label: t('nav.visits'), icon: CalendarClock, ready: true },
     { to: '/maintenance', label: t('nav.maintenance'), icon: Wrench, permission: 'ops:read' },
-    { to: '/finance', label: t('nav.finance'), icon: Wallet, permission: 'finance:read' },
+    { to: '/finance', label: t('nav.finance'), icon: Wallet, permission: 'finance:read', ready: true },
   ]
   const account: NavItem[] = [
-    { to: '/subscription', label: t('nav.subscription'), icon: CreditCard },
+    { to: '/subscription', label: t('nav.subscription'), icon: CreditCard, ready: true },
     { to: '/settings', label: t('nav.settings'), icon: Settings, ready: true },
   ]
   const visible = (items: NavItem[]) => items.filter((i) => !i.permission || can(i.permission))

@@ -11,6 +11,11 @@ import { HomePage } from '@/pages/HomePage'
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const CustomersPage = lazy(() => import('@/pages/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const JobsPage = lazy(() => import('@/pages/jobs/JobsPage').then((m) => ({ default: m.JobsPage })))
+const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage').then((m) => ({ default: m.JobDetailPage })))
+const VisitsPage = lazy(() => import('@/pages/visits/VisitsPage').then((m) => ({ default: m.VisitsPage })))
+const FinancePage = lazy(() => import('@/pages/finance/FinancePage').then((m) => ({ default: m.FinancePage })))
+const SubscriptionPage = lazy(() => import('@/pages/subscription/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage })))
 
 function FullPageSpinner() {
   return (
@@ -52,6 +57,11 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="customers" element={<CustomersPage />} />
+          <Route path="jobs" element={<JobsPage />} />
+          <Route path="jobs/:id" element={<JobDetailPage />} />
+          <Route path="visits" element={<VisitsPage />} />
+          <Route path="finance" element={<FinancePage />} />
+          <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
