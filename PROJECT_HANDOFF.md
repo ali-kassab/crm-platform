@@ -20,8 +20,9 @@
 | Backend modules shared, identity, files, milestones, crm, work, operations, finance | ✅ implemented + tested (pre-pivot) |
 | R0 Security & foundations | ✅ complete (2026-11-19) |
 | R1 Localization & workspace settings (backend) | ✅ complete (2026-11-19, `2f8fab6`) |
-| R2 Customers | ⏭ next (not started) |
-| R3–R13 | ⚪ not started |
+| R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
+| R3 Work orders, visits, technician role | ⏭ next (not started) |
+| R4–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -62,17 +63,26 @@
 - **Rule for new code:** every new `ApiException` message needs a line in `error-texts_ar.tsv` and every new code an `error.<CODE>` key — the coverage test enforces it.
 - Known gaps: messages built at runtime (e.g. `field + " is required"`) show the per-code Arabic fallback; Arabic workspace names produce an ASCII slug like `workspace-…`; Arabic letter normalisation in search (أ/ا/إ, ى/ي, ة/ه) is not handled yet.
 
-## 5. Current phase & exact next steps — R2 Customers
-Not started. Planned order:
-1. Flyway `V11`: contacts `kind` (`INDIVIDUAL` / `COMPANY`, default `INDIVIDUAL`); `email` nullable, unique only when present; require at least one of phone/mobile/email; company customers may have no last name (name rules per kind).
-2. Arabic-aware search: normalise أ/إ/آ→ا, ى→ي, ة→ه and strip tashkeel on both the query and the searched columns (generated/normalised columns or a SQL function + index), for contacts, locations, projects, jobs.
-3. Customer history endpoint `GET /api/v1/contacts/{id}/history` (projects, jobs, warranties, transactions summary, notes — paginated or capped).
-4. Keep LEAD/PROSPECT; PARTNER stays in the API (hide in UI later).
-5. Tests: phone-only customer, company customer, Arabic search variants, history, isolation.
-Then R3 work orders / visits / technician role (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
+## 4c. Completed — R2 Customers — commit `88d9473`
+- Flyway `V11__customers_and_arabic_search.sql`: `contacts.kind` (`INDIVIDUAL`/`COMPANY`), `email`, `first_name`, `last_name` nullable; checks `ck_contacts_kind_name` (individual → first name, company → company) and `ck_contacts_reachable` (≥ 1 of email/phone/mobile/work_phone); SQL function `app_search_norm(text)`.
+- `crm/contacts`: `Contact.Kind`, `personName()`, `fullName()` = company name for companies; `ContactService.requireIdentity` (field errors `name.first` / `company` / `phone`); email null clears it; `GET /contacts?kind=`; `kind` in request/response.
+- Search: `shared/web/SearchText` (Java twin of `app_search_norm`), `Pagination.likePattern` normalises the query; `shared/persistence/SearchFunctionContributor` (registered in `META-INF/services/org.hibernate.boot.model.FunctionContributor`) so JPQL uses `app_search_norm(x) like :q`; all Specs use `SearchText.column(cb, …)`. **Rule:** new searches must compare `app_search_norm(column)` with `Pagination.likePattern(q)`.
+- New module **`reporting`** (top of the dependency graph, read-only): `application/CustomerHistoryService`, `web/CustomerHistoryController` → `GET /api/v1/contacts/{id}/history` (crm:read; money only with finance:read). New public APIs: `work.Projects.ofContact`, `operations.Jobs.ofProjects` (+`JobOverview`), `operations.Warranties` (implemented by `WarrantyService`), `finance.Accounting` (implemented by `AccountingService`).
+- Tests: `crm/CustomersIT` (5, incl. Java↔SQL normalisation parity); `ContactsIT`, `LocalizationIT` adjusted.
+- Not done: no trigram index for `%…%` searches yet (fine for current volumes; measure in R13).
+
+## 5. Current phase & exact next steps — R3 Work orders, visits, technician role
+Not started. Planned order (extend `operations.jobs.Job`, do not duplicate it — D1, D2, D8):
+1. Flyway `V12`: `jobs.project_id` nullable; add `contact_id`, `location_id` (required for standalone jobs; derived from the project for project jobs), `type` (`INSTALLATION`, `PREVENTIVE_MAINTENANCE`, `CORRECTIVE_REPAIR`, `INSPECTION`), `status` (`NEW`, `SCHEDULED`, `IN_PROGRESS`, `ON_HOLD`, `COMPLETED`, `CANCELLED`), `priority` (`LOW`, `NORMAL`, `HIGH`, `URGENT`), `reported_issue`, `internal_notes`, `actual_start_at`, `completed_at`; budget optional (default 0); job assignees as workspace users so a job needs no project team.
+2. `job_visits` (D1): job, scheduled start/end (timestamptz), assigned user(s), status (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `MISSED`, `CANCELLED`), actual start/end, outcome, notes, `rescheduled_from_id`; idempotent daily job marks past, never-started visits `MISSED`.
+3. Roles (D8): `TECHNICIAN` (sees and updates only jobs/visits assigned to them; can upload and report) and `FINANCE`; server-side scoping in queries.
+4. API: `/jobs` extended (filters type/status/priority/assignee/contact/location/date), standalone job creation, status transitions; `/jobs/{id}/visits`; `/visits?assignee=me&from&to&status` (calendar, upcoming, overdue, missed); `POST /visits/{id}/start|complete|reschedule|cancel`.
+5. Finance: allow transactions on standalone jobs (`transactions.project_id` nullable, contact from the job) and keep rollups correct.
+6. Tests: independent technician end-to-end (one-user workspace), company with technicians, technician isolation, visit lifecycle, missed-visit job idempotency, project jobs unchanged.
+Then R4 visit reports, photo purposes, materials, approvals (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
 
 ## 6. Tests (actual results)
-- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `2f8fab6`: **102 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
+- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `88d9473`: **107 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
 - S4 no subscription enforcement (R7). S5 no technician scoping (R3). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
@@ -100,7 +110,9 @@ Then R3 work orders / visits / technician role (roadmap: `D:\Workspace\Java CRM\
 | `b4f2299` | perf: gzip responses and remove per-row queries from project lookups |
 | `0d575bf` | docs: update handoff - R0 security and foundations complete |
 | `2f8fab6` | feat(i18n): Arabic-first workspace settings, user language and localized errors |
-| (next commit) | docs: update handoff - R1 complete |
+| `19a7e3e` | docs: update handoff - R1 localization complete |
+| `88d9473` | feat(crm): individual and company customers, Arabic-aware search, customer history |
+| (next commit) | docs: update handoff - R2 complete |
 
 ## 11. Uncommitted / unpushed
 - None after the handoff commit. `main` is untouched at `163d49c`.
