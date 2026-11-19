@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20 after completing R11 (realtime). State verified with git and fresh test runs on that date. Everything marked UNVERIFIED could not be checked._
+_Updated 2026-11-20: R11 complete (`0c4f936`), R11 browser tests and the skills policy added afterwards. State verified with git and fresh test runs on that date. Everything marked UNVERIFIED could not be checked._
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -11,6 +11,16 @@ _Updated 2026-11-20 after completing R11 (realtime). State verified with git and
 1. `D:\Workspace\crm-platform\PROJECT_HANDOFF.md` — permanent project reference (status per phase, files, APIs, decisions, constraints §12). **Read it fully first.**
 2. This file — exact continuation steps.
 3. Only when needed: the documents in §3.
+4. **Then follow the skills policy below before any implementation.**
+
+## 2b. Installed Skills and Mandatory Usage Policy (summary — full rule: `PROJECT_HANDOFF.md` §0b)
+Every new session MUST follow this; `PROJECT_HANDOFF.md` §0b is the source of truth and the two files must stay consistent.
+- Installed globally: `frontend-design`, `webapp-testing`, `vercel-react-best-practices`, `spring-data-jpa`, `flyway-migrations`, `multi-tenancy`.
+- At session start: discover the skills this session lists, load each relevant one (Skill tool) to confirm it can be read, and read its instructions before related work.
+- Use per task: frontend UI/UX → `frontend-design`; React implementation/optimization → `vercel-react-best-practices`; browser/e2e testing → `webapp-testing`; JPA entities/repositories/queries → `spring-data-jpa`; schema changes/migrations → `flyway-migrations`; tenant isolation/tenant-aware persistence → `multi-tenancy`.
+- Project architecture, security, approved decisions and conventions always override a skill's generic advice (e.g. TypeScript Playwright, not the skill's Python scripts; existing `TenantContext` model; additive Flyway, next `V18`).
+- Never claim a skill was used unless it was actually discovered and read. If one is unavailable, report it and proceed cautiously with project conventions. Never install, update or replace skills without the owner's permission.
+- Last verified 2026-11-20: all six readable; Python Playwright (for `webapp-testing` helper scripts) is not installed.
 
 ## 3. Governing documents and authorized paths
 | Document | Path | Status |
@@ -28,7 +38,7 @@ _Updated 2026-11-20 after completing R11 (realtime). State verified with git and
 If a requirement is not covered by these, ask the owner instead of guessing.
 
 ## 4. Git state (2026-11-20)
-- Branch: **`feature/saas-foundation`**. Last commits: `0c4f936` "feat(realtime): live hints via NestJS, Redis pub/sub and one-time socket tickets", then the docs commit "docs: update handoff - R11 realtime complete" (HEAD). Both pushed to `origin/feature/saas-foundation`.
+- Branch: **`feature/saas-foundation`**. Last commits: `0c4f936` feat(realtime) → `fac6486` docs (R11 handoff) → `40e5da3` test(frontend) realtime browser tests → docs commit "docs: skills usage policy and R11 browser test results in handoffs" (HEAD). All pushed to `origin/feature/saas-foundation`.
 - Remote: `origin` = `https://github.com/ali-kassab/crm-platform.git`.
 - `origin/main` = **`7ae560a`** (PR #3, merged by the owner; contains R0–R10, **not R11**). Local `main` is stale at `163d49c`. **Do not touch `main` in any way**; opening/merging a PR for R11 is the owner's decision.
 - Git identity (local config): `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution lines.
@@ -56,7 +66,7 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 **Tests actually run for R11 (2026-11-20, on the committed tree):**
 - `backend`: `./mvnw test` → **127 tests, 0 failures, 0 errors, 0 skipped with the JVM on UTC (`-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"`); the same run in the default zone right after local midnight had 2 date-boundary failures (`BillingIT.trialThenManualPaymentApprovedByThePlatformAdmin`, `OperationsIT.expiryFlipsOnlyActiveWarrantiesPastTheirEnd`) unrelated to R11 — see §7** (includes `RealtimeIT` 3/3, `ModularityTests`, `LayeringRulesTest`).
 - `realtime-service`: `pnpm test` → **6 tests, 6 pass, 0 fail**.
-- `frontend`: `pnpm lint` → 0 errors (pre-existing warnings only); `pnpm build` → OK, **254.3 kB gzip** (limit 350; lazy `realtime` chunk 12.5 kB); `pnpm test:e2e` → **22 passed, 2 skipped** (mocked API; ticket endpoint answers 404 there, so it also proves the app works without realtime).
+- `frontend`: `pnpm lint` → 0 errors (pre-existing warnings only); `pnpm build` → OK, **254.3 kB gzip** (limit 350; lazy `realtime` chunk 12.5 kB); `pnpm test:e2e` → **28 passed, 2 skipped** (mocked API; includes `e2e/realtime.spec.ts` — 3 realtime scenarios × desktop/mobile against a fake Socket.IO server: handshake ticket never in the URL, hint → refetch, reconnect → fresh ticket + refetch, no service → no socket, sign-out closes the socket).
 - UNVERIFIED: any live end-to-end run (browser + backend + Redis + realtime-service) — never done (§8 item 2).
 
 ## 6. What R11 delivered (details in `PROJECT_HANDOFF.md` 4l)
@@ -97,7 +107,7 @@ Always requires the owner's explicit approval: database/volume resets or data de
 cd /d/Workspace/crm-platform
 git branch --show-current          # expect: feature/saas-foundation
 git status --short                 # expect: nothing
-git log --oneline -2               # expect: the R11 docs commit, then 0c4f936
+git log --oneline -2               # expect: the skills-policy docs commit, then 40e5da3
 git fetch origin && git status -sb # expect: in sync with origin/feature/saas-foundation
 ```
 Toolchain: Docker Desktop must be running for backend tests (Testcontainers). If Docker crashes on stale sockets, run `D:\Workspace\tools\fix-docker-sockets.ps1`. Node 24 + pnpm:

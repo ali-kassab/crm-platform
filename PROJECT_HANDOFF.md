@@ -10,6 +10,29 @@
 - Authorized documents in the old folder (read-only, documentation only): `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` (Phase 1–2 audit, roadmap R0–R13 in §15, decisions D1–D16 in §16), and for history only `D:\Workspace\Java CRM\PROJECT_PROGRESS.md` (pre-pivot, outdated), `VERSION_MATRIX.md`, `improved plan.md`. The old `D:\Workspace\Java CRM\SESSION_HANDOFF.md` is **superseded** by `D:\Workspace\crm-platform\SESSION_HANDOFF.md`.
 - **Never read** legacy application source code: `D:\Workspace\Java CRM\crm\` and `D:\Workspace\Java CRM\analysis\` (clean-room rule; also blocked in `D:\Workspace\Java CRM\.claude\settings.json`).
 
+## 0b. Installed Skills and Mandatory Usage Policy
+Permanent rule set by the owner on 2026-11-20. **This file is the source of truth for the policy**; `SESSION_HANDOFF.md` summarizes it and must stay consistent with it.
+
+1. **Globally installed Claude Code skills** (in `C:\Users\MediaTech\.claude\skills\`): `frontend-design`, `webapp-testing`, `vercel-react-best-practices`, `spring-data-jpa`, `flyway-migrations`, `multi-tenancy`.
+2. **At the start of every new Claude Code session:** discover which skills the session actually lists; verify each relevant skill can be loaded and read (invoke it with the Skill tool); read its instructions **before** starting work in its area.
+3. **Mandatory skill per task type:**
+
+   | Task | Skill |
+   |---|---|
+   | Frontend UI/UX (design, layout, usability, responsive behaviour, visual consistency) | `frontend-design` |
+   | React implementation and optimization (architecture, rendering, bundle, performance) | `vercel-react-best-practices` |
+   | Browser and end-to-end testing of real user workflows | `webapp-testing` |
+   | JPA entities, repositories, relationships, queries, persistence performance | `spring-data-jpa` |
+   | Database schema changes and Flyway migrations | `flyway-migrations` |
+   | Tenant isolation and tenant-aware persistence/access | `multi-tenancy` |
+
+4. **Skills are guidance; the project wins.** This project's architecture, security requirements, approved decisions (D1–D16, ADRs incl. ADR-0015) and existing conventions (§12) always take priority over a skill's generic advice. Examples of known conflicts, resolved in favour of the project: the project uses Node/TypeScript Playwright (`frontend/e2e`, `pnpm test:e2e`), not the Python Playwright scripts `webapp-testing` suggests; entities follow the existing `TenantEntity`/constructor-injection/ArchUnit conventions rather than the skill's Lombok template; tenancy is the existing shared-schema `TenantContext`/`TenantWork` fail-closed model; Flyway migrations stay additive and sequential (next `V18`).
+5. **Never claim a skill was used unless its instructions were actually discovered and read in that session.**
+6. **If a relevant skill is unavailable** (not listed, fails to load), report it to the owner and continue cautiously using the documented project conventions.
+7. **Do not install, update or replace skills** automatically — only with the owner's explicit permission.
+
+Verification log: 2026-11-20 — all six skills discovered and read in-session. Note: `webapp-testing`'s helper scripts need Python Playwright, which is **not installed** (`py` = Python 3.13.7 without the `playwright` package); its method was applied with the project's existing TypeScript Playwright instead (no new dependency).
+
 ## 1. Identity & directives
 - Product: Arabic-first (RTL, English secondary) multi-tenant SaaS for **Fit-Out & Contracting**, **CCTV/Security/Access Control**, **Maintenance & Field Service** — Egypt first; must serve an independent technician (one-user workspace) up to companies.
 - Governing documents:
@@ -163,7 +186,7 @@ Design: `docs/adr/0015-realtime-nestjs-redis-tickets.md`, **approved by the owne
 - **realtime-service/** (NestJS 12, socket.io 4, ioredis, TS 5.9) — see `realtime-service/README.md`. Socket path `/realtime/socket.io`; ticket consumed with atomic `GETDEL` (format-checked before Redis is queried; claims must be UUIDs); rooms `ws:<workspaceId>` and `user:<userId>:<workspaceId>` only; every message from the channel is shape-validated and anything else dropped; `GET /health`. Env `PORT` (3001), `REDIS_URL`, `REALTIME_CHANNEL`, `ALLOWED_ORIGINS`.
 - **Frontend** — `src/lib/realtime.ts` `useRealtime(userId, workspaceId)`, called from `AppShell`: fetches a ticket first and only then lazy-loads `socket.io-client` (separate `realtime` chunk, not on the critical path); every (re)connect uses a fresh ticket; ticket/socket failures retry with backoff 5 s → 5 min, the app stays on plain REST; on `notification` invalidates `['notifications']`; on `changed` invalidates (batched 250 ms) `['jobs']`, `['visits']`, `['outstanding']`, `['job', jobId]` (and `['job', entityId]` for JOB), or `['board', boardId]` for BOARD; **after every reconnect invalidates all queries** to catch up on missed hints; socket closed on sign-out / workspace change. `/realtime` ws dev proxy in `vite.config.ts`.
 - R11 acceptance (from `PRODUCT_AUDIT.md`): live job/visit/notification updates ✅; board updates ✅ relayed (no board screen exists in the frontend yet — the `['board', id]` key is the convention for when it does); cross-tenant isolation ✅ (`gateway.spec.ts` room isolation incl. same user in two workspaces; `RealtimeIT` workspace id in each hint); dedup on redelivery — **not applicable** (pub/sub, approved); switch-off ✅ (`REALTIME_ENABLED=false` stops publishing; frontend works without the service — e2e runs with the ticket endpoint returning 404).
-- Tests: `realtime/RealtimeIT` (3: id-only job/notification hints, rejected change publishes nothing; ticket random/TTL/claims, 401 without auth; board hint has board id + type, no title); `realtime-service` `pnpm test` (6: ticket rejection + single use, room isolation, garbage dropped, health; Redis ticket store: single use, malformed tickets never reach Redis, non-UUID claims rejected).
+- Tests: `realtime/RealtimeIT` (3: id-only job/notification hints, rejected change publishes nothing; ticket random/TTL/claims, 401 without auth; board hint has board id + type, no title); `realtime-service` `pnpm test` (6: ticket rejection + single use, room isolation, garbage dropped, health; Redis ticket store: single use, malformed tickets never reach Redis, non-UUID claims rejected); browser tests `frontend/e2e/realtime.spec.ts` (3 × desktop + mobile, fake Socket.IO server via `page.routeWebSocket`: ticket only in the handshake auth and never in the URL, a JOB hint refetches the work-order list, a BOARD hint does not, a dropped connection reconnects with a NEW ticket and refetches the screen; no realtime service → no socket and the app works; sign-out closes the socket). Mutation-checked: disabling the `changed` handler makes the hint test fail.
 - **Not done:** no live run of browser + Java + Redis + NestJS together (local DB password issue, §7); Dockerfile/docker-compose entry for `realtime-service` (R13); no frontend notifications list/badge yet (the `['notifications']` key is ready); a socket that is already open is not closed when the user is removed from the workspace elsewhere (it only receives ids; accepted, documented in the README).
 
 ## 5. Current phase & next steps
@@ -175,6 +198,7 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 3. After R12: tests → commit → push → update both handoff files; then R13.
 
 ## 6. Tests (actual results)
+- 2026-11-20, R11 browser tests added on top of `fac6486`: frontend `pnpm lint` 0 errors, `pnpm build` OK (254.3 kB gzip), `pnpm test:e2e` **28 passed, 2 skipped** (22 earlier + 6 in `e2e/realtime.spec.ts`); `realtime-service` `pnpm test` **6/6**; backend (`-Duser.timezone=UTC`) `RealtimeIT` 3/3, `TenantIsolationIT` 4/4, `ModularityTests` 2/2, `LayeringRulesTest` 5/5 — all green (full suite not re-run: no backend change since the 127-test run). Committed as `40e5da3`. No backend or realtime-service source changed.
 - 2026-11-20, R11 final tree (committed as `0c4f936`): `./mvnw test` **127 tests, 0 failures, 0 errors, 0 skipped with the JVM on UTC (`-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"`); the same run in the default zone right after local midnight had 2 date-boundary failures (`BillingIT.trialThenManualPaymentApprovedByThePlatformAdmin`, `OperationsIT.expiryFlipsOnlyActiveWarrantiesPastTheirEnd`) unrelated to R11 — see §7**; `RealtimeIT` alone **3/3 passed**; `realtime-service` `pnpm test` **6/6 passed**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK (**254.3 kB gzip** total, limit 350; `realtime` chunk 12.5 kB, lazy, not preloaded), `pnpm test:e2e` **22 passed, 2 skipped**.
 - 2026-11-19 (audit pass), R11 uncommitted tree on top of `dc393ca`: `./mvnw test` **126 tests, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **3/3 passed**; frontend `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip), `pnpm test:e2e` **22 passed, 2 skipped**.
 - 2026-11-19, R11 (uncommitted tree, earlier): `RealtimeIT` alone **2/2 passed**; `realtime-service` `pnpm test` **3/3 passed**.
@@ -247,7 +271,9 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 | `dc393ca` | docs: update handoff - R10 core screens complete |
 | `7ae560a` | (on `origin/main` only) Merge pull request #3 — merged by the owner on GitHub |
 | `0c4f936` | feat(realtime): live hints via NestJS, Redis pub/sub and one-time socket tickets |
-| (next) | docs: update handoff - R11 realtime complete (**HEAD**, pushed) — adds this file's update and `SESSION_HANDOFF.md` |
+| `fac6486` | docs: update handoff - R11 realtime complete |
+| `40e5da3` | test(frontend): browser tests for the realtime hook against a fake Socket.IO server |
+| (next) | docs: skills usage policy and R11 browser test results in handoffs (**HEAD**, pushed) |
 
 ## 11. Working tree (2026-11-20)
 - Branch `feature/saas-foundation`; after the R11 feature commit and the handoff docs commit, everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `7ae560a` (PR #3; does not contain R11); local `main` stale at `163d49c` — leave it alone.
