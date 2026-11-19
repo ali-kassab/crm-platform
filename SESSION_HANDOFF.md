@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20: R12 (reports & Arabic PDF) complete (`c27961a`); R13 not started. State verified with git and fresh test runs on that date. Everything marked UNVERIFIED could not be checked._
+_Updated 2026-11-20 (checkpoint): R13 IN PROGRESS — part 1 (ops/infra) done and pushed (`39c38bc`, `1fab3fa`); part 2 (R10 frontend leftovers, starting with the blocking "add customer site" gap) in progress — see §6c. The owner authorized continuous execution through the roadmap on 2026-11-20._
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -95,6 +95,17 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 - `GET /api/v1/reports/dashboard?period=WEEK|MONTH|QUARTER|YEAR|ALL` (`reports:read`; money only with `finance:read`) — counts via tenant-filtered JPQL in the workspace time zone.
 - Frontend: lazy dashboard panel on the home page (reports:read only), "Download PDF report" button on visits (job detail + technician's visits).
 - Not done: charts (KPI tiles only), live run against the real backend, visit-report/photo editing UI (R10 leftovers → R13).
+
+## 6c. R13 progress (checkpoint)
+Done and pushed:
+- `39c38bc` fix(api): `?sort=field,desc` was rejected (400 INVALID_SORT) on all 22 list endpoints — Spring splits it into `["field","desc"]`; `Pagination` now applies a bare direction to the previous field. Found by the first LIVE run (mocks hid it). OTLP metrics push off unless `OTLP_METRICS_ENABLED=true`. Test JVM pinned to UTC in `pom.xml` (§7 flake fixed). Backend **134 tests green**.
+- `1fab3fa` build(ops): Dockerfiles (backend/realtime/frontend+nginx), compose `--profile app`, `docker-compose.prod.yml`, CI `.github/workflows/ci.yml` (PRs, main, manual; actionlint clean; **never run on GitHub yet**), Linux screenshot baselines, `ops/backup/{backup,restore}.sh`, `frontend/e2e-live` + `pnpm test:live`, `ops/perf/baseline.js`, `docs/operations/{README,performance-baseline}.md`.
+- Verified on an isolated throwaway compose project `crm-r13-smoke` (own volumes/ports, env in the session scratchpad; the owner's `crm-platform` volumes untouched): images healthy; live browser smoke green; backup→restore identical counts; k6 20 VUs: 0 errors, all p95 ≤ 105 ms.
+- Throwaway stack `crm-r13-smoke` may still be running/left with its volumes: stop with `docker compose -p crm-r13-smoke down` (removing its volumes needs the owner's OK by policy).
+
+In progress / next (R13 part 2, frontend leftovers from `PROJECT_HANDOFF.md` 4k):
+1. **Blocking gap found live:** no UI to add a customer site (`POST /locations`), so a fresh workspace cannot create a work order through the UI. Add sites to the customer screen.
+2. Visit report / photos / materials UI; notifications list + badge; maintenance plans + equipment screens; calendar view. Platform-admin UI stays deferred to the final stage (owner decision).
 
 ## 7. Next steps, in execution order
 1. Open the active repo and verify the state matches §4 (commands in §10). If it differs, the repository wins — update the handoffs before doing anything else.
