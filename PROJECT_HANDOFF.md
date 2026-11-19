@@ -23,8 +23,9 @@
 | R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
 | R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
 | R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
-| R5 Notifications (in-app) | ⏭ next (not started) |
-| R6–R13 | ⚪ not started |
+| R5 Notifications (in-app) | ✅ complete (2026-11-19, `20cfa98`) |
+| R6 Equipment, warranties, preventive maintenance, SLA | ⏭ next (not started) |
+| R7–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -90,10 +91,20 @@
 - Finance: `materialsCost` in job/project/customer rollups (`Jobs.materialsCostOf*`), profit = contract − actual cost − materials cost; `finance.Accounting.Totals` and history `Totals` include it.
 - Tests: `operations/FieldEvidenceIT` (2).
 
-## 5. Current phase & exact next steps — R5 Notifications (in-app)
-Not started. Plan: new `notifications` module (table `notifications`: workspace, recipient user, type, payload jsonb, read_at, created_at); listeners via `TenantWork` for existing events (`TaskAssigned`, `ProjectMembersChanged`, `ProjectDeletedNotice`) plus job assignment and visit scheduling; `GET /api/v1/notifications` (mine, unread filter), `POST /notifications/{id}/read`, `POST /notifications/read-all`; Arabic/English text rendered by the client from `type` + payload; strict per-user isolation tests. Then R6 equipment, warranties, preventive maintenance and SLA.
+## 4f. Completed — R5 In-app notifications — commit `20cfa98`
+- Flyway `V14__notifications.sql`: `notifications` (workspace, recipient_user_id, type, entity_type, entity_id, actor_user_id, payload jsonb, read_at + TenantEntity columns); indexes for "mine newest first" and unread.
+- Module `notifications`: `domain/Notification` (enum `Type`: TASK_ASSIGNED, PROJECT_MEMBER_ADDED, PROJECT_MEMBER_REMOVED, PROJECT_MANAGER_ASSIGNED, PROJECT_DELETED, JOB_ASSIGNED, VISIT_SCHEDULED, VISIT_RESCHEDULED), `NotificationRepository` (all queries bound to the recipient; `markAllRead` also filters the workspace explicitly), `application/NotificationService`, `application/NotificationHandlers` (`@TransactionalEventListener` + `TenantWork`), `web/NotificationController`.
+- APIs (any signed-in user, own rows only): `GET /api/v1/notifications?unread=`, `GET /notifications/unread-count`, `POST /notifications/{id}/read` (404 for anyone else's), `POST /notifications/read-all`. Text is rendered by the client from `type` + `payload` (ar/en).
+- New events `operations/OperationsEvents.JobAssigned` (published by `JobService.create/update` for newly added assignees only) and `VisitScheduled` (`VisitService.schedule/reschedule`). `JobService.ensureAssigned` (visit-driven) publishes nothing — the visit notification covers it. The actor is never notified of their own action.
+- `resource.Notification` added to `messages_ar.properties`.
+- Tests: `notifications/NotificationsIT` (3).
+- Not done (by design for now): no retention/cleanup of old notifications, no e-mail/push delivery, no realtime push (R11).
+
+## 5. Current phase & exact next steps — R6 Equipment, warranties, preventive maintenance, SLA
+Not started. Per `PRODUCT_AUDIT.md` roadmap R6 (line ~206): equipment register; warranty links/reminders (warranty `contact_id`/`location_id`/`equipment_id`); preventive-maintenance plans with idempotent generation (`maintenance_plans`, `maintenance_occurrences` UNIQUE(plan, due_date)); SLA response tracking. APIs `/equipment`, `/maintenance-plans`. Acceptance: generator run twice ⇒ one job; overdue listing; reminder sent once. Additive migration only; next is `V15`. Schedulers use ShedLock + `TenantWork.callAsSystem` / `TenantWork.run`.
 
 ## 6. Tests (actual results)
+- 2026-11-19, `./mvnw test` @ `20cfa98` (R5): **117 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
@@ -129,7 +140,9 @@ Not started. Plan: new `notifications` module (table `notifications`: workspace,
 | `7438edf` | feat(operations): work orders, visits and technician scoping |
 | `eefd676` | docs: update handoff - R3 work orders complete |
 | `376987b` | feat(operations): visit reports, photo purposes and thumbnails, materials, approvals |
-| (next commit) | docs: update handoff - R4 complete |
+| `271797b` | docs: update handoff - R4 field evidence complete |
+| `20cfa98` | feat(notifications): in-app notifications for assignments, visits and project teams |
+| (this commit) | docs: update handoff - R5 notifications complete |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
