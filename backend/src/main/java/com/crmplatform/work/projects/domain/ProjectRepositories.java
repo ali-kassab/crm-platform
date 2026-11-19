@@ -18,6 +18,9 @@ public final class ProjectRepositories {
 
         boolean existsByLocationId(UUID locationId);
 
+        @Query("select coalesce(sum(p.budget), 0) from Project p where p.contactId = :contactId")
+        java.math.BigDecimal budgetTotalOfContact(UUID contactId);
+
         @Query("select p from Project p join p.tagIds t where t = :tagId")
         List<Project> findByTag(UUID tagId);
     }

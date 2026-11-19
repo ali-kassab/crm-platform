@@ -365,6 +365,12 @@ public class ProjectService implements Projects {
         publishTags(projectId, Set.of(), removed);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal budgetTotalOfContact(UUID contactId) {
+        return projects.budgetTotalOfContact(contactId);
+    }
+
     @Transactional
     public void detachTag(UUID tagId) {
         projects.findByTag(tagId).forEach(p -> {

@@ -29,6 +29,9 @@ public interface Projects {
 
     void removeTags(UUID projectId, Set<UUID> tagIds);
 
+    /** Σ budgets of the contact's active projects; zero when it has none (BR-094 contact contract). */
+    BigDecimal budgetTotalOfContact(UUID contactId);
+
     record ProjectSummary(UUID id, String name, String type, BigDecimal budget, UUID locationId, UUID contactId,
             UUID managerUserId, LocalDate startDate, LocalDate estimatedEndDate) {
     }
