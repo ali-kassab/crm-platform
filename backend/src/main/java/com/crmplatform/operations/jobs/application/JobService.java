@@ -7,6 +7,7 @@ import com.crmplatform.files.Files;
 import com.crmplatform.files.Files.FileSummary;
 import com.crmplatform.identity.WorkspaceMembers;
 import com.crmplatform.operations.Jobs;
+import com.crmplatform.operations.OperationsEvents.JobAssigned;
 import com.crmplatform.operations.jobs.domain.Job;
 import com.crmplatform.operations.jobs.domain.JobRepository;
 import com.crmplatform.shared.error.ApiException;
@@ -132,6 +133,7 @@ public class JobService implements JobDirectory, Jobs {
         files.attach(d.documentFileIds(), FileKind.DOCUMENT, OWNER, saved.getId(), "documentFileIds");
         boards.createBoard(OwnerType.JOB, saved.getId(), saved.getTitle() + " board", d.boardTemplateId()); // BR-062
         publishTags(saved.getId(), tags, Set.of());
+        notifyAssigned(saved, Set.of());
         audit.created("JOB", saved.getId(), saved.getProjectId(), saved.getId(), snapshot(saved));
         return saved;
     }
@@ -142,6 +144,7 @@ public class JobService implements JobDirectory, Jobs {
         JobData d = patch.value();
         Map<String, Object> before = snapshot(job);
         Set<UUID> previousTags = job.getTagIds();
+        Set<UUID> previousAssignees = Set.copyOf(job.getAssigneeUserIds());
 
         patch.ifPresent("title", d.title(), v -> job.setTitle(required(v, "title")));
         patch.ifPresent("description", d.description(), job::setDescription);
@@ -202,6 +205,7 @@ public class JobService implements JobDirectory, Jobs {
         }
         jobs.saveAndFlush(job);
         publishTags(id, minus(job.getTagIds(), previousTags), minus(previousTags, job.getTagIds()));
+        notifyAssigned(job, previousAssignees);
         audit.updated("JOB", id, job.getProjectId(), id, before, snapshot(job));
         return job;
     }
@@ -245,6 +249,20 @@ public class JobService implements JobDirectory, Jobs {
         Set<UUID> all = new HashSet<>(job.getAssigneeUserIds());
         if (all.addAll(validAssignees(userIds))) {
             job.assign(all);
+        }
+    }
+
+    /** Tells newly assigned technicians (not the person who assigned them) about the work order. */
+    private void notifyAssigned(Job job, Set<UUID> before) {
+        UUID actor = TenantContext.userId().orElse(null);
+        Set<UUID> added = new HashSet<>(job.getAssigneeUserIds());
+        added.removeAll(before);
+        if (actor != null) {
+            added.remove(actor);
+        }
+        if (!added.isEmpty()) {
+            events.publishEvent(new JobAssigned(TenantContext.requireWorkspaceId(), job.getId(), job.getTitle(), actor,
+                    added));
         }
     }
 
