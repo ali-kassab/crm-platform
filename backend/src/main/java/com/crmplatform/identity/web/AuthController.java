@@ -52,7 +52,7 @@ public class AuthController {
     @Operation(summary = "Register a user and create their workspace")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest body, HttpServletRequest request) {
         AuthSession session = auth.register(new AuthService.RegisterCommand(body.email(), body.password(),
-                body.firstName(), body.lastName(), body.workspaceName()), client(request));
+                body.firstName(), body.lastName(), body.workspaceName(), body.language(), body.sector()), client(request));
         return withCookie(HttpStatus.CREATED, session);
     }
 

@@ -37,7 +37,8 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException notFound(String resource) {
-        return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", resource + " not found");
+        return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", resource + " not found",
+                Map.of("resource", resource));
     }
 
     public static ApiException badRequest(String code, String message) {

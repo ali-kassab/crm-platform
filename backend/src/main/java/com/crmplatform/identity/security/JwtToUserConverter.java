@@ -55,7 +55,7 @@ class JwtToUserConverter implements Converter<Jwt, AbstractAuthenticationToken> 
             permissions.add(Permissions.PLATFORM_ADMIN);
         }
         AuthenticatedUser user = new AuthenticatedUser(userId, workspaceId, role, Set.copyOf(permissions), superAdmin,
-                jwt.getId(), jwt.getExpiresAt());
+                jwt.getId(), jwt.getExpiresAt(), jwt.getClaimAsString("lng"));
         List<SimpleGrantedAuthority> authorities = permissions.stream().map(SimpleGrantedAuthority::new).toList();
         return new CrmAuthenticationToken(user, jwt, authorities);
     }

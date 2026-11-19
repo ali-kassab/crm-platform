@@ -98,7 +98,12 @@ public class AuthService {
             throw ApiException.conflict("EMAIL_TAKEN", "An account with this email already exists");
         }
         User user = users.save(new User(email, passwordEncoder.encode(cmd.password()), cmd.firstName(), cmd.lastName()));
-        Workspace workspace = workspaces.save(new Workspace(cmd.workspaceName(), uniqueSlug(cmd.workspaceName())));
+        Workspace draft = new Workspace(cmd.workspaceName(), uniqueSlug(cmd.workspaceName()));
+        // Arabic-first defaults (D11); an English sign-up gets English UI with Western digits
+        String language = cmd.language() == null ? Workspace.DEFAULT_LANGUAGE : WorkspaceService.requireLanguage(cmd.language());
+        draft.configure(language, "en".equals(language) ? "en-EG" : Workspace.DEFAULT_LOCALE,
+                Workspace.DEFAULT_CURRENCY, Workspace.DEFAULT_TIME_ZONE, WorkspaceService.parseSector(cmd.sector()));
+        Workspace workspace = workspaces.save(draft);
         Instant now = Instant.now(clock);
         memberships.save(new Membership(workspace.getId(), user.getId(), Role.OWNER, now));
         user.recordLogin(now, workspace.getId());
@@ -156,7 +161,8 @@ public class AuthService {
                         "You are no longer a member of this workspace"));
         Workspace workspace = workspaces.findById(rotation.workspaceId())
                 .orElseThrow(() -> ApiException.unauthorized("INVALID_REFRESH", "Session expired. Please sign in again."));
-        var access = accessTokens.issue(user.getId(), workspace.getId(), membership.getRole(), user.isSuperAdmin());
+        var access = accessTokens.issue(user.getId(), workspace.getId(), membership.getRole(), user.isSuperAdmin(),
+                user.effectiveLanguage(workspace));
         return new AuthSession(access.value(), access.expiresInSeconds(), rotation.next().value(),
                 rotation.next().expiresAt(), user, workspace, membership.getRole(), membership.getRole().permissions());
     }
@@ -205,12 +211,17 @@ public class AuthService {
             String raw = SecureTokens.newToken();
             resetTokens.save(new PasswordResetToken(user.getId(), SecureTokens.hash(raw),
                     now.plus(properties.passwordResetTtl())));
-            String html = templates.render("password-reset", Map.of(
+            // the recipient's language: their preference, else their last workspace's default, else Arabic
+            Workspace lastWorkspace = user.getLastWorkspaceId() == null ? null
+                    : workspaces.findById(user.getLastWorkspaceId()).orElse(null);
+            String language = user.effectiveLanguage(lastWorkspace);
+            String html = templates.render("password-reset", language, Map.of(
                     "firstName", user.getFirstName(),
                     "resetUrl", clientBaseUrl + "/reset-password?token=" + raw,
                     "expiresInMinutes", properties.passwordResetTtl().toMinutes()));
+            String subject = templates.subject("password-reset", language);
             afterCommit(() -> emailSender.send(new EmailSender.EmailMessage(List.of(user.getEmail()),
-                    "Reset your CRM Platform password", html, null)));
+                    subject, html, null)));
         });
     }
 
@@ -254,7 +265,8 @@ public class AuthService {
 
     AuthSession openSession(User user, Workspace workspace, Role role, ClientInfo client) {
         membershipLookup.evict(user.getId(), workspace.getId());
-        var access = accessTokens.issue(user.getId(), workspace.getId(), role, user.isSuperAdmin());
+        var access = accessTokens.issue(user.getId(), workspace.getId(), role, user.isSuperAdmin(),
+                user.effectiveLanguage(workspace));
         var refresh = refreshTokens.issueNewFamily(user.getId(), workspace.getId(), client.userAgent(), client.ip());
         return new AuthSession(access.value(), access.expiresInSeconds(), refresh.value(), refresh.expiresAt(), user,
                 workspace, role, role.permissions());
@@ -284,7 +296,7 @@ public class AuthService {
     }
 
     public record RegisterCommand(String email, String password, String firstName, String lastName,
-            String workspaceName) {
+            String workspaceName, String language, String sector) {
     }
 
     public record ClientInfo(String ip, String userAgent) {

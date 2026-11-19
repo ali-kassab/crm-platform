@@ -32,7 +32,12 @@ public final class IdentityDtos {
             @NotBlank @Size(max = 128) String password,
             @NotBlank @Size(max = 60) String firstName,
             @NotBlank @Size(max = 60) String lastName,
-            @NotBlank @Size(min = 2, max = 80) String workspaceName) {
+            @NotBlank @Size(min = 2, max = 80) String workspaceName,
+            @Pattern(regexp = "^(ar|en)$") String language,
+            @Pattern(regexp = "^(FIT_OUT|SECURITY_SYSTEMS|MAINTENANCE)$") String sector) {
+    }
+
+    public record LanguagePreferenceRequest(@Pattern(regexp = "^(ar|en)$") String language) {
     }
 
     public record LoginRequest(@NotBlank @Email String email, @NotBlank String password, UUID workspaceId) {
@@ -62,7 +67,14 @@ public final class IdentityDtos {
             UUID avatarFileId) {
     }
 
-    public record UpdateWorkspaceRequest(@NotBlank @Size(min = 2, max = 80) String name) {
+    /** Partial update: only fields present in the JSON change (see {@code Patches}). */
+    public record UpdateWorkspaceRequest(
+            @Size(min = 2, max = 80) String name,
+            @Pattern(regexp = "^(ar|en)$") String defaultLanguage,
+            @Size(max = 20) String locale,
+            @Size(min = 3, max = 3) String currency,
+            @Size(max = 60) String timeZone,
+            @Pattern(regexp = "^(FIT_OUT|SECURITY_SYSTEMS|MAINTENANCE)$") String sector) {
     }
 
     public record DeleteWorkspaceRequest(@NotBlank String confirmName) {
@@ -77,24 +89,28 @@ public final class IdentityDtos {
     // ------------------------------------------------------------------ responses
 
     public record UserSummary(UUID id, String email, String firstName, String lastName, String jobTitle, String phone,
-            UUID avatarFileId, boolean superAdmin) {
+            UUID avatarFileId, boolean superAdmin, String preferredLanguage) {
         static UserSummary of(User u) {
             return new UserSummary(u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(), u.getJobTitle(),
-                    u.getPhone(), u.getAvatarFileId(), u.isSuperAdmin());
+                    u.getPhone(), u.getAvatarFileId(), u.isSuperAdmin(), u.getPreferredLanguage());
         }
     }
 
-    public record WorkspaceSummary(UUID id, String name, String slug, String locale, String timeZone) {
+    public record WorkspaceSummary(UUID id, String name, String slug, String defaultLanguage, String locale,
+            String currency, String timeZone, String sector) {
         static WorkspaceSummary of(Workspace w) {
-            return new WorkspaceSummary(w.getId(), w.getName(), w.getSlug(), w.getLocale(), w.getTimeZone());
+            return new WorkspaceSummary(w.getId(), w.getName(), w.getSlug(), w.getDefaultLanguage(), w.getLocale(),
+                    w.getCurrency(), w.getTimeZone(), w.getSector() == null ? null : w.getSector().name());
         }
     }
 
+    /** {@code language} is the UI language for this session: the user's preference, else the workspace's. */
     public record AuthResponse(String accessToken, long expiresIn, UserSummary user, WorkspaceSummary workspace,
-            String role, Set<String> permissions) {
+            String role, Set<String> permissions, String language) {
         static AuthResponse of(AuthSession s) {
             return new AuthResponse(s.accessToken(), s.expiresIn(), UserSummary.of(s.user()),
-                    WorkspaceSummary.of(s.workspace()), s.role().name(), new TreeSet<>(s.permissions()));
+                    WorkspaceSummary.of(s.workspace()), s.role().name(), new TreeSet<>(s.permissions()),
+                    s.user().effectiveLanguage(s.workspace()));
         }
     }
 
