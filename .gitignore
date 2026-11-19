@@ -1,0 +1,44 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Env & secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# Java / Maven
+backend/target/
+!backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.log
+hs_err_pid*
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo
+.pnpm-store/
+
+# Terraform
+infra/terraform/**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+crash.log
+
+# Local data
+.data/
