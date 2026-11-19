@@ -32,6 +32,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { NotificationBell } from '@/pages/notifications/NotificationBell'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { SubscriptionBanner } from './SubscriptionBanner'
 
@@ -130,6 +131,7 @@ export function AppShell() {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
           <div className="flex-1" />
+          <NotificationBell enabled={!!session} />
           <LanguageSwitcher />
           <Avatar className="size-8" title={session?.user.email}>
             <AvatarFallback>{initials}</AvatarFallback>

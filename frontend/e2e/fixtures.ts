@@ -9,6 +9,7 @@ export interface FakeApi {
   jobs: Record<string, unknown>[]
   visits: Record<string, unknown>[]
   paymentRequests: Record<string, unknown>[]
+  notifications: { id: string; type: string; entityType: string | null; entityId: string | null; payload: Record<string, unknown>; read: boolean; createdAt: string }[]
   /** sites per customer id; a customer missing here has the default site s1 */
   sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
@@ -111,6 +112,7 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       visits: [],
       paymentRequests: [],
       sites: {},
+      notifications: [],
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -156,6 +158,27 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
   const page = <T,>(content: T[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
   let m: RegExpMatchArray | null
 
+  if (path === '/notifications/unread-count') {
+    await json(route, 200, { unread: api.notifications.filter((n) => !n.read).length })
+    return true
+  }
+  if (path === '/notifications' && method === 'GET') {
+    const unread = search.get('unread') === 'true'
+    await json(route, 200, page(api.notifications.filter((n) => !unread || !n.read)))
+    return true
+  }
+  if (path === '/notifications/read-all' && method === 'POST') {
+    const updated = api.notifications.filter((n) => !n.read).length
+    api.notifications.forEach((n) => (n.read = true))
+    await json(route, 200, { updated })
+    return true
+  }
+  if ((m = path.match(/^\/notifications\/([^/]+)\/read$/))) {
+    const n = api.notifications.find((x) => x.id === m![1])
+    if (n) n.read = true
+    await json(route, n ? 200 : 404, n ?? { code: 'NOT_FOUND' })
+    return true
+  }
   if (path === '/locations' && method === 'POST') {
     const contactId = String(b.contactId)
     const address = b.address as { city?: string; line1?: string } | undefined

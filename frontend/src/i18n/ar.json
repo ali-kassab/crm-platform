@@ -265,5 +265,42 @@
     "received": "المحصّل في الفترة",
     "paid": "المدفوع في الفترة",
     "outstanding": "مستحق على العملاء"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bellUnread_zero": "الإشعارات",
+    "bellUnread_one": "الإشعارات: إشعار واحد غير مقروء",
+    "bellUnread_two": "الإشعارات: إشعاران غير مقروءين",
+    "bellUnread_few": "الإشعارات: {{count}} إشعارات غير مقروءة",
+    "bellUnread_many": "الإشعارات: {{count}} إشعاراً غير مقروء",
+    "bellUnread_other": "الإشعارات: {{count}} إشعار غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "all": "الكل",
+    "unreadOnly": "غير المقروءة",
+    "none": "لا توجد إشعارات",
+    "noneUnread": "لا توجد إشعارات غير مقروءة",
+    "noneHint": "ستظهر هنا إسنادات العمل ومواعيد الزيارات وتنبيهات الصيانة والاشتراك",
+    "more": "عرض المزيد",
+    "unknown": "إشعار جديد",
+    "types": {
+      "TASK_ASSIGNED": "أُسندت إليك مهمة: {{taskTitle}}",
+      "PROJECT_MEMBER_ADDED": "أُضفت إلى المشروع {{projectName}}",
+      "PROJECT_MEMBER_REMOVED": "أُزلت من المشروع {{projectName}}",
+      "PROJECT_MANAGER_ASSIGNED": "أصبحت مدير المشروع {{projectName}}",
+      "PROJECT_DELETED": "حُذف المشروع {{projectName}}",
+      "JOB_ASSIGNED": "أُسند إليك أمر العمل: {{jobTitle}}",
+      "VISIT_SCHEDULED": "زيارة جديدة لأمر العمل {{jobTitle}} في {{when}}",
+      "VISIT_RESCHEDULED": "تغيّر موعد زيارة {{jobTitle}} إلى {{when}}",
+      "WARRANTY_EXPIRING": "ينتهي الضمان «{{title}}» في {{date}}",
+      "MAINTENANCE_OVERDUE": "صيانة دورية متأخرة: {{planTitle}} (موعدها {{date}})",
+      "MAINTENANCE_PLAN_ENDING": "تنتهي خطة الصيانة {{planTitle}} في {{date}}",
+      "SUBSCRIPTION_ENDING": "ينتهي اشتراكك في {{date}}",
+      "SUBSCRIPTION_GRACE": "انتهى اشتراكك، ولديك مهلة حتى {{date}}",
+      "SUBSCRIPTION_EXPIRED": "انتهى اشتراكك وأصبح الحساب للقراءة فقط",
+      "SUBSCRIPTION_SUSPENDED": "أوقفت إدارة المنصة اشتراكك",
+      "SUBSCRIPTION_ACTIVATED": "تم تفعيل اشتراكك",
+      "SUBSCRIPTION_REQUEST_APPROVED": "تمت الموافقة على طلب التجديد، والاشتراك ساري حتى {{date}}",
+      "SUBSCRIPTION_REQUEST_REJECTED": "رُفض طلب التجديد: {{reason}}"
+    }
   }
 }

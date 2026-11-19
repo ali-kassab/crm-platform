@@ -265,5 +265,38 @@
     "received": "Received in period",
     "paid": "Paid in period",
     "outstanding": "Owed by customers"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread_one": "Notifications: 1 unread",
+    "bellUnread_other": "Notifications: {{count}} unread",
+    "markAllRead": "Mark all as read",
+    "all": "All",
+    "unreadOnly": "Unread",
+    "none": "No notifications",
+    "noneUnread": "No unread notifications",
+    "noneHint": "Work assignments, visit times, maintenance and subscription alerts appear here",
+    "more": "Show more",
+    "unknown": "New notification",
+    "types": {
+      "TASK_ASSIGNED": "You were assigned a task: {{taskTitle}}",
+      "PROJECT_MEMBER_ADDED": "You were added to the project {{projectName}}",
+      "PROJECT_MEMBER_REMOVED": "You were removed from the project {{projectName}}",
+      "PROJECT_MANAGER_ASSIGNED": "You are now the manager of {{projectName}}",
+      "PROJECT_DELETED": "The project {{projectName}} was deleted",
+      "JOB_ASSIGNED": "You were assigned the work order: {{jobTitle}}",
+      "VISIT_SCHEDULED": "New visit for {{jobTitle}} on {{when}}",
+      "VISIT_RESCHEDULED": "Visit for {{jobTitle}} moved to {{when}}",
+      "WARRANTY_EXPIRING": "Warranty \"{{title}}\" ends on {{date}}",
+      "MAINTENANCE_OVERDUE": "Preventive maintenance overdue: {{planTitle}} (due {{date}})",
+      "MAINTENANCE_PLAN_ENDING": "Maintenance plan {{planTitle}} ends on {{date}}",
+      "SUBSCRIPTION_ENDING": "Your subscription ends on {{date}}",
+      "SUBSCRIPTION_GRACE": "Your subscription ended; grace period until {{date}}",
+      "SUBSCRIPTION_EXPIRED": "Your subscription ended and the account is read-only",
+      "SUBSCRIPTION_SUSPENDED": "The platform suspended your subscription",
+      "SUBSCRIPTION_ACTIVATED": "Your subscription is active",
+      "SUBSCRIPTION_REQUEST_APPROVED": "Renewal approved; subscription valid until {{date}}",
+      "SUBSCRIPTION_REQUEST_REJECTED": "Renewal rejected: {{reason}}"
+    }
   }
 }
