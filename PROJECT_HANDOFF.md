@@ -24,8 +24,9 @@
 | R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
 | R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
 | R5 Notifications (in-app) | ✅ complete (2026-11-19, `20cfa98`) |
-| R6 Equipment, warranties, preventive maintenance, SLA | ⏭ next (not started) |
-| R7–R13 | ⚪ not started |
+| R6 Equipment, warranties, preventive maintenance, SLA | ✅ complete (2026-11-19, `17ed30a`) |
+| R7 Subscriptions & Platform Admin | ⏭ next (not started) |
+| R8–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -100,10 +101,21 @@
 - Tests: `notifications/NotificationsIT` (3).
 - Not done (by design for now): no retention/cleanup of old notifications, no e-mail/push delivery, no realtime push (R11).
 
-## 5. Current phase & exact next steps — R6 Equipment, warranties, preventive maintenance, SLA
-Not started. Per `PRODUCT_AUDIT.md` roadmap R6 (line ~206): equipment register; warranty links/reminders (warranty `contact_id`/`location_id`/`equipment_id`); preventive-maintenance plans with idempotent generation (`maintenance_plans`, `maintenance_occurrences` UNIQUE(plan, due_date)); SLA response tracking. APIs `/equipment`, `/maintenance-plans`. Acceptance: generator run twice ⇒ one job; overdue listing; reminder sent once. Additive migration only; next is `V15`. Schedulers use ShedLock + `TenantWork.callAsSystem` / `TenantWork.run`.
+## 4g. Completed — R6 Equipment, warranties, maintenance plans, SLA — commit `17ed30a`
+- Flyway `V15__equipment_maintenance_sla.sql`: `equipment` (unique lower(serial) per workspace), `job_equipment`, warranties +`contact_id`/`location_id`/`equipment_id`/`reminder_days` (default 30)/`reminder_sent_at`, `maintenance_plans` (+assignees, +equipment), `maintenance_occurrences` UNIQUE(plan_id, due_date), jobs +`response_due_at`, +`maintenance_plan_id`.
+- `operations/equipment`: `Equipment`, `EquipmentService`, `EquipmentController` — `/api/v1/equipment` CRUD (filters contactId, locationId, category, status, q), detail has `serviceHistory` + `warranties`; `GET/PUT /jobs/{id}/equipment` (technicians on own jobs). Codes `DUPLICATE_SERIAL`, `EQUIPMENT_NOT_AT_SITE`.
+- Warranties: device implies customer + site; job/project imply customer; `JOB_NOT_OF_CUSTOMER`; filters `contactId`, `equipmentId`; reminder resets when end date or reminder days change.
+- `operations/maintenance`: `MaintenancePlan` (due dates computed from start date, no month drift; bounded by end date and `includedVisits`), `MaintenanceOccurrence`, `MaintenanceService` (`generateDue` idempotent, max 3 catch-up per run), `MaintenanceIntegration` (`SlaPolicy` bean, `siteAssetsUsage` delete guard, `MaintenanceDaily.runOnce()` @ `app.operations.maintenance-cron` default `0 15 0 * * *`, ShedLock `maintenance-daily`: generate → overdue reminders → warranty reminders → renewal reminders (30 days) → end expired plans). `/api/v1/maintenance-plans` CRUD, `GET /overdue`, `POST /{id}/generate`.
+- SLA: job `responseHours` (1–720) → `response_due_at`; unplanned jobs at a site with an active plan get its shortest `responseHours`; PM jobs get none. `JobResponse.sla {responseDueAt, respondedAt, breached}`; `GET /jobs?slaBreached=true`.
+- `WorkspaceMembers.managers()` (active OWNER/ADMIN). Notifications: `WARRANTY_EXPIRING`, `MAINTENANCE_OVERDUE`, `MAINTENANCE_PLAN_ENDING`.
+- Tests: `operations/MaintenanceIT` (3; uses JDBC to move dates into the past — no controllable clock).
+- Known limits: dates use the server clock (UTC), not the workspace time zone; generation runs daily (or on demand).
+
+## 5. Current phase & exact next steps — R7 Subscriptions & Platform Admin
+Not started. `PRODUCT_AUDIT.md` R7 row (~line 207): new platform-level `billing` module + `identity`; tables `plans`, `payment_methods`, `subscriptions`, `subscription_requests`, `subscription_events`; tenant APIs `/subscription/**`, platform `/admin/**`; manual payment (Vodafone Cash / InstaPay receipts) approved by the platform admin, no gateway; 14-day trial (D6), 7-day grace then read-only, never delete (D5), configurable limits (D7); tenant cannot change its own status; feature flag to disable enforcement. Next migration `V16`.
 
 ## 6. Tests (actual results)
+- 2026-11-19, `./mvnw test` @ `17ed30a` (R6): **120 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `20cfa98` (R5): **117 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
@@ -142,7 +154,8 @@ Not started. Per `PRODUCT_AUDIT.md` roadmap R6 (line ~206): equipment register; 
 | `376987b` | feat(operations): visit reports, photo purposes and thumbnails, materials, approvals |
 | `271797b` | docs: update handoff - R4 field evidence complete |
 | `20cfa98` | feat(notifications): in-app notifications for assignments, visits and project teams |
-| (this commit) | docs: update handoff - R5 notifications complete |
+| `424e421` | docs: update handoff - R5 notifications complete |
+| `17ed30a` | feat(operations): equipment register, warranty links and reminders, maintenance plans, SLA |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
