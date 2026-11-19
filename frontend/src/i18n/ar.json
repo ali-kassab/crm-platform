@@ -1,0 +1,40 @@
+{
+  "app": { "name": "منصة التشغيل الميداني", "tagline": "إدارة أوامر العمل والزيارات والصيانة" },
+  "nav": {
+    "home": "الرئيسية", "customers": "العملاء", "jobs": "أوامر العمل", "visits": "الزيارات",
+    "maintenance": "الصيانة الدورية", "finance": "الحسابات", "subscription": "الاشتراك", "settings": "الإعدادات",
+    "main": "التشغيل", "account": "الحساب"
+  },
+  "auth": {
+    "login": "تسجيل الدخول", "logout": "تسجيل الخروج", "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني", "password": "كلمة المرور", "firstName": "الاسم الأول", "lastName": "اسم العائلة",
+    "workspaceName": "اسم الشركة أو النشاط", "sector": "مجال العمل",
+    "noAccount": "ليس لديك حساب؟", "haveAccount": "لديك حساب بالفعل؟",
+    "loginTitle": "مرحباً بعودتك", "loginSubtitle": "سجّل الدخول لمتابعة أعمالك",
+    "registerTitle": "ابدأ تجربتك المجانية", "registerSubtitle": "14 يوماً مجاناً بدون بطاقة دفع",
+    "sectors": { "FIT_OUT": "تشطيبات ومقاولات", "SECURITY_SYSTEMS": "كاميرات وأنظمة أمن", "MAINTENANCE": "صيانة وخدمات ميدانية" }
+  },
+  "common": {
+    "save": "حفظ", "cancel": "إلغاء", "add": "إضافة", "search": "بحث", "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة", "empty": "لا توجد بيانات بعد", "language": "اللغة", "close": "إغلاق",
+    "previous": "السابق", "next": "التالي", "page": "صفحة {{page}} من {{pages}}", "required": "مطلوب"
+  },
+  "home": {
+    "welcome": "أهلاً {{name}}", "workspace": "مساحة العمل", "trialEnds": "تنتهي الفترة التجريبية خلال {{days}} يوم",
+    "periodEnds": "يتجدد الاشتراك خلال {{days}} يوم", "quickStart": "ابدأ بإضافة أول عميل ثم أنشئ أمر عمل"
+  },
+  "customers": {
+    "title": "العملاء", "add": "إضافة عميل", "searchPlaceholder": "ابحث بالاسم أو الهاتف",
+    "kind": "النوع", "INDIVIDUAL": "فرد", "COMPANY": "شركة", "name": "الاسم", "company": "اسم الشركة",
+    "phone": "الهاتف", "email": "البريد الإلكتروني", "city": "المدينة", "created": "تمت إضافة العميل",
+    "emptyTitle": "لا يوجد عملاء بعد", "emptyHint": "أضف أول عميل لتبدأ في تسجيل أوامر العمل"
+  },
+  "subscription": {
+    "status": { "TRIAL": "فترة تجريبية", "ACTIVE": "نشط", "GRACE": "فترة سماح", "EXPIRED": "منتهي", "SUSPENDED": "موقوف" },
+    "graceBanner": "انتهى اشتراكك. لديك مهلة حتى {{date}} قبل أن يصبح الحساب للقراءة فقط.",
+    "readOnlyBanner": "الحساب للقراءة فقط. بياناتك محفوظة؛ جدّد الاشتراك لتتمكن من التعديل.",
+    "renew": "تجديد الاشتراك"
+  },
+  "settings": { "title": "الإعدادات", "languageHint": "لغة واجهة الاستخدام لهذا الجهاز" },
+  "errors": { "generic": "حدث خطأ غير متوقع", "network": "تعذّر الاتصال بالخادم", "notFound": "الصفحة غير موجودة" }
+}

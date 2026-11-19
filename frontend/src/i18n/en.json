@@ -1,0 +1,40 @@
+{
+  "app": { "name": "Field Operations", "tagline": "Work orders, visits and maintenance in one place" },
+  "nav": {
+    "home": "Home", "customers": "Customers", "jobs": "Work orders", "visits": "Visits",
+    "maintenance": "Maintenance plans", "finance": "Finance", "subscription": "Subscription", "settings": "Settings",
+    "main": "Operations", "account": "Account"
+  },
+  "auth": {
+    "login": "Sign in", "logout": "Sign out", "register": "Create account",
+    "email": "Email", "password": "Password", "firstName": "First name", "lastName": "Last name",
+    "workspaceName": "Company or business name", "sector": "Line of business",
+    "noAccount": "No account yet?", "haveAccount": "Already have an account?",
+    "loginTitle": "Welcome back", "loginSubtitle": "Sign in to continue",
+    "registerTitle": "Start your free trial", "registerSubtitle": "14 days free, no card needed",
+    "sectors": { "FIT_OUT": "Fit-out & contracting", "SECURITY_SYSTEMS": "CCTV & security systems", "MAINTENANCE": "Maintenance & field service" }
+  },
+  "common": {
+    "save": "Save", "cancel": "Cancel", "add": "Add", "search": "Search", "loading": "Loading…",
+    "retry": "Try again", "empty": "Nothing here yet", "language": "Language", "close": "Close",
+    "previous": "Previous", "next": "Next", "page": "Page {{page}} of {{pages}}", "required": "Required"
+  },
+  "home": {
+    "welcome": "Hello {{name}}", "workspace": "Workspace", "trialEnds": "Your trial ends in {{days}} days",
+    "periodEnds": "Your subscription renews in {{days}} days", "quickStart": "Start by adding a customer, then create a work order"
+  },
+  "customers": {
+    "title": "Customers", "add": "Add customer", "searchPlaceholder": "Search by name or phone",
+    "kind": "Type", "INDIVIDUAL": "Individual", "COMPANY": "Company", "name": "Name", "company": "Company name",
+    "phone": "Phone", "email": "Email", "city": "City", "created": "Customer added",
+    "emptyTitle": "No customers yet", "emptyHint": "Add your first customer to start recording work orders"
+  },
+  "subscription": {
+    "status": { "TRIAL": "Trial", "ACTIVE": "Active", "GRACE": "Grace period", "EXPIRED": "Expired", "SUSPENDED": "Suspended" },
+    "graceBanner": "Your subscription ended. You have until {{date}} before the account becomes read-only.",
+    "readOnlyBanner": "This account is read-only. Your data is safe; renew to make changes.",
+    "renew": "Renew subscription"
+  },
+  "settings": { "title": "Settings", "languageHint": "Interface language on this device" },
+  "errors": { "generic": "Something went wrong", "network": "Could not reach the server", "notFound": "Page not found" }
+}
