@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20 (checkpoint): R13 IN PROGRESS — part 1 (ops/infra) done and pushed (`39c38bc`, `1fab3fa`); part 2 (R10 frontend leftovers, starting with the blocking "add customer site" gap) in progress — see §6c. The owner authorized continuous execution through the roadmap on 2026-11-20._
+_Updated 2026-11-20 (checkpoint): R13 IN PROGRESS — part 1 (ops/infra) and part 2a (sites, notifications, visit record) done and pushed up to `9b2e97d`; next: maintenance plans + equipment screens — see §6c. The owner authorized continuous execution through the roadmap on 2026-11-20._
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -103,9 +103,14 @@ Done and pushed:
 - Verified on an isolated throwaway compose project `crm-r13-smoke` (own volumes/ports, env in the session scratchpad; the owner's `crm-platform` volumes untouched): images healthy; live browser smoke green; backup→restore identical counts; k6 20 VUs: 0 errors, all p95 ≤ 105 ms.
 - Throwaway stack `crm-r13-smoke` may still be running/left with its volumes: stop with `docker compose -p crm-r13-smoke down` (removing its volumes needs the owner's OK by policy).
 
-In progress / next (R13 part 2, frontend leftovers from `PROJECT_HANDOFF.md` 4k):
-1. **Blocking gap found live:** no UI to add a customer site (`POST /locations`), so a fresh workspace cannot create a work order through the UI. Add sites to the customer screen.
-2. Visit report / photos / materials UI; notifications list + badge; maintenance plans + equipment screens; calendar view. Platform-admin UI stays deferred to the final stage (owner decision).
+R13 part 2 (frontend leftovers from `PROJECT_HANDOFF.md` 4k) — done and pushed:
+- `94b7ca0` customer page `/customers/:id` with sites + "add site" (also inline in the new-work-order dialog). This was a **blocking gap found live**: no UI could create a site, so no work order could be created in a fresh workspace.
+- `edcce25` notifications: header bell with unread count (all 6 Arabic plural forms) + `/notifications` (tabs, paging, mark read / all read, links to work order/subscription).
+- `9b2e97d` visit record sheet (report sections + customer confirmation name, photos by purpose with thumbnails, materials; prices only with `finance:read`).
+- Checks after `9b2e97d`: lint 0 errors; build **268.9 kB gzip**; `pnpm test:e2e` **50 passed, 2 skipped**; `pnpm test:live` 1 passed — full real flow (register → customer → site → work order → visit → report + real photo upload/thumbnail + material → complete → Arabic PDF, realtime socket via nginx).
+- Live test needs a fresh registration per run; registration is limited to 5/hour/IP (on the throwaway stack the `rl:register:*` Redis keys were cleared between runs).
+
+Next (in order): maintenance plans + equipment screens (enable the disabled "maintenance" nav entry), job approvals UI, calendar view, sector onboarding; then R13 close-out (full backend suite, handoff docs). Platform-admin UI stays deferred to the final stage (owner decision). Known small issue: `JobDetailPage` has no error boundary — a job payload without `site` would crash the screen (the real API always sends it).
 
 ## 7. Next steps, in execution order
 1. Open the active repo and verify the state matches §4 (commands in §10). If it differs, the repository wins — update the handoffs before doing anything else.
