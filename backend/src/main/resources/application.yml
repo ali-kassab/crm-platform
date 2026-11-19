@@ -122,6 +122,13 @@ app:
       first-name: ${PLATFORM_ADMIN_FIRST_NAME:Platform}
       last-name: ${PLATFORM_ADMIN_LAST_NAME:Admin}
     session-ttl: ${PLATFORM_ADMIN_SESSION_TTL:10m}
+  billing:
+    # Provisional commercial values (directive): change freely, no code change needed.
+    enforcement-enabled: ${BILLING_ENFORCEMENT_ENABLED:true}
+    trial-days: ${BILLING_TRIAL_DAYS:14}
+    grace-days: ${BILLING_GRACE_DAYS:7}
+    trial-plan-code: ${BILLING_TRIAL_PLAN:TEAM}
+    reminder-before: 3d
 
 logging:
   level:

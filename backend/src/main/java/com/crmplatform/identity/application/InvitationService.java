@@ -44,7 +44,9 @@ public class InvitationService {
     public InvitationService(InvitationRepository invitations, MembershipRepository memberships, UserRepository users,
             WorkspaceRepository workspaces, PasswordEncoder passwordEncoder, PasswordPolicy passwordPolicy,
             EmailSender emailSender, EmailTemplates templates, AuthService authService, IdentityProperties properties,
-            Clock clock, @Value("${app.client-base-url}") String clientBaseUrl) {
+            Clock clock, @Value("${app.client-base-url}") String clientBaseUrl,
+            org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard) {
+        this.usageGuard = usageGuard;
         this.invitations = invitations;
         this.memberships = memberships;
         this.users = users;
@@ -59,11 +61,21 @@ public class InvitationService {
         this.clientBaseUrl = clientBaseUrl;
     }
 
+    private org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard;
+
+    /** Plan limits (billing); a no-op when no guard is configured. */
+    private void requireUsage(UUID workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage usage, long amount) {
+        if (usageGuard != null) {
+            usageGuard.ifAvailable(g -> g.require(workspaceId, usage, amount));
+        }
+    }
+
     @Transactional
     public Invitation invite(UUID workspaceId, UUID inviterId, Role inviterRole, String rawEmail, Role role) {
         if (!inviterRole.canGrant(role)) {
             throw ApiException.forbidden("You cannot invite members with this role");
         }
+        requireUsage(workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage.USERS, 1);
         String email = User.normalizeEmail(rawEmail);
         users.findByEmail(email).ifPresent(existing -> {
             if (memberships.existsByWorkspaceIdAndUserIdAndActiveTrue(workspaceId, existing.getId())) {
@@ -137,6 +149,11 @@ public class InvitationService {
             throw ApiException.unauthorized("UNAUTHENTICATED", "Sign in as " + invitation.getEmail() + " to accept");
         }
         UUID userId = user.getId();
+        boolean alreadyActive = memberships.findByWorkspaceIdAndUserId(invitation.getWorkspaceId(), userId)
+                .map(Membership::isActive).orElse(false);
+        if (!alreadyActive) { // the plan's user limit is checked again when the seat is actually taken
+            requireUsage(invitation.getWorkspaceId(), com.crmplatform.shared.limits.UsageGuard.Usage.USERS, 1);
+        }
         Membership membership = memberships.findByWorkspaceIdAndUserId(invitation.getWorkspaceId(), userId)
                 .orElseGet(() -> new Membership(invitation.getWorkspaceId(), userId, invitation.getRole(), now));
         membership.changeRole(invitation.getRole());

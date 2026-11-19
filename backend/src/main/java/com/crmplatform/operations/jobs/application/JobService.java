@@ -69,7 +69,9 @@ public class JobService implements JobDirectory, Jobs {
 
     public JobService(JobRepository jobs, Projects projects, Contacts contacts, WorkspaceMembers members, Boards boards,
             LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock,
-            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials, SlaPolicy slaPolicy) {
+            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials, SlaPolicy slaPolicy,
+            org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard) {
+        this.usageGuard = usageGuard;
         this.materials = materials;
         this.slaPolicy = slaPolicy;
         this.jobs = jobs;
@@ -109,10 +111,24 @@ public class JobService implements JobDirectory, Jobs {
         return files.ownedBy(OWNER, jobId);
     }
 
+    private org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard;
+
+    /** Plan limits (billing); a no-op when no guard is configured. */
+    private void requireUsage(UUID workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage usage, long amount) {
+        if (usageGuard != null) {
+            usageGuard.ifAvailable(g -> g.require(workspaceId, usage, amount));
+        }
+    }
+
     // ------------------------------------------------------------------ commands
 
     @Transactional
     public Job create(JobData d) {
+        requireUsage(TenantContext.requireWorkspaceId(), com.crmplatform.shared.limits.UsageGuard.Usage.JOBS_PER_MONTH, 1);
+        return createJob(d);
+    }
+
+    private Job createJob(JobData d) {
         Site site = resolveSite(d.projectId(), d.contactId(), d.locationId());
         validateDates(d.startDate(), d.estimatedEndDate());
         Team team = d.projectId() == null ? requireNoTeam(d) : resolveTeam(d.projectId(), d.teamManagerUserId(),
@@ -262,7 +278,7 @@ public class JobService implements JobDirectory, Jobs {
     /** A preventive-maintenance plan generated this job (no default SLA: it is planned work). */
     @Transactional
     public Job createForPlan(JobData d, UUID planId, Set<UUID> equipmentIds) {
-        Job job = create(d);
+        Job job = createJob(d); // contractual visits do not count toward the monthly job limit
         job.originateFromPlan(planId);
         job.replaceEquipment(equipmentIds);
         return jobs.saveAndFlush(job);

@@ -29,6 +29,16 @@ public interface Files {
 
     List<FileSummary> ownedBy(String ownerType, UUID ownerId);
 
+    /**
+     * Short-lived download URL for a file that belongs to the given owner, for callers that already
+     * authorized the reader themselves (e.g. the platform admin reviewing a payment receipt).
+     * 404 unless the file exists in the active workspace and belongs to that owner.
+     */
+    String downloadUrlOfOwned(UUID fileId, String ownerType, UUID ownerId);
+
+    /** Bytes stored by the active workspace (all live files). */
+    long usedBytes();
+
     /** {@code purpose} may be null; {@code hasThumbnail} is true for images (small WebP preview). */
     record FileSummary(UUID id, FileKind kind, String name, String contentType, long sizeBytes, FilePurpose purpose,
             boolean hasThumbnail) {

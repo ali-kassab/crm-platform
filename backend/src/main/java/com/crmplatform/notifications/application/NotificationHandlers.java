@@ -1,5 +1,6 @@
 package com.crmplatform.notifications.application;
 
+import com.crmplatform.billing.BillingEvents.SubscriptionNotice;
 import com.crmplatform.notifications.domain.Notification.Type;
 import com.crmplatform.operations.OperationsEvents.JobAssigned;
 import com.crmplatform.operations.OperationsEvents.MaintenanceOverdue;
@@ -91,6 +92,16 @@ class NotificationHandlers {
     void on(MaintenancePlanEnding e) {
         send(e.workspaceId(), null, e.userIds(), Type.MAINTENANCE_PLAN_ENDING, "MAINTENANCE_PLAN", e.planId(),
                 payload("planTitle", e.planTitle(), "endDate", e.endDate(), "contactId", e.contactId()));
+    }
+
+    @TransactionalEventListener
+    void on(SubscriptionNotice e) {
+        Type type = switch (e.kind()) {
+            case REQUEST_APPROVED -> Type.SUBSCRIPTION_REQUEST_APPROVED;
+            case REQUEST_REJECTED -> Type.SUBSCRIPTION_REQUEST_REJECTED;
+            default -> Type.valueOf(e.kind().name());
+        };
+        send(e.workspaceId(), null, e.userIds(), type, "SUBSCRIPTION", e.subscriptionId(), new HashMap<>(e.payload()));
     }
 
     private void send(java.util.UUID workspaceId, java.util.UUID actor, Set<java.util.UUID> recipients, Type type,

@@ -69,7 +69,9 @@ public class ProjectService implements Projects {
 
     public ProjectService(ProjectRepository projects, TeamMemberRepository teamMembers, Contacts contacts,
             LabelCatalog labels, WorkspaceMembers members, Boards boards, Files files, ObjectProvider<JobDirectory> jobs,
-            ApplicationEventPublisher events, AuditTrail audit, Clock clock, ProjectBudgetQuery budgetQuery) {
+            ApplicationEventPublisher events, AuditTrail audit, Clock clock, ProjectBudgetQuery budgetQuery,
+            ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard) {
+        this.usageGuard = usageGuard;
         this.budgetQuery = budgetQuery;
         this.projects = projects;
         this.teamMembers = teamMembers;
@@ -123,10 +125,20 @@ public class ProjectService implements Projects {
         return teamMembers.findByProjectId(projectId);
     }
 
+    private org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard;
+
+    /** Plan limits (billing); a no-op when no guard is configured. */
+    private void requireUsage(UUID workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage usage, long amount) {
+        if (usageGuard != null) {
+            usageGuard.ifAvailable(g -> g.require(workspaceId, usage, amount));
+        }
+    }
+
     // ------------------------------------------------------------------ commands
 
     @Transactional
     public Project create(ProjectData d) {
+        requireUsage(TenantContext.requireWorkspaceId(), com.crmplatform.shared.limits.UsageGuard.Usage.ACTIVE_PROJECTS, 1);
         Contacts.LocationSummary location = contacts.location(d.locationId())
                 .orElseThrow(() -> ApiException.referenceNotFound("locationId"));
         validateDates(d.startDate(), d.estimatedEndDate());

@@ -51,7 +51,9 @@ public class FileService implements Files {
     private final ObjectProvider<FileOwnerAccess> ownerAccess;
 
     public FileService(StoredFileRepository files, FileStorage storage, FileInspector inspector, RateLimiter rateLimiter,
-            Clock clock, ObjectProvider<FileOwnerAccess> ownerAccess) {
+            Clock clock, ObjectProvider<FileOwnerAccess> ownerAccess,
+            ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard) {
+        this.usageGuard = usageGuard;
         this.ownerAccess = ownerAccess;
         this.files = files;
         this.storage = storage;
@@ -73,6 +75,8 @@ public class FileService implements Files {
         UUID userId = CurrentUser.id();
         rateLimiter.check("upload:" + userId, 30, Duration.ofMinutes(1));
         UUID workspaceId = TenantContext.requireWorkspaceId();
+        requireUsage(workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage.STORAGE_BYTES,
+                uploads.stream().mapToLong(u -> u.content().length).sum());
         List<StoredFile> saved = new ArrayList<>();
         List<String> writtenKeys = new ArrayList<>();
         for (Upload upload : uploads) {
@@ -116,6 +120,30 @@ public class FileService implements Files {
         }
         return file.isAttached() && ownerAccess.stream()
                 .anyMatch(a -> a.canRead(file.getOwnerType(), file.getOwnerId(), userId));
+    }
+
+    private org.springframework.beans.factory.ObjectProvider<com.crmplatform.shared.limits.UsageGuard> usageGuard;
+
+    /** Plan limits (billing); a no-op when no guard is configured. */
+    private void requireUsage(UUID workspaceId, com.crmplatform.shared.limits.UsageGuard.Usage usage, long amount) {
+        if (usageGuard != null) {
+            usageGuard.ifAvailable(g -> g.require(workspaceId, usage, amount));
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String downloadUrlOfOwned(UUID fileId, String ownerType, UUID ownerId) {
+        StoredFile file = files.findById(fileId).filter(f -> ownerType.equals(f.getOwnerType())
+                && ownerId.equals(f.getOwnerId())).orElseThrow(() -> ApiException.notFound("File"));
+        String attachmentName = file.getKind() == FileKind.DOCUMENT ? file.getOriginalName() : null;
+        return storage.presignGet(file.getStorageKey(), URL_TTL, attachmentName);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long usedBytes() {
+        return files.usedBytes();
     }
 
     @Transactional(readOnly = true)

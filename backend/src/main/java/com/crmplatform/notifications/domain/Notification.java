@@ -32,7 +32,14 @@ public class Notification extends TenantEntity {
         VISIT_RESCHEDULED,
         WARRANTY_EXPIRING,
         MAINTENANCE_OVERDUE,
-        MAINTENANCE_PLAN_ENDING
+        MAINTENANCE_PLAN_ENDING,
+        SUBSCRIPTION_ENDING,
+        SUBSCRIPTION_GRACE,
+        SUBSCRIPTION_EXPIRED,
+        SUBSCRIPTION_SUSPENDED,
+        SUBSCRIPTION_ACTIVATED,
+        SUBSCRIPTION_REQUEST_APPROVED,
+        SUBSCRIPTION_REQUEST_REJECTED
     }
 
     @Column(name = "recipient_user_id", nullable = false, updatable = false)
