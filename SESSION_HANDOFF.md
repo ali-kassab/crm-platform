@@ -11,7 +11,7 @@ _Updated 2026-11-20: R11 complete (`0c4f936`), R11 browser tests and the skills 
 1. `D:\Workspace\crm-platform\PROJECT_HANDOFF.md` — permanent project reference (status per phase, files, APIs, decisions, constraints §12). **Read it fully first.**
 2. This file — exact continuation steps.
 3. Only when needed: the documents in §3.
-4. **Then follow the skills policy below before any implementation.**
+4. **Then follow the skills policy (§2b) and the reuse-first policy (§2c) below before any implementation.**
 
 ## 2b. Installed Skills and Mandatory Usage Policy (summary — full rule: `PROJECT_HANDOFF.md` §0b)
 Every new session MUST follow this; `PROJECT_HANDOFF.md` §0b is the source of truth and the two files must stay consistent.
@@ -21,6 +21,15 @@ Every new session MUST follow this; `PROJECT_HANDOFF.md` §0b is the source of t
 - Project architecture, security, approved decisions and conventions always override a skill's generic advice (e.g. TypeScript Playwright, not the skill's Python scripts; existing `TenantContext` model; additive Flyway, next `V18`).
 - Never claim a skill was used unless it was actually discovered and read. If one is unavailable, report it and proceed cautiously with project conventions. Never install, update or replace skills without the owner's permission.
 - Last verified 2026-11-20: all six readable; Python Playwright (for `webapp-testing` helper scripts) is not installed.
+
+## 2c. Reuse-First Policy for Future Components (summary — full rule: `PROJECT_HANDOFF.md` §0c)
+Every new session MUST follow this for new work; `PROJECT_HANDOFF.md` §0c is the source of truth.
+- **Forward only, from R12:** never modify, refactor, replace or reorganize existing components or completed R0–R11 work to apply it; change existing functionality only when the task requires it.
+- For every NEW component or standard feature (charts, tables, forms, dialogs, date pickers, PDF, …): reuse what is installed first → then a shadcn/ui component via `pnpm dlx shadcn@latest add <name>` → then primitives from installed libraries (`radix-ui`, `react-hook-form` + `zod`, TanStack Query, `lucide-react`, `sonner`) → only then a vetted new open-source dependency, or a minimal custom piece for just the missing functionality.
+- Customize to the design system, Arabic RTL / English LTR and responsive layouts.
+- Before any new dependency: check compatibility (React 19, Vite 8, TS ~5.9, Tailwind 4), maintenance, permissive licence (no GPL/AGPL/commercial), accessibility incl. RTL, and bundle impact (`pnpm build` budget; lazy-load heavy parts).
+- R12 PDFs use the approved D15 stack (OpenHTMLtoPDF + ICU4J + embedded Arabic font).
+- Apply `frontend-design` and `vercel-react-best-practices` to new components (§2b).
 
 ## 3. Governing documents and authorized paths
 | Document | Path | Status |
@@ -38,7 +47,7 @@ Every new session MUST follow this; `PROJECT_HANDOFF.md` §0b is the source of t
 If a requirement is not covered by these, ask the owner instead of guessing.
 
 ## 4. Git state (2026-11-20)
-- Branch: **`feature/saas-foundation`**. Last commits: `0c4f936` feat(realtime) → `fac6486` docs (R11 handoff) → `40e5da3` test(frontend) realtime browser tests → docs commit "docs: skills usage policy and R11 browser test results in handoffs" (HEAD). All pushed to `origin/feature/saas-foundation`.
+- Branch: **`feature/saas-foundation`**. Last commits: `0c4f936` feat(realtime) → `fac6486` docs (R11 handoff) → `40e5da3` test(frontend) realtime browser tests → `c2ce290` docs (skills policy) → docs commit "docs: reuse-first policy for future components" (HEAD). All pushed to `origin/feature/saas-foundation`.
 - Remote: `origin` = `https://github.com/ali-kassab/crm-platform.git`.
 - `origin/main` = **`7ae560a`** (PR #3, merged by the owner; contains R0–R10, **not R11**). Local `main` is stale at `163d49c`. **Do not touch `main` in any way**; opening/merging a PR for R11 is the owner's decision.
 - Git identity (local config): `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution lines.
@@ -107,7 +116,7 @@ Always requires the owner's explicit approval: database/volume resets or data de
 cd /d/Workspace/crm-platform
 git branch --show-current          # expect: feature/saas-foundation
 git status --short                 # expect: nothing
-git log --oneline -2               # expect: the skills-policy docs commit, then 40e5da3
+git log --oneline -2               # expect: the reuse-first docs commit, then c2ce290
 git fetch origin && git status -sb # expect: in sync with origin/feature/saas-foundation
 ```
 Toolchain: Docker Desktop must be running for backend tests (Testcontainers). If Docker crashes on stale sockets, run `D:\Workspace\tools\fix-docker-sockets.ps1`. Node 24 + pnpm:

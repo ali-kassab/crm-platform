@@ -33,6 +33,30 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 
 Verification log: 2026-11-20 — all six skills discovered and read in-session. Note: `webapp-testing`'s helper scripts need Python Playwright, which is **not installed** (`py` = Python 3.13.7 without the `playwright` package); its method was applied with the project's existing TypeScript Playwright instead (no new dependency).
 
+## 0c. Reuse-First Policy for Future Components
+Permanent rule set by the owner on 2026-11-20. **This file is the source of truth**; `SESSION_HANDOFF.md` summarizes it and must stay consistent.
+
+**Scope — forward only.** Applies only to NEW components and features built from **R12 onwards**. Do **not** modify, refactor, replace or reorganize existing components to apply it; do **not** revisit completed R0–R11 work; do **not** change existing functionality unless the current task explicitly requires it.
+
+**Rules for every new frontend component (and new standard functionality: charts, tables, forms, dialogs, date pickers, PDF generation, etc.):**
+1. First check whether an already-installed library provides it.
+2. Prefer ready-made, free, open-source components over custom implementations.
+3. Compose existing library components rather than writing from scratch.
+4. Customize them to the project's design system, Arabic RTL, English LTR and responsive requirements.
+5. Do not add a dependency if an installed library can do the job.
+6. If nothing suitable exists, implement only the missing piece, not a whole new component.
+7. Before adding any dependency, verify compatibility (React 19, Vite 8, TypeScript ~5.9, Tailwind 4), active maintenance, a permissive licence (MIT/Apache-2.0/BSD/ISC — no GPL/AGPL/commercial), accessibility (keyboard, ARIA, RTL) and bundle-size impact (the `pnpm build` budget: each chunk ≤ 200 kB gzip, total ≤ 350 kB; lazy-load heavy pieces). Record the check in the commit message or the phase notes.
+
+**Lookup order (frontend):**
+1. Components already in `frontend/src/components/ui/` (2026-11-20: alert, avatar, badge, button, card, checkbox, dialog, direction, dropdown-menu, empty, field, input, label, select, separator, sheet, sidebar, skeleton, sonner, spinner, table, tabs, textarea, tooltip).
+2. Other shadcn/ui registry components, added **only** with `pnpm dlx shadcn@latest add <name>` (existing rule, §12; `components.json` has `rtl: true`). Some pull in a vetted dependency (e.g. chart → recharts, calendar/date picker → react-day-picker, data table → @tanstack/react-table); rule 7 still applies to that dependency.
+3. Primitives from installed libraries: `radix-ui`, `react-hook-form` + `zod` (forms), `@tanstack/react-query` (data), `lucide-react` (icons), `sonner` (toasts), `i18next` (text).
+4. Only then a new, vetted open-source dependency (rule 7), or a minimal custom piece (rule 6).
+
+**Backend / other standard functionality:** same principle — reuse Spring Boot / existing libraries first. Arabic PDF in R12 uses the already-approved D15 stack (OpenHTMLtoPDF + ICU4J + an embedded open-licence Arabic font); no other PDF engine without the owner's approval.
+
+**Skills:** apply `frontend-design` (visual consistency, RTL/LTR, responsive) and `vercel-react-best-practices` (bundle/dynamic imports, re-renders) to every new component, per §0b. Project conventions override generic skill advice.
+
 ## 1. Identity & directives
 - Product: Arabic-first (RTL, English secondary) multi-tenant SaaS for **Fit-Out & Contracting**, **CCTV/Security/Access Control**, **Maintenance & Field Service** — Egypt first; must serve an independent technician (one-user workspace) up to companies.
 - Governing documents:
@@ -273,7 +297,8 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 | `0c4f936` | feat(realtime): live hints via NestJS, Redis pub/sub and one-time socket tickets |
 | `fac6486` | docs: update handoff - R11 realtime complete |
 | `40e5da3` | test(frontend): browser tests for the realtime hook against a fake Socket.IO server |
-| (next) | docs: skills usage policy and R11 browser test results in handoffs (**HEAD**, pushed) |
+| `c2ce290` | docs: skills usage policy and R11 browser test results in handoffs |
+| (next) | docs: reuse-first policy for future components (**HEAD**, pushed) |
 
 ## 11. Working tree (2026-11-20)
 - Branch `feature/saas-foundation`; after the R11 feature commit and the handoff docs commit, everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `7ae560a` (PR #3; does not contain R11); local `main` stale at `163d49c` — leave it alone.
