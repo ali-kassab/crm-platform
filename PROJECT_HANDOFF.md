@@ -26,8 +26,9 @@
 | R5 Notifications (in-app) | ✅ complete (2026-11-19, `20cfa98`) |
 | R6 Equipment, warranties, preventive maintenance, SLA | ✅ complete (2026-11-19, `17ed30a`) |
 | R7 Subscriptions & Platform Admin | ✅ complete (2026-11-19, `c9d34e0`) |
-| R8 Finance alignment | ⏭ next (not started) |
-| R9–R13 | ⚪ not started |
+| R8 Finance alignment | ✅ complete (2026-11-19, `f8c850a`) |
+| R9 Frontend foundation | ⏭ next (not started) |
+| R10–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -123,10 +124,17 @@
 - Tests: `billing/BillingIT` (3; admin sessions via `AccessTokenService.issuePlatform` for a throwaway user so `PlatformAdminIT` keeps its fresh-bootstrap path).
 - Not done: subscription e-mails (in-app notices only); `PlatformAdminIT`-style UI is R10.
 
-## 5. Current phase & exact next steps — R8 Finance alignment
-Not started. `PRODUCT_AUDIT.md` R8 row (~line 208): money on standalone jobs/projects (transactions on standalone jobs already work since R3; check project-level transactions without a job), materials cost in profitability (done in R4 — verify), outstanding balances list `GET /accounting/outstanding`; hand-computed rollup tests incl. materials; migration reversible. Next migration `V17`.
+## 4i. Completed — R8 Finance alignment — commit `f8c850a`
+- Flyway `V17__finance_alignment.sql`: `transactions.job_id` nullable + `ck_transactions_parent` (job or project); reversal documented in the file.
+- `TransactionService.record`: job (project or standalone) or project alone; contact defaults to the job's/project's customer; `TRANSACTION_PARENT_REQUIRED`.
+- `finance/transactions/application/OutstandingBalances` + `GET /api/v1/accounting/outstanding?page&size` (finance:read): per customer contract (project budgets + standalone job budgets) − received > 0, largest first; `pageRemaining`, `lastPaymentDate`.
+- Tests: `finance/FinanceAlignmentIT` (1, hand-computed figures).
+
+## 5. Current phase & exact next steps — R9 Frontend foundation
+Not started. `PRODUCT_AUDIT.md` R9 row: new `frontend/` — React + Vite + TypeScript 5.9 + Tailwind + shadcn/ui only (never hand-built components), Arabic-first RTL shell, auth, i18n (ar default, en), layout, core CRUD; Playwright ar/en + RTL/LTR snapshots, bundle budget. Portable Node 24 + pnpm at `D:Workspace	ools` (system Node 18 is too old).
 
 ## 6. Tests (actual results)
+- 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `c9d34e0` (R7): **123 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `17ed30a` (R6): **120 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `20cfa98` (R5): **117 tests, 0 failures, 0 errors, 0 skipped**.
@@ -171,6 +179,8 @@ Not started. `PRODUCT_AUDIT.md` R8 row (~line 208): money on standalone jobs/pro
 | `17ed30a` | feat(operations): equipment register, warranty links and reminders, maintenance plans, SLA |
 | `af1c310` | docs: update handoff - R6 maintenance and SLA complete |
 | `c9d34e0` | feat(billing): subscriptions with manual payments, read-only expiry and plan limits |
+| `936a3be` | docs: update handoff - R7 billing complete |
+| `f8c850a` | feat(finance): project-level payments and outstanding balances |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
