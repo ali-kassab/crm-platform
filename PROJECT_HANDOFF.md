@@ -28,8 +28,9 @@
 | R7 Subscriptions & Platform Admin | ✅ complete (2026-11-19, `c9d34e0`) |
 | R8 Finance alignment | ✅ complete (2026-11-19, `f8c850a`) |
 | R9 Frontend foundation | ✅ complete (2026-11-19, `a06072d`) |
-| R10 Frontend workflows | ⏭ next (not started) |
-| R11–R13 | ⚪ not started |
+| R10 Frontend workflows | ✅ core done (2026-11-19, `14bf98c`) — see 4k for what is left |
+| R11 NestJS realtime | ⏭ next (not started) |
+| R12–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -138,10 +139,16 @@
 - Tests: `pnpm test:e2e` — Playwright vs `vite preview` with a mocked API (`e2e/fixtures.ts`): **14 passed, 2 skipped** (sidebar position checks on mobile) — ar/en, RTL/LTR screenshot baselines (`*-win32.png`), login errors, language switch, customers create/search, read-only banner. `pnpm lint` (oxlint): 0 errors.
 - **Not verified:** a live run against the real backend. `docker compose up` works, but the backend could not connect: the existing Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fixing needs the owner (reset the dev volume or align `.env`) — not done. Containers were stopped again (`docker compose stop`).
 
-## 5. Current phase & exact next steps — R10 Frontend workflows
-Not started. `PRODUCT_AUDIT.md` R10 row: dashboards, customers/sites, work orders, calendar, technician mobile flow, finance, subscription & admin screens, sector onboarding; scenario tests. Build on the R9 patterns (page folder with `api.ts` hooks + shadcn components, extend `e2e/fixtures.ts` for new endpoints, enable the nav entries in `AppShell.tsx`).
+## 4k. Completed — R10 Frontend workflows (core) — commit `14bf98c`
+- Pages: `src/pages/jobs/{JobsPage, JobDetailPage, NewJobDialog, JobBadges, api.ts}`, `src/pages/visits/{VisitsPage, VisitActions, api.ts}`, `src/pages/finance/FinancePage` (`/accounting/outstanding`), `src/pages/subscription/SubscriptionPage` (usage vs limits, plan/period/method, receipt upload `POST /files?kind=IMAGE&purpose=RECEIPT`, request + history); `src/lib/format.ts`; shadcn `checkbox` added. Nav: jobs, visits, finance, subscription enabled; maintenance still disabled.
+- Tests: `e2e/workflows.spec.ts` (work order end-to-end, technician visits, finance, subscription renewal) — full suite **22 passed, 2 skipped**; lint 0 errors; bundle 241.1 kB gzip.
+- **Not done in R10 (carry to R13 polish):** maintenance-plan and equipment screens, platform-admin screens (plans, payment methods, request review — decision: admin UI at the final stage), calendar view, dashboard KPIs beyond the home cards, sector onboarding wizard, visit reports/photos/materials UI. Still not run against the real backend (see 4j).
+
+## 5. Current phase & exact next steps — R11 NestJS realtime
+Not started. Directive: a **separate NestJS service** (`realtime-service/`) only for genuinely real-time features, fed by Java (outbox/broker to evaluate), Java stays the source of truth. Decision D4: evaluate STOMP vs Redis Streams and HS256-shared-secret vs RS256 before changing anything. Minimum useful scope: push new in-app notifications and job/visit status changes to connected users of the same workspace; authenticate the socket with the existing access token; strict per-workspace/per-user rooms.
 
 ## 6. Tests (actual results)
+- 2026-11-19, frontend @ `14bf98c`: `pnpm test:e2e` **22 passed, 2 skipped**, `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip).
 - 2026-11-19, frontend @ `a06072d`: `pnpm build` OK (budget 222.7 kB gzip), `pnpm lint` 0 errors, `pnpm test:e2e` 14 passed / 2 skipped. Backend unchanged since `f8c850a` (124 tests green).
 - 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `c9d34e0` (R7): **123 tests, 0 failures, 0 errors, 0 skipped**.
@@ -192,6 +199,8 @@ Not started. `PRODUCT_AUDIT.md` R10 row: dashboards, customers/sites, work order
 | `f8c850a` | feat(finance): project-level payments and outstanding balances |
 | `4111550` | docs: update handoff - R8 finance alignment complete |
 | `a06072d` | feat(frontend): Arabic-first RTL shell, auth, i18n and customers screen |
+| `28bdca3` | docs: update handoff - R9 frontend foundation complete |
+| `14bf98c` | feat(frontend): work orders, visits, finance and subscription screens |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
