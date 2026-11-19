@@ -1,0 +1,77 @@
+# Continuous integration (R13). Runs the same checks as a release on a clean Linux machine.
+# Triggers: pull requests, pushes to main, and manual runs (Actions → CI → Run workflow).
+# Feature-branch pushes do not trigger it automatically, so Actions minutes are spent only on review.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Java 17, Testcontainers)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      # Docker is preinstalled on GitHub's Ubuntu runners; Testcontainers starts Postgres, Redis and S3 mock.
+      - run: sh mvnw -B test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: surefire-reports, path: backend/target/surefire-reports, retention-days: 7 }
+
+  realtime:
+    name: Realtime service (NestJS)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults: { run: { working-directory: realtime-service } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 12.21.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: pnpm, cache-dependency-path: realtime-service/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  frontend:
+    name: Frontend (lint, build + bundle budget, Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Same image the Linux screenshot baselines (*-linux.png) were generated with
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 12.21.0 }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test:e2e
+        env: { CI: '1', HOME: /root }
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: playwright-results, path: frontend/test-results, retention-days: 7 }
+
+  images:
+    name: Docker images build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t crm-backend:ci ./backend
+      - run: docker build -t crm-realtime:ci ./realtime-service
+      - run: docker build -t crm-frontend:ci ./frontend
