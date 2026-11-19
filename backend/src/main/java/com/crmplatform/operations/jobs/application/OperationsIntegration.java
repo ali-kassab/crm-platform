@@ -1,0 +1,95 @@
+package com.crmplatform.operations.jobs.application;
+
+import com.crmplatform.crm.LabelDeleted;
+import com.crmplatform.milestones.MilestoneOwner;
+import com.crmplatform.operations.jobs.domain.JobRepository;
+import com.crmplatform.operations.warranties.application.WarrantyService;
+import com.crmplatform.shared.events.DomainEvents.JobDeleted;
+import com.crmplatform.shared.events.DomainEvents.ProjectDeleted;
+import com.crmplatform.shared.tenant.TenantContext;
+import java.util.UUID;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
+import org.springframework.modulith.events.ApplicationModuleListener;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+/** Hooks the operations module provides to lower modules, and its reactions to their events. */
+@Configuration(proxyBeanMethods = false)
+class OperationsIntegration {
+
+    @Bean
+    MilestoneOwner jobMilestoneOwner(JobRepository jobs) {
+        return new MilestoneOwner() {
+            @Override
+            public OwnerType type() {
+                return OwnerType.JOB;
+            }
+
+            @Override
+            public boolean exists(UUID id) {
+                return jobs.existsById(id);
+            }
+        };
+    }
+
+    @Component
+    static class Handlers {
+
+        private final JobService jobs;
+        private final WarrantyService warranties;
+
+        Handlers(JobService jobs, WarrantyService warranties) {
+            this.jobs = jobs;
+            this.warranties = warranties;
+        }
+
+        /** BR-056: a project's jobs and warranties go with it, in the same transaction. */
+        @EventListener
+        void on(ProjectDeleted event) {
+            jobs.deleteAllOfProject(event.projectId());
+            warranties.deleteAllOfProject(event.projectId());
+        }
+
+        @EventListener
+        void on(JobDeleted event) {
+            warranties.unlinkJob(event.jobId());
+        }
+
+        @ApplicationModuleListener
+        void on(LabelDeleted event) {
+            if (event.tag()) {
+                TenantContext.runAs(event.workspaceId(), null, () -> {
+                    jobs.detachTag(event.labelId());
+                    warranties.detachTag(event.labelId());
+                });
+            }
+        }
+    }
+
+    /** Daily warranty expiry across all workspaces (FR-OPS-07). Single-instance via ShedLock. */
+    @Component
+    static class WarrantyExpiry {
+
+        private static final Logger log = LoggerFactory.getLogger(WarrantyExpiry.class);
+
+        private final WarrantyService warranties;
+
+        WarrantyExpiry(WarrantyService warranties) {
+            this.warranties = warranties;
+        }
+
+        @Scheduled(cron = "${app.operations.warranty-expiry-cron:0 5 0 * * *}")
+        @SchedulerLock(name = "warranty-expiry", lockAtMostFor = "PT10M")
+        void run() {
+            int expired = TenantContext.runAs(TenantContext.SYSTEM, null, warranties::expireEnded);
+            if (expired > 0) {
+                log.info("Marked {} warranties as expired", expired);
+            }
+        }
+    }
+}
