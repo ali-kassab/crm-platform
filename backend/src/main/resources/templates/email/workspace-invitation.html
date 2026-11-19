@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head><meta charset="UTF-8"><title>You're invited</title></head>
+<body style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
+  <p><strong th:text="${inviterName}">A teammate</strong> invited you to join
+     <strong th:text="${workspaceName}">a workspace</strong> on CRM Platform as
+     <span th:text="${role}">Member</span>.</p>
+  <p><a th:href="${acceptUrl}" style="background:#111827;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;">Accept invitation</a></p>
+  <p>This invitation expires in <span th:text="${expiresInDays}">7</span> days.</p>
+</body>
+</html>
