@@ -35,7 +35,9 @@
         <!-- Some Windows setups cannot create AF_UNIX sockets under %TEMP% (used by NIO selectors);
              keep them inside the build directory. Harmless elsewhere. -->
         <uds.tmpdir>-Djdk.net.unixdomain.tmpdir=${project.build.directory}</uds.tmpdir>
-        <argLine>${uds.tmpdir}</argLine>
+        <!-- Tests run on UTC like the server clock (schedulers use UTC dates); otherwise ITs that compute
+             dates with LocalDate.now() fail between local midnight and 02:00 in Cairo (R13 fix). -->
+        <argLine>${uds.tmpdir} -Duser.timezone=UTC</argLine>
     </properties>
 
     <dependencyManagement>

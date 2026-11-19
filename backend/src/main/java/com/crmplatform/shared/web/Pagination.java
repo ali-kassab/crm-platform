@@ -41,6 +41,15 @@ public final class Pagination {
                 if (raw == null || raw.isBlank()) {
                     continue;
                 }
+                // Spring binds a single "?sort=createdAt,desc" to List<String> as ["createdAt", "desc"]:
+                // a bare direction token applies to the field before it.
+                String token = raw.trim();
+                if (!orders.isEmpty() && (token.equalsIgnoreCase("asc") || token.equalsIgnoreCase("desc"))) {
+                    Sort.Order last = orders.remove(orders.size() - 1);
+                    orders.add(token.equalsIgnoreCase("desc") ? last.with(Sort.Direction.DESC)
+                            : last.with(Sort.Direction.ASC));
+                    continue;
+                }
                 String[] parts = raw.split(",");
                 String property = allowed.get(parts[0].trim());
                 if (property == null) {
