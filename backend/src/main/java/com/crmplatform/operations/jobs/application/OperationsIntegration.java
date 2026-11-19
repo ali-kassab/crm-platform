@@ -55,6 +55,24 @@ class OperationsIntegration {
         };
     }
 
+    /**
+     * Technicians (no {@code files:read}) may open files of the jobs, visits, visit reports and
+     * approvals they are assigned to — and nothing else (audit S6).
+     */
+    @Bean
+    com.crmplatform.files.FileOwnerAccess operationsFileAccess(JobRepository jobs,
+            com.crmplatform.operations.visits.domain.JobVisitRepository visits,
+            com.crmplatform.operations.jobs.domain.JobApprovalRepository approvals) {
+        return (ownerType, ownerId, userId) -> switch (ownerType) {
+            case "JOB" -> jobs.findById(ownerId).map(j -> j.isAssignedTo(userId)).orElse(false);
+            case "VISIT", "VISIT_REPORT" -> visits.findById(ownerId).map(v -> v.isAssignedTo(userId)
+                    || jobs.findById(v.getJobId()).map(j -> j.isAssignedTo(userId)).orElse(false)).orElse(false);
+            case "JOB_APPROVAL" -> approvals.findById(ownerId)
+                    .flatMap(a -> jobs.findById(a.getJobId())).map(j -> j.isAssignedTo(userId)).orElse(false);
+            default -> false;
+        };
+    }
+
     /** Hourly: SCHEDULED visits whose window passed without a start become MISSED (idempotent). */
     @Component
     static class MissedVisits {

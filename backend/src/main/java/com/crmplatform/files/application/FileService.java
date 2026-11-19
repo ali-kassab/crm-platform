@@ -1,7 +1,11 @@
 package com.crmplatform.files.application;
 
 import com.crmplatform.files.FileKind;
+import com.crmplatform.files.FileOwnerAccess;
+import com.crmplatform.files.FilePurpose;
 import com.crmplatform.files.Files;
+import com.crmplatform.shared.security.Permissions;
+import org.springframework.beans.factory.ObjectProvider;
 import com.crmplatform.files.domain.StoredFile;
 import com.crmplatform.files.domain.StoredFileRepository;
 import com.crmplatform.files.storage.FileStorage;
@@ -44,9 +48,11 @@ public class FileService implements Files {
     private final FileInspector inspector;
     private final RateLimiter rateLimiter;
     private final Clock clock;
+    private final ObjectProvider<FileOwnerAccess> ownerAccess;
 
     public FileService(StoredFileRepository files, FileStorage storage, FileInspector inspector, RateLimiter rateLimiter,
-            Clock clock) {
+            Clock clock, ObjectProvider<FileOwnerAccess> ownerAccess) {
+        this.ownerAccess = ownerAccess;
         this.files = files;
         this.storage = storage;
         this.inspector = inspector;
@@ -56,6 +62,11 @@ public class FileService implements Files {
 
     @Transactional
     public List<StoredFile> upload(FileKind kind, List<Upload> uploads) {
+        return upload(kind, null, uploads);
+    }
+
+    @Transactional
+    public List<StoredFile> upload(FileKind kind, FilePurpose purpose, List<Upload> uploads) {
         if (uploads.isEmpty() || uploads.size() > MAX_FILES_PER_REQUEST) {
             throw ApiException.badRequest("VALIDATION_ERROR", "Upload between 1 and 10 files per request");
         }
@@ -69,16 +80,42 @@ public class FileService implements Files {
             String key = workspaceId + "/" + kind.name().toLowerCase() + "/" + UUID.randomUUID();
             storage.put(key, inspected.content(), inspected.contentType());
             writtenKeys.add(key);
-            saved.add(files.save(new StoredFile(kind, key, inspected.name(), inspected.contentType(),
-                    inspected.content().length, sha256(inspected.content()), userId)));
+            String thumbKey = null;
+            if (inspected.thumbnail() != null) {
+                thumbKey = key + "-thumb";
+                storage.put(thumbKey, inspected.thumbnail(), "image/webp");
+                writtenKeys.add(thumbKey);
+            }
+            StoredFile file = new StoredFile(kind, key, inspected.name(), inspected.contentType(),
+                    inspected.content().length, sha256(inspected.content()), userId);
+            file.describe(purpose, thumbKey);
+            saved.add(files.save(file));
         }
         onRollback(() -> writtenKeys.forEach(this::deleteQuietly));
         return saved;
     }
 
+    /**
+     * Reads a file the caller may see. Members with {@code files:read} see every file of the
+     * workspace; others (technicians) only files they uploaded or files of records an owning module
+     * allows them ({@link FileOwnerAccess}). Anything else is 404, so ids don't leak.
+     */
     @Transactional(readOnly = true)
     public StoredFile get(UUID id) {
-        return files.findById(id).orElseThrow(() -> ApiException.notFound("File"));
+        StoredFile file = files.findById(id).orElseThrow(() -> ApiException.notFound("File"));
+        AuthenticatedUser user = CurrentUser.get().orElse(null);
+        if (user != null && !user.has(Permissions.FILES_READ) && !mayRead(file, user.userId())) {
+            throw ApiException.notFound("File");
+        }
+        return file;
+    }
+
+    private boolean mayRead(StoredFile file, UUID userId) {
+        if (userId.equals(file.getUploadedBy())) {
+            return true;
+        }
+        return file.isAttached() && ownerAccess.stream()
+                .anyMatch(a -> a.canRead(file.getOwnerType(), file.getOwnerId(), userId));
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +123,16 @@ public class FileService implements Files {
         StoredFile file = get(id);
         String attachmentName = file.getKind() == FileKind.DOCUMENT ? file.getOriginalName() : null;
         return storage.presignGet(file.getStorageKey(), URL_TTL, attachmentName);
+    }
+
+    /** Small WebP preview of an image (lists, mobile); 404 for documents. */
+    @Transactional(readOnly = true)
+    public String thumbnailUrl(UUID id) {
+        StoredFile file = get(id);
+        if (file.getThumbnailKey() == null) {
+            throw ApiException.notFound("File");
+        }
+        return storage.presignGet(file.getThumbnailKey(), URL_TTL, null);
     }
 
     /** Uploaders and admins may delete files that are not attached to any record (FR-FIL-03). */
@@ -172,7 +219,13 @@ public class FileService implements Files {
     private void remove(StoredFile file) {
         file.markDeleted(Instant.now(clock), TenantContext.userId().orElse(null));
         String key = file.getStorageKey();
-        afterCommit(() -> deleteQuietly(key));
+        String thumbKey = file.getThumbnailKey();
+        afterCommit(() -> {
+            deleteQuietly(key);
+            if (thumbKey != null) {
+                deleteQuietly(thumbKey);
+            }
+        });
     }
 
     private void deleteQuietly(String key) {
@@ -184,7 +237,8 @@ public class FileService implements Files {
     }
 
     static FileSummary summary(StoredFile f) {
-        return new FileSummary(f.getId(), f.getKind(), f.getOriginalName(), f.getContentType(), f.getSizeBytes());
+        return new FileSummary(f.getId(), f.getKind(), f.getOriginalName(), f.getContentType(), f.getSizeBytes(),
+                f.getPurpose(), f.getThumbnailKey() != null);
     }
 
     private static String sha256(byte[] content) {

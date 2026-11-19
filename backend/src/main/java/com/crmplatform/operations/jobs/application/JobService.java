@@ -63,9 +63,12 @@ public class JobService implements JobDirectory, Jobs {
     private final ApplicationEventPublisher events;
     private final AuditTrail audit;
     private final Clock clock;
+    private final com.crmplatform.operations.jobs.domain.JobMaterialRepository materials;
 
     public JobService(JobRepository jobs, Projects projects, Contacts contacts, WorkspaceMembers members, Boards boards,
-            LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock) {
+            LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock,
+            com.crmplatform.operations.jobs.domain.JobMaterialRepository materials) {
+        this.materials = materials;
         this.jobs = jobs;
         this.projects = projects;
         this.contacts = contacts;
@@ -332,6 +335,24 @@ public class JobService implements JobDirectory, Jobs {
     @Transactional(readOnly = true)
     public BigDecimal standaloneBudgetTotalOfContact(UUID contactId) {
         return jobs.standaloneBudgetTotalOfContact(contactId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal materialsCostOfJob(UUID jobId) {
+        return materials.costOfJob(jobId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal materialsCostOfProject(UUID projectId) {
+        return materials.costOfProject(projectId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal materialsCostOfContact(UUID contactId) {
+        return materials.costOfContact(contactId);
     }
 
     @Override

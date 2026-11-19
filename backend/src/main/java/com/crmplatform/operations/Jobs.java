@@ -21,6 +21,13 @@ public interface Jobs {
     /** Σ budgets of the customer's standalone (project-less) jobs; part of the customer's contract. */
     BigDecimal standaloneBudgetTotalOfContact(UUID contactId);
 
+    /** Σ quantity × unit cost of materials used (D12) — on a job, a project's jobs, or a customer's jobs. */
+    BigDecimal materialsCostOfJob(UUID jobId);
+
+    BigDecimal materialsCostOfProject(UUID projectId);
+
+    BigDecimal materialsCostOfContact(UUID contactId);
+
     /** {@code projectId} is null for a standalone service job. */
     record JobSummary(UUID id, UUID projectId, String title, BigDecimal budget, UUID contactId, UUID locationId) {
     }

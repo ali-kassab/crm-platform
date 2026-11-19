@@ -121,3 +121,15 @@ priority must be LOW, NORMAL, HIGH or URGENT	الأولوية يجب أن تكو
 scheduledEnd must be after scheduledStart	يجب أن يكون موعد انتهاء الزيارة بعد موعد بدايتها
 status must be NEW, SCHEDULED, IN_PROGRESS, ON_HOLD, COMPLETED or CANCELLED	الحالة يجب أن تكون جديدة أو مجدولة أو قيد التنفيذ أو معلقة أو مكتملة أو ملغاة
 type must be INSTALLATION, PREVENTIVE_MAINTENANCE, CORRECTIVE_REPAIR or INSPECTION	نوع أمر العمل يجب أن يكون تركيبًا أو صيانة وقائية أو إصلاحًا أو معاينة
+Only the person who recorded it or a dispatcher can remove this line	لا يمكن حذف هذا البند إلا بواسطة من سجّله أو منسق العمل
+This approval has already been decided	تم البت في هذه الموافقة بالفعل
+approverName is required	اسم صاحب الموافقة مطلوب
+decision must be APPROVED or REJECTED	القرار يجب أن يكون موافقة أو رفضًا
+kind must be QUOTATION, WORK or COMPLETION	نوع الموافقة يجب أن يكون عرض سعر أو تنفيذ أعمال أو استلام
+quantity must be greater than 0	يجب أن تكون الكمية أكبر من صفر
+Images must be 5 MB or smaller	يجب ألا يتجاوز حجم الصورة 5 ميجابايت
+Images must be JPEG, PNG or WebP	يجب أن تكون الصورة بصيغة JPEG أو PNG أو WebP
+The image could not be read	تعذّرت قراءة الصورة
+Documents must be 10 MB or smaller	يجب ألا يتجاوز حجم المستند 10 ميجابايت
+Documents must be PDF, Word, Excel or PowerPoint files	يجب أن يكون المستند بصيغة PDF أو Word أو Excel أو PowerPoint
+Images must be at most 40 megapixels	يجب ألا تتجاوز دقة الصورة 40 ميجابكسل

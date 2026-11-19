@@ -83,10 +83,12 @@ public class CustomerHistoryController {
         }
     }
 
-    public record Totals(String contract, String received, String actualCost, String remaining, String profitLoss,
+    public record Totals(String contract, String received, String actualCost, String materialsCost, String remaining,
+            String profitLoss,
             long transactionCount, boolean overpaid) {
         static Totals of(Accounting.Totals t) {
-            return new Totals(money(t.contract()), money(t.received()), money(t.actualCost()), money(t.remaining()),
+            return new Totals(money(t.contract()), money(t.received()), money(t.actualCost()), money(t.materialsCost()),
+                    money(t.remaining()),
                     money(t.profitLoss()), t.transactionCount(), t.overpaid());
         }
     }

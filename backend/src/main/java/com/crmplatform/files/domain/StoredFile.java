@@ -47,7 +47,28 @@ public class StoredFile extends TenantEntity {
     @Column(name = "attached_at")
     private Instant attachedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 12)
+    private com.crmplatform.files.FilePurpose purpose;
+
+    /** Storage key of the small WebP preview (images only). */
+    @Column(name = "thumbnail_key", length = 300)
+    private String thumbnailKey;
+
     protected StoredFile() {
+    }
+
+    public void describe(com.crmplatform.files.FilePurpose purpose, String thumbnailKey) {
+        this.purpose = purpose;
+        this.thumbnailKey = thumbnailKey;
+    }
+
+    public com.crmplatform.files.FilePurpose getPurpose() {
+        return purpose;
+    }
+
+    public String getThumbnailKey() {
+        return thumbnailKey;
     }
 
     public StoredFile(FileKind kind, String storageKey, String originalName, String contentType,

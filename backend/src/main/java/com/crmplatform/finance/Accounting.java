@@ -14,7 +14,8 @@ public interface Accounting {
     /** The customer's most recent non-voided transactions (newest commitment date first). */
     List<TransactionOverview> recentOfContact(UUID contactId, int limit);
 
-    record Totals(BigDecimal contract, BigDecimal received, BigDecimal actualCost, BigDecimal remaining,
+    record Totals(BigDecimal contract, BigDecimal received, BigDecimal actualCost, BigDecimal materialsCost,
+            BigDecimal remaining,
             BigDecimal profitLoss, long transactionCount, boolean overpaid) {
     }
 

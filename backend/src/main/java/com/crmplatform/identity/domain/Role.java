@@ -29,7 +29,7 @@ import java.util.Set;
 
 /** Fixed workspace roles and their permissions (AUTHENTICATION_AND_AUTHORIZATION.md §2). */
 public enum Role {
-    VIEWER(Set.of(REFDATA_READ, CRM_READ, WORK_READ, OPS_READ)),
+    VIEWER(Set.of(REFDATA_READ, CRM_READ, WORK_READ, OPS_READ, Permissions.FILES_READ)),
     MEMBER(union(VIEWER.permissions, Set.of(CRM_WRITE, CRM_DELETE, WORK_WRITE, OPS_WRITE, FINANCE_READ,
             AUTOMATION_READ, FILES_UPLOAD))),
     ADMIN(union(MEMBER.permissions, Set.of(WORKSPACE_MANAGE, MEMBERS_MANAGE, REFDATA_MANAGE, WORK_DELETE,
@@ -41,7 +41,8 @@ public enum Role {
      */
     TECHNICIAN(Set.of(REFDATA_READ, Permissions.OPS_ASSIGNED, FILES_UPLOAD)),
     /** D8: finance user — money in and out, read access to the work it belongs to. */
-    FINANCE(Set.of(REFDATA_READ, CRM_READ, WORK_READ, OPS_READ, FINANCE_READ, FINANCE_WRITE, REPORTS_READ));
+    FINANCE(Set.of(REFDATA_READ, CRM_READ, WORK_READ, OPS_READ, FINANCE_READ, FINANCE_WRITE, REPORTS_READ,
+            Permissions.FILES_READ));
 
     private final Set<String> permissions;
 

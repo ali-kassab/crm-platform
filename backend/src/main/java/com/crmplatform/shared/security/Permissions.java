@@ -30,6 +30,8 @@ public final class Permissions {
     public static final String AUDIT_READ = "audit:read";
     public static final String REPORTS_READ = "reports:read";
     public static final String FILES_UPLOAD = "files:upload";
+    /** Open any file of the workspace; without it only own uploads and files of assigned work. */
+    public static final String FILES_READ = "files:read";
 
     /** Granted only to platform super-admins; never derived from a workspace role. */
     public static final String PLATFORM_ADMIN = "platform:admin";
