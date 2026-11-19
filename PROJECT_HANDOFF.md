@@ -22,8 +22,9 @@
 | R1 Localization & workspace settings (backend) | ✅ complete (2026-11-19, `2f8fab6`) |
 | R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
 | R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
-| R4 Visit reports, photo purposes, materials, approvals | ⏭ next (not started) |
-| R5–R13 | ⚪ not started |
+| R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
+| R5 Notifications (in-app) | ⏭ next (not started) |
+| R6–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -81,20 +82,22 @@
 - Finance: transactions on standalone jobs (customer from the job); customer contract = project budgets + standalone job budgets. `operations.Jobs` (+`ofContact`, `standaloneBudgetTotalOfContact`), `operations.Warranties.ofProjectsOrJobs`; customer history lists all jobs.
 - Tests: `operations/WorkOrdersIT` (5).
 
-## 5. Current phase & exact next steps — R4 Visit reports, photo purposes, materials, approvals
-Not started. Planned order:
-1. Flyway `V13`: `visit_reports` (1 per visit: reported problem, findings, diagnosis, work performed, recommendations, notes, customer confirmation name + time + optional signature file); `files.purpose` (`BEFORE`, `DURING`, `AFTER`, `INSPECTION`, `REPORT`, `WARRANTY`, `EQUIPMENT`, `OTHER`) + `files.thumbnail_key`; `job_materials` (job, optional visit, name, quantity, unit, unit cost); `job_approvals` (job, kind `QUOTATION`/`WORK`/`COMPLETION`, status `PENDING`/`APPROVED`/`REJECTED`, approver name, decided at, notes, signature file).
-2. Files: upload accepts `purpose`; images also get a small WebP thumbnail (≈ 320 px) for lists; owner/purpose listing; per-entity file access for technicians (only files of their jobs/visits).
-3. Visit report API (`GET/PUT /visits/{id}/report`, technician allowed), materials (`/jobs/{id}/materials`), approvals (`/jobs/{id}/approvals`, staff-recorded — D14).
-4. Finance (D12): job rollup adds `materialsCost`; profit = contract − actual cost − materials cost; materials are not transactions.
-5. Tests: report round-trip in Arabic, photos by purpose with thumbnails, materials in profit, approvals, technician limits.
-Then R5 notifications (roadmap: `D:WorkspaceJava CRMPRODUCT_AUDIT.md` §15).
+## 4e. Completed — R4 Visit reports, photo purposes, materials, approvals — commit `376987b`
+- Flyway `V13__reports_files_materials_approvals.sql`: `stored_files.purpose` + `thumbnail_key`; `visit_reports` (unique per visit); `job_materials`; `job_approvals`.
+- files: `FilePurpose`, `FileOwnerAccess` SPI, `FileSummary` (+purpose, hasThumbnail), 320 px WebP thumbnails (`FileInspector.THUMBNAIL_EDGE`), `GET /files/{id}/thumbnail-url`, upload `purpose` param; `Permissions.FILES_READ` (all roles except TECHNICIAN); technicians open only own uploads or files of assigned work (`OperationsIntegration.operationsFileAccess`: owner types JOB, VISIT, VISIT_REPORT, JOB_APPROVAL).
+- `operations/visits`: `VisitReport(+Repository)`, `VisitReportService`, `VisitReportController` (`GET/PUT /visits/{id}/report`, `GET/POST /visits/{id}/files`).
+- `operations/jobs`: `JobMaterial`, `JobApproval` (+repositories), `JobExecutionService`, `JobExecutionController` (`/jobs/{id}/materials`, `/jobs/{id}/approvals`, `.../approvals/{aid}/decision`).
+- Finance: `materialsCost` in job/project/customer rollups (`Jobs.materialsCostOf*`), profit = contract − actual cost − materials cost; `finance.Accounting.Totals` and history `Totals` include it.
+- Tests: `operations/FieldEvidenceIT` (2).
+
+## 5. Current phase & exact next steps — R5 Notifications (in-app)
+Not started. Plan: new `notifications` module (table `notifications`: workspace, recipient user, type, payload jsonb, read_at, created_at); listeners via `TenantWork` for existing events (`TaskAssigned`, `ProjectMembersChanged`, `ProjectDeletedNotice`) plus job assignment and visit scheduling; `GET /api/v1/notifications` (mine, unread filter), `POST /notifications/{id}/read`, `POST /notifications/read-all`; Arabic/English text rendered by the client from `type` + payload; strict per-user isolation tests. Then R6 equipment, warranties, preventive maintenance and SLA.
 
 ## 6. Tests (actual results)
-- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `7438edf`: **112 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
+- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
-- S4 no subscription enforcement (R7). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
+- S4 no subscription enforcement (R7). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
 
@@ -124,7 +127,9 @@ Then R5 notifications (roadmap: `D:WorkspaceJava CRMPRODUCT_AUDIT.md` §15).
 | `8bb659f` | docs: update handoff - R2 customers complete |
 | `f410cc5` | docs: handoff - R3 in progress, stopped mid-phase |
 | `7438edf` | feat(operations): work orders, visits and technician scoping |
-| (next commit) | docs: update handoff - R3 complete |
+| `eefd676` | docs: update handoff - R3 work orders complete |
+| `376987b` | feat(operations): visit reports, photo purposes and thumbnails, materials, approvals |
+| (next commit) | docs: update handoff - R4 complete |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
