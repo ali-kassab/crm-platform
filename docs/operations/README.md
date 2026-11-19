@@ -70,7 +70,10 @@ cd frontend && LIVE_BASE_URL=http://localhost:8088 pnpm test:live
 ```
 `e2e-live/` registers a brand-new workspace each run (never touches existing data) and checks the
 real API, Arabic search normalisation, CSP, and that the realtime socket connects through nginx with
-the ticket only in the handshake.
+the ticket only in the handshake. It walks the whole field flow: customer → site → work order → visit
+start → visit record (report, a real photo whose WebP thumbnail is loaded from object storage, a
+material line) → completion → Arabic PDF download. Registration is limited to 5 per hour per IP, so
+at most 5 runs per hour against one stack.
 
 ## 7. Performance baseline
 `ops/perf/baseline.js` (k6). See `performance-baseline.md` for the measured numbers and targets.

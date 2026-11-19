@@ -27,6 +27,7 @@ import { formatDateTime, formatMoney, fromLocalInput, toLocalInput } from '@/lib
 import { useSubscription } from '@/lib/subscription'
 import { VisitActions } from '@/pages/visits/VisitActions'
 import { VisitReportButton } from '@/pages/visits/VisitReportButton'
+import { VisitWorkButton } from '@/pages/visits/VisitWorkButton'
 import { JOB_STATUSES, useChangeJobStatus, useJob, useJobVisits, useScheduleVisit, type JobStatus } from './api'
 import { PriorityBadge, StatusBadge } from './JobBadges'
 
@@ -125,6 +126,7 @@ export function JobDetailPage() {
                     {v.outcome && ` · ${t(`visits.outcomes.${v.outcome}`)}`}
                   </p>
                 </div>
+                <VisitWorkButton visit={v} readOnly={readOnly} />
                 <VisitReportButton visit={v} />
                 <VisitActions visit={v} disabled={readOnly} />
               </div>

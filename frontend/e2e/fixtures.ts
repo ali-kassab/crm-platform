@@ -10,6 +10,9 @@ export interface FakeApi {
   visits: Record<string, unknown>[]
   paymentRequests: Record<string, unknown>[]
   notifications: { id: string; type: string; entityType: string | null; entityId: string | null; payload: Record<string, unknown>; read: boolean; createdAt: string }[]
+  visitReports: Record<string, Record<string, unknown>>
+  visitFiles: Record<string, Record<string, unknown>[]>
+  materials: Record<string, Record<string, unknown>[]>
   /** sites per customer id; a customer missing here has the default site s1 */
   sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
@@ -113,6 +116,9 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       paymentRequests: [],
       sites: {},
       notifications: [],
+      visitReports: {},
+      visitFiles: {},
+      materials: {},
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -289,6 +295,43 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
   }
   if (path.startsWith('/files') && method === 'POST') {
     await json(route, 201, { files: [{ id: 'f1' }] })
+    return true
+  }
+  // visit record (R4 API): report, photos, materials
+  if ((m = path.match(/^\/visits\/([^/]+)\/report$/))) {
+    if (method === 'PUT') {
+      api.visitReports[m[1]] = { ...b, customerConfirmedAt: b.customerName ? '2030-01-05T10:00:00Z' : null, version: 1 }
+      await json(route, 200, api.visitReports[m[1]])
+    } else if (api.visitReports[m[1]]) {
+      await json(route, 200, api.visitReports[m[1]])
+    } else {
+      await route.fulfill({ status: 204 })
+    }
+    return true
+  }
+  if ((m = path.match(/^\/visits\/([^/]+)\/files$/))) {
+    const list = (api.visitFiles[m[1]] ??= [])
+    if (method === 'POST') {
+      const ids = (b.fileIds as string[]) ?? []
+      const purpose = api.requests.findLast((r) => r.path.startsWith('/files?'))?.path.match(/purpose=(\w+)/)?.[1] ?? null
+      ids.forEach((id) => list.push({ id: `${id}-${list.length}`, kind: 'IMAGE', name: 'photo.jpg', purpose, hasThumbnail: false }))
+    }
+    await json(route, 200, list)
+    return true
+  }
+  if ((m = path.match(/^\/jobs\/([^/]+)\/materials(?:\/([^/]+))?$/))) {
+    const list = (api.materials[m[1]] ??= [])
+    if (method === 'POST') {
+      const qty = String(b.quantity)
+      const cost = b.unitCost ? Number(b.unitCost).toFixed(2) : null
+      list.push({ id: `m${list.length + 1}`, visitId: b.visitId, name: b.name, quantity: qty, unit: b.unit ?? null, unitCost: cost, lineCost: cost ? (Number(cost) * Number(qty)).toFixed(2) : null })
+      await json(route, 201, list[list.length - 1])
+    } else if (method === 'DELETE') {
+      api.materials[m[1]] = list.filter((x) => x.id !== m![2])
+      await route.fulfill({ status: 204 })
+    } else {
+      await json(route, 200, { lines: list, totalCost: null })
+    }
     return true
   }
   return false

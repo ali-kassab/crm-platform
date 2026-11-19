@@ -298,5 +298,48 @@
       "SUBSCRIPTION_REQUEST_APPROVED": "Renewal approved; subscription valid until {{date}}",
       "SUBSCRIPTION_REQUEST_REJECTED": "Renewal rejected: {{reason}}"
     }
+  },
+  "work": {
+    "open": "Visit record",
+    "title": "Visit record",
+    "tabs": {
+      "report": "Technical report",
+      "photos": "Photos",
+      "materials": "Materials"
+    },
+    "sections": {
+      "reportedProblem": "Problem as reported by the customer",
+      "findings": "What the technician found",
+      "diagnosis": "Diagnosis",
+      "workPerformed": "Work performed",
+      "recommendations": "Recommendations",
+      "notes": "Notes for the customer"
+    },
+    "customerName": "Name of the customer who confirmed the work",
+    "customerNameHint": "Entering a name records the customer's confirmation of the visit",
+    "confirmedAt": "Customer confirmed on {{when}}",
+    "saveReport": "Save report",
+    "reportSaved": "Report saved",
+    "photoPurpose": "Photo type",
+    "addPhotos": "Add photos",
+    "photosAdded_one": "1 photo added",
+    "photosAdded_other": "{{count}} photos added",
+    "noPhotos": "No photos yet",
+    "noPhotosHint": "Photograph the site before, during and after the work; photos appear in the PDF report",
+    "purposes": {
+      "BEFORE": "Before",
+      "DURING": "During",
+      "AFTER": "After",
+      "INSPECTION": "Inspection"
+    },
+    "noMaterials": "No materials recorded for this visit",
+    "materialName": "Material or part",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "unitCost": "Unit price",
+    "addMaterial": "Add material",
+    "removeMaterial": "Remove {{name}}",
+    "quantityInvalid": "Enter a quantity above zero",
+    "costInvalid": "Enter a valid price"
   }
 }

@@ -302,5 +302,52 @@
       "SUBSCRIPTION_REQUEST_APPROVED": "تمت الموافقة على طلب التجديد، والاشتراك ساري حتى {{date}}",
       "SUBSCRIPTION_REQUEST_REJECTED": "رُفض طلب التجديد: {{reason}}"
     }
+  },
+  "work": {
+    "open": "سجل الزيارة",
+    "title": "سجل الزيارة",
+    "tabs": {
+      "report": "التقرير الفني",
+      "photos": "الصور",
+      "materials": "المواد"
+    },
+    "sections": {
+      "reportedProblem": "المشكلة كما أبلغ عنها العميل",
+      "findings": "ما وجده الفني",
+      "diagnosis": "التشخيص",
+      "workPerformed": "الأعمال المنفذة",
+      "recommendations": "التوصيات",
+      "notes": "ملاحظات للعميل"
+    },
+    "customerName": "اسم العميل الذي أكّد العمل",
+    "customerNameHint": "كتابة الاسم تسجّل تأكيد العميل لما تم في الزيارة",
+    "confirmedAt": "أكّد العميل في {{when}}",
+    "saveReport": "حفظ التقرير",
+    "reportSaved": "تم حفظ التقرير",
+    "photoPurpose": "نوع الصورة",
+    "addPhotos": "إضافة صور",
+    "photosAdded_zero": "لم تُضف صور",
+    "photosAdded_one": "تمت إضافة صورة",
+    "photosAdded_two": "تمت إضافة صورتين",
+    "photosAdded_few": "تمت إضافة {{count}} صور",
+    "photosAdded_many": "تمت إضافة {{count}} صورة",
+    "photosAdded_other": "تمت إضافة {{count}} صورة",
+    "noPhotos": "لا توجد صور بعد",
+    "noPhotosHint": "صوّر الموقع قبل العمل وأثناءه وبعده؛ تظهر الصور في تقرير PDF",
+    "purposes": {
+      "BEFORE": "قبل",
+      "DURING": "أثناء",
+      "AFTER": "بعد",
+      "INSPECTION": "معاينة"
+    },
+    "noMaterials": "لم تُسجّل مواد لهذه الزيارة",
+    "materialName": "المادة أو القطعة",
+    "quantity": "الكمية",
+    "unit": "الوحدة",
+    "unitCost": "سعر الوحدة",
+    "addMaterial": "إضافة مادة",
+    "removeMaterial": "حذف {{name}}",
+    "quantityInvalid": "أدخل كمية أكبر من صفر",
+    "costInvalid": "أدخل سعراً صحيحاً"
   }
 }

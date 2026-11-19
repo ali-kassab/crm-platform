@@ -57,6 +57,33 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   await expect(page.getByText('تمت جدولة الزيارة')).toBeVisible()
   await page.getByRole('button', { name: 'بدء الزيارة' }).click()
   await expect(page.getByText('بدأت الزيارة')).toBeVisible()
+
+  // visit record: report, a real photo (server thumbnail via presigned URL), a material line
+  await page.getByRole('button', { name: 'سجل الزيارة' }).click()
+  const sheet = page.getByRole('dialog', { name: 'سجل الزيارة' })
+  await sheet.getByLabel('ما وجده الفني').fill('ضاغط التكييف لا يعمل')
+  await sheet.getByLabel('الأعمال المنفذة').fill('تم تغيير المكثف وشحن الفريون')
+  await sheet.getByLabel('اسم العميل الذي أكّد العمل').fill('محمود حسن')
+  await sheet.getByRole('button', { name: 'حفظ التقرير' }).click()
+  await expect(page.getByText('تم حفظ التقرير')).toBeVisible()
+  await sheet.getByRole('tab', { name: 'الصور' }).click()
+  // valid 16x16 RGB PNG (the server decodes every image and rejects unreadable ones with 415)
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABlElEQVR4nBWRURFEMQjEkFAJSKgEJFQCEiohEiqhEpCAhEpAAhLuHt87THYjIgxBhSmYsAQXtoBwhCuEkMITSmhBZDAGOpgDG6yBD/aAwRncQQxy8AY16IGIMhRVpmLKUlzZCspRrhJKKk8ppRWRyZjoZE5ssiY+2RMmZ3InMcnJm9SkJyLGMNSYhhnLcGMbGMe4RhhpPKOMNkQWY6GLubDFWvhiL1icxV3EIhdvUYteiDjDUWc65izHne3gHOc64aTznHLaEdmMjW7mxjZr45u9YXM2dxOb3LxNbXoj8g2IfiWxDwT/wt8duBCQ8KCg/3rkMA56mAc7rIMf9vni53APccjDO9Shz9/DZVz0Mi92WRe/7Ps9P5d7iUte3qUuff8eghFoMAMLVuDBjg/lBDeIIIMXVNDx95CMRJOZWLIST3Z+4Ce5SSSZvKSSzr+Hx3joYz7ssR7+2O+reR73EY98vEc9+v09FKPQYhZWrMKLXd8op7hFFFm8ooquv4dmNNrMxprVeLP7m/A0t4kmm9dU080PiAJwEDqK72wAAAAASUVORK5CYII=',
+    'base64',
+  )
+  await sheet.getByLabel('إضافة صور').setInputFiles({ name: 'after.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('تمت إضافة صورة')).toBeVisible()
+  const thumb = sheet.getByRole('img', { name: 'after.webp' }) // stored re-encoded as WebP
+  await expect(thumb).toBeVisible()
+  await expect.poll(() => thumb.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0)
+  await sheet.getByRole('tab', { name: 'المواد' }).click()
+  await sheet.getByLabel('المادة أو القطعة').fill('مكثف 35 ميكرو')
+  await sheet.getByLabel('الوحدة', { exact: true }).fill('قطعة')
+  await sheet.getByRole('button', { name: 'إضافة مادة' }).click()
+  await expect(sheet.getByText('مكثف 35 ميكرو')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(sheet).toBeHidden()
   await page.getByRole('button', { name: 'إنهاء الزيارة' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByText('تم إنهاء الزيارة')).toBeVisible()

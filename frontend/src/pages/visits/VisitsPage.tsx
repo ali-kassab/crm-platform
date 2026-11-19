@@ -10,6 +10,7 @@ import { useSubscription } from '@/lib/subscription'
 import { useMyVisits } from './api'
 import { VisitActions } from './VisitActions'
 import { VisitReportButton } from './VisitReportButton'
+import { VisitWorkButton } from './VisitWorkButton'
 
 /** The technician's day: upcoming and running visits, one card each (phone-first). */
 export function VisitsPage() {
@@ -51,6 +52,7 @@ export function VisitsPage() {
             <CardContent className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">{v.notes}</p>
               <div className="flex flex-wrap gap-2">
+                <VisitWorkButton visit={v} readOnly={subscription?.readOnly} />
                 <VisitReportButton visit={v} />
                 <VisitActions visit={v} disabled={subscription?.readOnly} />
               </div>
