@@ -163,3 +163,4 @@ days must be between 1 and 366	عدد الأيام يجب أن يكون بين 1
 The workspace is not suspended	مساحة العمل غير موقوفة
 Unknown request status	حالة الطلب غير معروفة
 Unknown subscription action	إجراء الاشتراك غير معروف
+A transaction needs a job or a project	يجب ربط المعاملة بأمر عمل أو مشروع

@@ -64,16 +64,28 @@ public class TransactionService {
 
     @Transactional
     public Transaction record(TransactionData d) {
-        Jobs.JobSummary job = jobs.find(d.jobId()).orElseThrow(() -> ApiException.referenceNotFound("jobId"));
-        if (d.projectId() != null && !Objects.equals(d.projectId(), job.projectId())) {
-            throw ApiException.badRequest("JOB_NOT_IN_PROJECT", "The job does not belong to the project"); // BR-091
+        // R8: a job (project or standalone) or a project alone (e.g. a down payment before any job exists)
+        UUID jobId = d.jobId();
+        UUID projectId;
+        UUID defaultContact;
+        if (jobId != null) {
+            Jobs.JobSummary job = jobs.find(jobId).orElseThrow(() -> ApiException.referenceNotFound("jobId"));
+            if (d.projectId() != null && !Objects.equals(d.projectId(), job.projectId())) {
+                throw ApiException.badRequest("JOB_NOT_IN_PROJECT", "The job does not belong to the project"); // BR-091
+            }
+            if (job.projectId() != null) {
+                projects.find(job.projectId()).orElseThrow(() -> ApiException.referenceNotFound("projectId"));
+            }
+            projectId = job.projectId();
+            defaultContact = job.contactId(); // EC-26: the job's customer (= the project's for project jobs)
+        } else if (d.projectId() != null) {
+            var project = projects.find(d.projectId()).orElseThrow(() -> ApiException.referenceNotFound("projectId"));
+            projectId = project.id();
+            defaultContact = project.contactId();
+        } else {
+            throw ApiException.badRequest("TRANSACTION_PARENT_REQUIRED", "A transaction needs a job or a project");
         }
-        if (job.projectId() != null) {
-            projects.find(job.projectId()).orElseThrow(() -> ApiException.referenceNotFound("projectId"));
-        }
-        // EC-26: defaults to the job's customer (= the project's customer for project jobs); standalone
-        // service jobs (D2) have no project and still carry their customer
-        UUID contactId = d.contactId() != null ? d.contactId() : job.contactId();
+        UUID contactId = d.contactId() != null ? d.contactId() : defaultContact;
         if (contacts.find(contactId).isEmpty()) {
             throw ApiException.referenceNotFound("contactId");
         }
@@ -91,7 +103,7 @@ public class TransactionService {
             throw ApiException.badRequest("VALIDATION_ERROR", "amount must be greater than 0 with at most 2 decimals");
         }
 
-        Transaction t = transactions.save(new Transaction(new Parties(job.id(), job.projectId(), contactId),
+        Transaction t = transactions.save(new Transaction(new Parties(jobId, projectId, contactId),
                 Type.valueOf(d.type()), d.amount().setScale(2), new Details(d.title(), d.payee(), method,
                         d.bankName(), d.checkNumber(), d.commitmentDate(), d.dueDate(), d.docNotes(), d.docNumber(),
                         d.docDate(), d.attachmentFileId())));

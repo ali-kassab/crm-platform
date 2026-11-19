@@ -91,7 +91,7 @@ public class TransactionController {
     // ------------------------------------------------------------------ DTOs
 
     public record TransactionRequest(
-            @NotNull UUID jobId,
+            UUID jobId,
             UUID projectId,
             UUID contactId,
             @NotBlank @Pattern(regexp = TYPE) String type,
