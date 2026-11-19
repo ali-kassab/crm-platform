@@ -39,6 +39,33 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   await siteDialog.getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByText('تمت إضافة الموقع')).toBeVisible()
 
+  // equipment at that site (serial numbers are unique per workspace)
+  await page.getByRole('button', { name: 'إضافة جهاز' }).click()
+  const eqDialog = page.getByRole('dialog')
+  await eqDialog.getByLabel('اسم الجهاز').fill('كاميرا المدخل')
+  await eqDialog.getByLabel('الرقم التسلسلي').fill(`SN-${stamp}`)
+  await eqDialog.getByLabel('تاريخ التركيب').fill('2026-01-15')
+  await eqDialog.getByRole('button', { name: 'حفظ' }).click()
+  await expect(page.getByText('تمت إضافة الجهاز')).toBeVisible()
+  await expect(page.getByText(`SN-${stamp}`)).toBeVisible()
+
+  // preventive maintenance plan for the site
+  await page.goto('/maintenance')
+  await page.getByRole('button', { name: 'خطة صيانة جديدة' }).click()
+  const planDialog = page.getByRole('dialog')
+  await planDialog.getByLabel('العميل').click()
+  await page.getByRole('option', { name: 'مستشفى النيل' }).click()
+  await planDialog.getByLabel('الموقع').click()
+  await page.getByRole('option', { name: 'المبنى الرئيسي' }).click()
+  await planDialog.getByLabel('اسم الخطة').fill('صيانة ربع سنوية')
+  await planDialog.getByLabel('زمن الاستجابة للأعطال (ساعات)').fill('24')
+  await planDialog.getByRole('button', { name: 'حفظ' }).click()
+  await expect(page.getByText('تمت إضافة خطة الصيانة')).toBeVisible()
+  const planRow = page.getByRole('row', { name: /صيانة ربع سنوية/ })
+  await expect(planRow.getByText('كل 3 أشهر')).toBeVisible()
+  await planRow.getByRole('button', { name: 'إيقاف مؤقت' }).click()
+  await expect(page.getByText('تم إيقاف الخطة مؤقتاً')).toBeVisible()
+
   // work order → visit → start → complete
   await page.goto('/jobs')
   await expect(page.getByText('لا توجد أوامر عمل')).toBeVisible()

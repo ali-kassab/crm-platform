@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/auth/auth-context'
 import { useSubscription } from '@/lib/subscription'
 import { useCustomer, useSites, type Site } from './api'
+import { EquipmentSection } from './EquipmentSection'
 import { NewSiteDialog } from './NewSiteDialog'
 
 function SiteRow({ site }: { site: Site }) {
@@ -110,6 +111,15 @@ export function CustomerDetailPage() {
           </ul>
         )}
       </section>
+
+      {can('ops:read') ? (
+        <EquipmentSection
+          contactId={id}
+          sites={sites.data?.content ?? []}
+          canWrite={can('ops:write') && !subscription?.readOnly}
+          showAdd={can('ops:write')}
+        />
+      ) : null}
     </div>
   )
 }

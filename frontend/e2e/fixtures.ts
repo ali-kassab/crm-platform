@@ -13,6 +13,9 @@ export interface FakeApi {
   visitReports: Record<string, Record<string, unknown>>
   visitFiles: Record<string, Record<string, unknown>[]>
   materials: Record<string, Record<string, unknown>[]>
+  plans: Record<string, unknown>[]
+  overdue: Record<string, unknown>[]
+  equipment: Record<string, unknown>[]
   /** sites per customer id; a customer missing here has the default site s1 */
   sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
@@ -119,6 +122,9 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       visitReports: {},
       visitFiles: {},
       materials: {},
+      plans: [],
+      overdue: [],
+      equipment: [],
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -295,6 +301,38 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
   }
   if (path.startsWith('/files') && method === 'POST') {
     await json(route, 201, { files: [{ id: 'f1' }] })
+    return true
+  }
+  // maintenance plans and equipment (R6 API)
+  if (path === '/maintenance-plans/overdue') {
+    await json(route, 200, api.overdue)
+    return true
+  }
+  if (path === '/maintenance-plans' && method === 'POST') {
+    const plan = { id: `p${api.plans.length + 1}`, status: 'ACTIVE', nextDueDate: b.startDate, generatedCount: 0, intervalDays: null, ...b }
+    api.plans.push(plan)
+    await json(route, 201, plan)
+    return true
+  }
+  if (path === '/maintenance-plans') {
+    const status = search.get('status')
+    await json(route, 200, page(api.plans.filter((p) => !status || p.status === status)))
+    return true
+  }
+  if ((m = path.match(/^\/maintenance-plans\/([^/]+)$/)) && method === 'PATCH') {
+    const plan = api.plans.find((p) => p.id === m![1])
+    Object.assign(plan ?? {}, b)
+    await json(route, plan ? 200 : 404, plan ?? { code: 'NOT_FOUND' })
+    return true
+  }
+  if (path === '/equipment' && method === 'POST') {
+    const item = { id: `e${api.equipment.length + 1}`, status: 'ACTIVE', manufacturer: null, model: null, serialNumber: null, installedOn: null, ...b }
+    api.equipment.push(item)
+    await json(route, 201, item)
+    return true
+  }
+  if (path === '/equipment') {
+    await json(route, 200, page(api.equipment.filter((e) => e.contactId === search.get('contactId'))))
     return true
   }
   // visit record (R4 API): report, photos, materials

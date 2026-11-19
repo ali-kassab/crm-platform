@@ -12,6 +12,7 @@ const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => 
 const CustomersPage = lazy(() => import('@/pages/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const CustomerDetailPage = lazy(() => import('@/pages/customers/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
 const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
+const MaintenancePage = lazy(() => import('@/pages/maintenance/MaintenancePage').then((m) => ({ default: m.MaintenancePage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const JobsPage = lazy(() => import('@/pages/jobs/JobsPage').then((m) => ({ default: m.JobsPage })))
 const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage').then((m) => ({ default: m.JobDetailPage })))
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="jobs" element={<JobsPage />} />
           <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="visits" element={<VisitsPage />} />
+          <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="finance" element={<FinancePage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="notifications" element={<NotificationsPage />} />

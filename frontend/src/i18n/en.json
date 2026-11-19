@@ -341,5 +341,82 @@
     "removeMaterial": "Remove {{name}}",
     "quantityInvalid": "Enter a quantity above zero",
     "costInvalid": "Enter a valid price"
+  },
+  "maintenance": {
+    "title": "Preventive maintenance",
+    "add": "New maintenance plan",
+    "addHint": "A maintenance contract for a customer site; a work order opens automatically before each due date",
+    "created": "Maintenance plan added",
+    "planTitle": "Plan name",
+    "frequency": "Frequency",
+    "frequencies": {
+      "MONTHLY": "Monthly",
+      "QUARTERLY": "Every 3 months",
+      "SEMI_ANNUAL": "Every 6 months",
+      "ANNUAL": "Yearly",
+      "CUSTOM": "Every N days"
+    },
+    "intervalDays": "Every how many days",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "endDateHint": "Leave empty for an open-ended plan",
+    "responseHours": "Breakdown response time (hours)",
+    "responseHint": "Applies to breakdown work orders at this site",
+    "includedVisits": "Included visits",
+    "includedHint": "Leave empty for no limit",
+    "nextDue": "Next due",
+    "statuses": {
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "ENDED": "Ended"
+    },
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused": "Plan paused",
+    "resumed": "Plan resumed",
+    "emptyTitle": "No maintenance plans",
+    "emptyHint": "Add a plan and maintenance work orders are created on schedule",
+    "dueOn": "due {{date}}",
+    "everyDays_one": "Every day",
+    "everyDays_other": "Every {{count}} days",
+    "overdueTitle_one": "1 maintenance visit overdue",
+    "overdueTitle_other": "{{count}} maintenance visits overdue",
+    "intervalInvalid": "1 to 730 days",
+    "responseInvalid": "1 to 720 hours",
+    "visitsInvalid": "1 to 1000",
+    "endBeforeStart": "End date is before the start date"
+  },
+  "equipment": {
+    "title": "Equipment",
+    "add": "Add equipment",
+    "created": "Equipment added",
+    "category": "Type",
+    "name": "Name",
+    "manufacturer": "Manufacturer",
+    "model": "Model",
+    "serial": "Serial number",
+    "installedOn": "Installed on",
+    "installedOnDate": "installed {{date}}",
+    "emptyTitle": "No equipment recorded",
+    "emptyHint": "Record cameras, recorders, AC units and more to track their service and warranty history",
+    "needSite": "Add a site first, then record its equipment",
+    "categories": {
+      "CCTV_CAMERA": "CCTV camera",
+      "RECORDER": "Recorder",
+      "ACCESS_CONTROL": "Access control",
+      "ALARM": "Alarm",
+      "FIRE_SYSTEM": "Fire system",
+      "NETWORK": "Network",
+      "HVAC_UNIT": "HVAC unit",
+      "ELECTRICAL": "Electrical",
+      "PLUMBING": "Plumbing",
+      "OTHER": "Other"
+    },
+    "statuses": {
+      "ACTIVE": "Working",
+      "FAULTY": "Faulty",
+      "REPLACED": "Replaced",
+      "REMOVED": "Removed"
+    }
   }
 }
