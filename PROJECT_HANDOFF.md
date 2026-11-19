@@ -21,8 +21,9 @@
 | R0 Security & foundations | ✅ complete (2026-11-19) |
 | R1 Localization & workspace settings (backend) | ✅ complete (2026-11-19, `2f8fab6`) |
 | R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
-| R3 Work orders, visits, technician role | ⏭ next (not started) |
-| R4–R13 | ⚪ not started |
+| R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
+| R4 Visit reports, photo purposes, materials, approvals | ⏭ next (not started) |
+| R5–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -71,24 +72,29 @@
 - Tests: `crm/CustomersIT` (5, incl. Java↔SQL normalisation parity); `ContactsIT`, `LocalizationIT` adjusted.
 - Not done: no trigram index for `%…%` searches yet (fine for current volumes; measure in R13).
 
-## 5. Current phase & exact next steps — R3 Work orders, visits, technician role
-**IN PROGRESS — stopped mid-phase (usage limit, 2026-11-19). Work is UNCOMMITTED in the working tree and does NOT compile yet.**
-Done (uncommitted): `V12__work_orders_visits_roles.sql`; `Role` TECHNICIAN/FINANCE + `Permissions.OPS_ASSIGNED`; `Job` rewritten (contact/location, type, status lifecycle `moveTo`, priority, reportedIssue, internalNotes, actual times, `assigneeUserIds`); `JobService` rewritten (standalone jobs, `resolveSite`, assignment scoping via new `JobAccess`, `changeStatus`, `advanceForVisit`, `ensureAssigned`, `ofContact`, `standaloneBudgetTotalOfContact`); `JobSpecs` new filters; `Jobs` API (JobSummary +contactId/locationId, JobOverview +type/status/priority/locationId); `JobRepository` new finders; `operations/visits/domain/JobVisit(+Repository)`, `operations/visits/application/VisitService`; `OperationsIntegration` (+`jobUsage` ProjectUsage bean, hourly `MissedVisits`); CRM delete guards ask all `ProjectUsage` beans; Arabic texts for the changed guard messages.
-**Exact next steps:** (1) extend `crm.Contacts.ContactSummary` (+mobile) and `LocationSummary` (+addressLine1, accessInstructions, latitude, longitude) and update `ContactService.summary(...)` (lines ~525–534); (2) rewrite `operations/jobs/web/JobController` for the new `JobData`/`JobFilter` (fields: contactId, locationId, type, priority, reportedIssue, internalNotes, assigneeUserIds, status filters, `standalone`), add `POST /jobs/{id}/status`, embed customer + site details in `JobResponse`, endpoint permissions `hasAnyAuthority('ops:read','ops:assigned')` / `('ops:write','ops:assigned')`; (3) add `operations/visits/web/VisitController` (`/jobs/{id}/visits`, `/visits` with assignee=me/from/to/status/overdue, `/visits/{id}/start|complete|cancel|reschedule`); (4) finance: `TransactionService.record` for project-less jobs (contact from `JobSummary.contactId`), `AccountingService.contact` contract += `standaloneBudgetTotalOfContact`; `TaskService.validAssignees` must handle a null project; `CustomerHistoryService` → use `jobs.ofContact`; (5) Arabic translations for all new messages (`ErrorTextsCoverageTest` lists them) + `error.<CODE>` for new codes (INVALID_STATUS_TRANSITION, INVALID_VISIT_TRANSITION, JOB_CLOSED, JOB_CUSTOMER_REQUIRED, JOB_SITE_REQUIRED, LOCATION_NOT_OF_CUSTOMER, TEAM_NEEDS_PROJECT) and `resource.Visit`; (6) tests (WorkOrdersIT: independent technician flow, technician isolation, visit lifecycle, missed-visit idempotency; fix OperationsIT for new defaults); (7) full suite, commit, push.
-Original plan: Planned order (extend `operations.jobs.Job`, do not duplicate it — D1, D2, D8):
-1. Flyway `V12`: `jobs.project_id` nullable; add `contact_id`, `location_id` (required for standalone jobs; derived from the project for project jobs), `type` (`INSTALLATION`, `PREVENTIVE_MAINTENANCE`, `CORRECTIVE_REPAIR`, `INSPECTION`), `status` (`NEW`, `SCHEDULED`, `IN_PROGRESS`, `ON_HOLD`, `COMPLETED`, `CANCELLED`), `priority` (`LOW`, `NORMAL`, `HIGH`, `URGENT`), `reported_issue`, `internal_notes`, `actual_start_at`, `completed_at`; budget optional (default 0); job assignees as workspace users so a job needs no project team.
-2. `job_visits` (D1): job, scheduled start/end (timestamptz), assigned user(s), status (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `MISSED`, `CANCELLED`), actual start/end, outcome, notes, `rescheduled_from_id`; idempotent daily job marks past, never-started visits `MISSED`.
-3. Roles (D8): `TECHNICIAN` (sees and updates only jobs/visits assigned to them; can upload and report) and `FINANCE`; server-side scoping in queries.
-4. API: `/jobs` extended (filters type/status/priority/assignee/contact/location/date), standalone job creation, status transitions; `/jobs/{id}/visits`; `/visits?assignee=me&from&to&status` (calendar, upcoming, overdue, missed); `POST /visits/{id}/start|complete|reschedule|cancel`.
-5. Finance: allow transactions on standalone jobs (`transactions.project_id` nullable, contact from the job) and keep rollups correct.
-6. Tests: independent technician end-to-end (one-user workspace), company with technicians, technician isolation, visit lifecycle, missed-visit job idempotency, project jobs unchanged.
-Then R4 visit reports, photo purposes, materials, approvals (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
+## 4d. Completed — R3 Work orders, visits, technician role — commit `7438edf`
+- Flyway `V12__work_orders_visits_roles.sql`: jobs `project_id` nullable, `contact_id` + `location_id` NOT NULL (backfilled from projects), `type`, `status`, `priority`, `reported_issue`, `internal_notes`, `actual_start_at`, `completed_at`, dates optional, budget default 0; `job_assignees`; `job_visits` + `visit_assignees`; `transactions.project_id` nullable; membership/invitation role checks include `TECHNICIAN`, `FINANCE`.
+- `operations/jobs/domain/Job` = the work order (`Type`, `Priority`, `Status` with allowed transitions in `Status.canMoveTo`, `moveTo`, `assign`); `JobService` (standalone jobs via `resolveSite`, `changeStatus`, `advanceForVisit`, `ensureAssigned`), `JobAccess` (technician scoping: `ops:assigned` without `ops:read` → only assigned work, 404 otherwise), `JobController` (`POST /jobs/{id}/status`, new filters, customer + site embedded).
+- `operations/visits` (domain `JobVisit`, `VisitService`, `VisitController`): `/jobs/{id}/visits`, `/visits?assignee=me&from&to&status&overdue`, `/visits/{id}/start|complete|cancel|reschedule`; hourly `MissedVisits` (ShedLock, `missed-visits-cron`, 2 h grace).
+- `Role.TECHNICIAN` (refdata:read, ops:assigned, files:upload), `Role.FINANCE`; `Permissions.OPS_ASSIGNED`.
+- `crm.Contacts.ContactSummary` +mobile, `LocationSummary` +addressLine1, accessInstructions, latitude, longitude. CRM delete guards ask every `ProjectUsage` bean (operations registers `jobUsage`).
+- Finance: transactions on standalone jobs (customer from the job); customer contract = project budgets + standalone job budgets. `operations.Jobs` (+`ofContact`, `standaloneBudgetTotalOfContact`), `operations.Warranties.ofProjectsOrJobs`; customer history lists all jobs.
+- Tests: `operations/WorkOrdersIT` (5).
+
+## 5. Current phase & exact next steps — R4 Visit reports, photo purposes, materials, approvals
+Not started. Planned order:
+1. Flyway `V13`: `visit_reports` (1 per visit: reported problem, findings, diagnosis, work performed, recommendations, notes, customer confirmation name + time + optional signature file); `files.purpose` (`BEFORE`, `DURING`, `AFTER`, `INSPECTION`, `REPORT`, `WARRANTY`, `EQUIPMENT`, `OTHER`) + `files.thumbnail_key`; `job_materials` (job, optional visit, name, quantity, unit, unit cost); `job_approvals` (job, kind `QUOTATION`/`WORK`/`COMPLETION`, status `PENDING`/`APPROVED`/`REJECTED`, approver name, decided at, notes, signature file).
+2. Files: upload accepts `purpose`; images also get a small WebP thumbnail (≈ 320 px) for lists; owner/purpose listing; per-entity file access for technicians (only files of their jobs/visits).
+3. Visit report API (`GET/PUT /visits/{id}/report`, technician allowed), materials (`/jobs/{id}/materials`), approvals (`/jobs/{id}/approvals`, staff-recorded — D14).
+4. Finance (D12): job rollup adds `materialsCost`; profit = contract − actual cost − materials cost; materials are not transactions.
+5. Tests: report round-trip in Arabic, photos by purpose with thumbnails, materials in profit, approvals, technician limits.
+Then R5 notifications (roadmap: `D:WorkspaceJava CRMPRODUCT_AUDIT.md` §15).
 
 ## 6. Tests (actual results)
-- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `88d9473`: **107 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
+- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `7438edf`: **112 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
-- S4 no subscription enforcement (R7). S5 no technician scoping (R3). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
+- S4 no subscription enforcement (R7). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
 
@@ -115,7 +121,10 @@ Then R4 visit reports, photo purposes, materials, approvals (roadmap: `D:\Worksp
 | `2f8fab6` | feat(i18n): Arabic-first workspace settings, user language and localized errors |
 | `19a7e3e` | docs: update handoff - R1 localization complete |
 | `88d9473` | feat(crm): individual and company customers, Arabic-aware search, customer history |
-| (next commit) | docs: update handoff - R2 complete |
+| `8bb659f` | docs: update handoff - R2 customers complete |
+| `f410cc5` | docs: handoff - R3 in progress, stopped mid-phase |
+| `7438edf` | feat(operations): work orders, visits and technician scoping |
+| (next commit) | docs: update handoff - R3 complete |
 
 ## 11. Uncommitted / unpushed
-- R3 work in progress is UNCOMMITTED (does not compile yet) — see §5. Only this handoff update is committed. `main` untouched at `163d49c`.
+- None. `main` untouched at `163d49c`.
