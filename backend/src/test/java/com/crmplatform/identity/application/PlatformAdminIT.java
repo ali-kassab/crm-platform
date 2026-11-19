@@ -49,8 +49,10 @@ class PlatformAdminIT {
 
     @Test
     void bootstrapLoginAccountChangesAndAudit() throws Exception {
-        // ---- bootstrap guards (no admin exists in this test database yet)
-        assertThat(users.existsBySuperAdminTrue()).isFalse();
+        // ---- bootstrap guards: needs a fresh database (skipped if Testcontainers reuse kept an old one)
+        org.junit.jupiter.api.Assumptions.assumeFalse(users.existsBySuperAdminTrue()
+                || markers.existsById(com.crmplatform.identity.domain.PlatformMarker.ADMIN_BOOTSTRAPPED),
+                "requires a database without a platform admin");
         assertThat(bootstrap(null, null)).isEqualTo(PlatformAdminBootstrap.Outcome.NOT_CONFIGURED);
         Session existing = Api.register(mvc);
         assertThat(bootstrap(existing.email(), ADMIN_PASSWORD)).isEqualTo(PlatformAdminBootstrap.Outcome.EMAIL_TAKEN);

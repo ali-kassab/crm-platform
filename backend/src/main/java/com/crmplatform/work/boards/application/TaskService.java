@@ -263,7 +263,7 @@ public class TaskService {
                 c.getId(), "imageFileId");
         Board board = boardService.lock(t.getBoardId());
         boardService.publish(board, boardService.commit(board), "TASK_COMMENT_ADDED",
-                Map.of("taskId", taskId, "commentCount", comments.findByTaskIdOrderByCreatedAtAsc(taskId).size()));
+                Map.of("taskId", taskId, "commentCount", comments.countByTaskId(taskId)));
         return c;
     }
 
@@ -291,7 +291,7 @@ public class TaskService {
         Task t = require(taskId);
         Board board = boardService.lock(t.getBoardId());
         boardService.publish(board, boardService.commit(board), "TASK_COMMENT_DELETED",
-                Map.of("taskId", taskId, "commentCount", comments.findByTaskIdOrderByCreatedAtAsc(taskId).size()));
+                Map.of("taskId", taskId, "commentCount", comments.countByTaskId(taskId)));
     }
 
     // ------------------------------------------------------------------ helpers

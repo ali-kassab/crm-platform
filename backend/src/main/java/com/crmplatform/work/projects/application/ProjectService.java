@@ -22,6 +22,7 @@ import com.crmplatform.work.WorkEvents.ProjectDeletedNotice;
 import com.crmplatform.work.WorkEvents.ProjectMembersChanged;
 import com.crmplatform.work.WorkReferences.JobDirectory;
 import com.crmplatform.work.projects.domain.Project;
+import com.crmplatform.work.projects.domain.ProjectBudgetQuery;
 import com.crmplatform.work.projects.domain.ProjectRepositories.ProjectRepository;
 import com.crmplatform.work.projects.domain.ProjectRepositories.TeamMemberRepository;
 import com.crmplatform.work.projects.domain.TeamMember;
@@ -64,10 +65,12 @@ public class ProjectService implements Projects {
     private final ApplicationEventPublisher events;
     private final AuditTrail audit;
     private final Clock clock;
+    private final ProjectBudgetQuery budgetQuery;
 
     public ProjectService(ProjectRepository projects, TeamMemberRepository teamMembers, Contacts contacts,
             LabelCatalog labels, WorkspaceMembers members, Boards boards, Files files, ObjectProvider<JobDirectory> jobs,
-            ApplicationEventPublisher events, AuditTrail audit, Clock clock) {
+            ApplicationEventPublisher events, AuditTrail audit, Clock clock, ProjectBudgetQuery budgetQuery) {
+        this.budgetQuery = budgetQuery;
         this.projects = projects;
         this.teamMembers = teamMembers;
         this.contacts = contacts;
@@ -88,12 +91,14 @@ public class ProjectService implements Projects {
         if (filter.overBudget() == null) {
             return projects.findAll(ProjectSpecs.matching(filter, null), pageable);
         }
-        // over-budget depends on job budgets owned by another module: resolve matching ids first
-        List<Project> all = projects.findAll(ProjectSpecs.matching(filter, null));
-        Map<UUID, BigDecimal> used = jobBudgets(all.stream().map(Project::getId).toList());
-        Set<UUID> ids = all.stream()
-                .filter(p -> remaining(p, used).signum() < 0 == filter.overBudget())
-                .map(Project::getId).collect(Collectors.toSet());
+        // over-budget depends on job budgets owned by another module: resolve matching ids first,
+        // reading only (id, budget) pairs instead of whole entities with their collections
+        Map<UUID, BigDecimal> budgets = budgetQuery.budgets(ProjectSpecs.matching(filter, null));
+        Map<UUID, BigDecimal> used = jobBudgets(List.copyOf(budgets.keySet()));
+        Set<UUID> ids = budgets.entrySet().stream()
+                .filter(e -> e.getValue().subtract(used.getOrDefault(e.getKey(), BigDecimal.ZERO)).signum() < 0
+                        == filter.overBudget())
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
@@ -306,8 +311,10 @@ public class ProjectService implements Projects {
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
-        return projects.findAllById(new HashSet<>(ids)).stream()
-                .collect(Collectors.toMap(Project::getId, this::summary));
+        List<Project> found = projects.findAllById(new HashSet<>(ids));
+        Map<UUID, UUID> managers = teamMembers.findByProjectIdInAndManagerTrue(found.stream().map(Project::getId)
+                .toList()).stream().collect(Collectors.toMap(TeamMember::getProjectId, TeamMember::getUserId, (a, b) -> a));
+        return found.stream().collect(Collectors.toMap(Project::getId, p -> summary(p, managers.get(p.getId()))));
     }
 
     @Override
@@ -383,7 +390,10 @@ public class ProjectService implements Projects {
     // ------------------------------------------------------------------ helpers
 
     private ProjectSummary summary(Project p) {
-        UUID manager = teamMembers.findByProjectIdAndManagerTrue(p.getId()).map(TeamMember::getUserId).orElse(null);
+        return summary(p, teamMembers.findByProjectIdAndManagerTrue(p.getId()).map(TeamMember::getUserId).orElse(null));
+    }
+
+    private static ProjectSummary summary(Project p, UUID manager) {
         return new ProjectSummary(p.getId(), p.getName(), p.getType().name(), p.getBudget(), p.getLocationId(),
                 p.getContactId(), manager, p.getStartDate(), p.getEstimatedEndDate());
     }

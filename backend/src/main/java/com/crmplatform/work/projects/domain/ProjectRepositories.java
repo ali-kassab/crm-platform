@@ -34,6 +34,8 @@ public final class ProjectRepositories {
         Optional<TeamMember> findByProjectIdAndUserId(UUID projectId, UUID userId);
 
         Optional<TeamMember> findByProjectIdAndManagerTrue(UUID projectId);
+
+        List<TeamMember> findByProjectIdInAndManagerTrue(java.util.Collection<UUID> projectIds);
     }
 
     public interface TeamMemberNoteRepository extends JpaRepository<TeamMemberNote, UUID> {

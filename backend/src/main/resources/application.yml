@@ -63,6 +63,11 @@ server:
   error:
     include-stacktrace: never
     include-message: never
+  # gzip JSON responses over ~1 KB: mobile technicians on slow networks (performance requirement)
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1KB
 
 management:
   endpoints:
