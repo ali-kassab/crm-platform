@@ -46,6 +46,29 @@ public class AccessTokenService {
         return new IssuedAccessToken(token, expiresAt, properties.accessTokenTtl().toSeconds());
     }
 
+    /**
+     * A platform-scope token for a platform admin without a workspace session. Its workspace is the
+     * fail-closed {@code NONE} tenant, so tenant endpoints see no data; only {@code /me},
+     * {@code /auth/**} and {@code /admin/**} are reachable. No refresh token is issued.
+     */
+    public IssuedAccessToken issuePlatform(UUID userId, java.time.Duration ttl) {
+        Instant now = Instant.now(clock);
+        Instant expiresAt = now.plus(ttl);
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(properties.issuer())
+                .subject(userId.toString())
+                .issuedAt(now)
+                .expiresAt(expiresAt)
+                .id(UUID.randomUUID().toString())
+                .claim("wid", com.crmplatform.shared.tenant.TenantContext.NONE.toString())
+                .claim("sa", true)
+                .claim("scope_type", "platform")
+                .build();
+        String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
+                .getTokenValue();
+        return new IssuedAccessToken(token, expiresAt, ttl.toSeconds());
+    }
+
     public record IssuedAccessToken(String value, Instant expiresAt, long expiresInSeconds) {
     }
 }

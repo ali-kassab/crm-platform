@@ -57,13 +57,15 @@ public class AuthService {
     private final Clock clock;
     private final String clientBaseUrl;
     private final String dummyHash;
+    private final PlatformAdminService platformAdmins;
 
     public AuthService(UserRepository users, WorkspaceRepository workspaces, MembershipRepository memberships,
             PasswordResetTokenRepository resetTokens, PasswordEncoder passwordEncoder, PasswordPolicy passwordPolicy,
             AccessTokenService accessTokens, RefreshTokenService refreshTokens, LoginAttemptService loginAttempts,
             TokenDenylist denylist, RateLimiter rateLimiter, MembershipLookup membershipLookup, EmailSender emailSender,
             EmailTemplates templates, ApplicationEventPublisher events, IdentityProperties properties, Clock clock,
-            @Value("${app.client-base-url}") String clientBaseUrl) {
+            @Value("${app.client-base-url}") String clientBaseUrl, PlatformAdminService platformAdmins) {
+        this.platformAdmins = platformAdmins;
         this.users = users;
         this.workspaces = workspaces;
         this.memberships = memberships;
@@ -219,7 +221,11 @@ public class AuthService {
                 .filter(t -> t.isUsable(now))
                 .orElseThrow(() -> ApiException.badRequest("INVALID_TOKEN", "This reset link is invalid or has expired"));
         User user = users.findById(token.getUserId()).orElseThrow(() -> ApiException.notFound("User"));
-        passwordPolicy.validate(newPassword, user.getEmail());
+        if (user.isSuperAdmin()) {
+            platformAdmins.onPasswordReset(user, newPassword); // stronger rule + platform audit
+        } else {
+            passwordPolicy.validate(newPassword, user.getEmail());
+        }
         user.changePassword(passwordEncoder.encode(newPassword));
         token.markUsed(now);
         refreshTokens.revokeAllForUser(user.getId());
@@ -231,6 +237,10 @@ public class AuthService {
     @Transactional
     public void changePassword(UUID userId, String currentPassword, String newPassword, String currentRefreshToken) {
         User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        if (user.isSuperAdmin()) {
+            throw ApiException.badRequest("USE_ADMIN_ACCOUNT_ENDPOINT",
+                    "Platform admins change their password at /api/v1/admin/account/password");
+        }
         if (!passwordEncoder.matches(currentPassword == null ? "" : currentPassword, user.getPasswordHash())) {
             throw ApiException.badRequest("INVALID_PASSWORD", "Current password is incorrect");
         }

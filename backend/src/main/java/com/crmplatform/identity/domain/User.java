@@ -68,6 +68,11 @@ public class User extends BaseEntity {
         this.passwordHash = newHash;
     }
 
+    /** Changes the sign-in email; callers verify the password and uniqueness first. */
+    public void changeEmail(String newEmail) {
+        this.email = normalizeEmail(newEmail);
+    }
+
     public void updateProfile(String firstName, String lastName, String jobTitle, String phone, UUID avatarFileId) {
         this.firstName = firstName.trim();
         this.lastName = lastName.trim();
