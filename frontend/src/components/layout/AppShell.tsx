@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
+import { useRealtime } from '@/lib/realtime'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -48,6 +49,7 @@ export function AppShell() {
   const { session, logout, can } = useAuth()
   const location = useLocation()
   const side = i18n.dir() === 'rtl' ? 'right' : 'left'
+  useRealtime(session?.user.id ?? null, session?.workspace.id ?? null)
 
   const operations: NavItem[] = [
     { to: '/', label: t('nav.home'), icon: Home, ready: true },

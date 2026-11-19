@@ -122,6 +122,10 @@ app:
       first-name: ${PLATFORM_ADMIN_FIRST_NAME:Platform}
       last-name: ${PLATFORM_ADMIN_LAST_NAME:Admin}
     session-ttl: ${PLATFORM_ADMIN_SESSION_TTL:10m}
+  realtime:
+    enabled: ${REALTIME_ENABLED:true}
+    channel: rt:events
+    ticket-ttl: 60s
   billing:
     # Provisional commercial values (directive): change freely, no code change needed.
     enforcement-enabled: ${BILLING_ENFORCEMENT_ENABLED:true}

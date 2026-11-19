@@ -13,6 +13,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: process.env.VITE_API_PROXY ?? 'http://localhost:8080', changeOrigin: false },
+      // NestJS realtime service (ADR-0015)
+      '/realtime': { target: process.env.VITE_REALTIME_PROXY ?? 'http://localhost:3001', ws: true },
     },
   },
   build: {
@@ -25,6 +27,7 @@ export default defineConfig({
             { name: 'react', test: /node_modules[\/](react|react-dom|scheduler|react-router)[\/]/ },
             { name: 'ui', test: /node_modules[\/](radix-ui|@radix-ui|lucide-react|sonner|class-variance-authority|tailwind-merge|clsx)[\/]/ },
             { name: 'data', test: /node_modules[\/](@tanstack|i18next|react-i18next|zod|react-hook-form|@hookform)[\/]/ },
+            { name: 'realtime', test: /node_modules[\/](socket.io-client|engine.io-client|socket.io-parser|engine.io-parser|@socket.io)[\/]/ },
           ],
         },
       },

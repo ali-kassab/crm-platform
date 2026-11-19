@@ -1,18 +1,29 @@
 # PROJECT HANDOFF — Field Service & Project Operations SaaS
 
-> Read this first in every new session. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
+> Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
+>
+> Last updated: 2026-11-20 (R11 realtime completed and committed after the owner approved ADR-0015).
+
+## 0. Active repository — read before anything else
+- **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
+- `D:\Workspace\Java CRM` is the **old folder**. It is NOT a repository for this product and must never be used for development, Git or tests. It holds historical/governing documentation only.
+- Authorized documents in the old folder (read-only, documentation only): `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` (Phase 1–2 audit, roadmap R0–R13 in §15, decisions D1–D16 in §16), and for history only `D:\Workspace\Java CRM\PROJECT_PROGRESS.md` (pre-pivot, outdated), `VERSION_MATRIX.md`, `improved plan.md`. The old `D:\Workspace\Java CRM\SESSION_HANDOFF.md` is **superseded** by `D:\Workspace\crm-platform\SESSION_HANDOFF.md`.
+- **Never read** legacy application source code: `D:\Workspace\Java CRM\crm\` and `D:\Workspace\Java CRM\analysis\` (clean-room rule; also blocked in `D:\Workspace\Java CRM\.claude\settings.json`).
 
 ## 1. Identity & directives
-- Product: Arabic-first (RTL, English secondary) multi-tenant SaaS for **Fit-Out & Contracting**, **CCTV/Security/Access Control**, **Maintenance & Field Service** — Egypt first.
-- Governing documents (outside the repo, in `D:\Workspace\Java CRM\`): the Master Project Directive (2026-11-19, in the conversation history), the Implementation Authorization (2026-11-19), and `PRODUCT_AUDIT.md` (Phase 1–2 audit, roadmap R0–R13, decisions D1–D16).
-- Older context: `D:\Workspace\Java CRM\SESSION_HANDOFF.md` and `PROJECT_PROGRESS.md` describe the pre-pivot build (still accurate for modules up to finance).
-- **Safe stop phrase:** «وقف عند نقطة آمنة وحدّث الهاند أوف» → finish/roll back the in-flight small change, verify git, update this file, commit/push only verified work.
+- Product: Arabic-first (RTL, English secondary) multi-tenant SaaS for **Fit-Out & Contracting**, **CCTV/Security/Access Control**, **Maintenance & Field Service** — Egypt first; must serve an independent technician (one-user workspace) up to companies.
+- Governing documents:
+  - **Master Project Directive** (2026-11-19) and **Implementation Authorization** (2026-11-19): given in earlier chat sessions; **they are NOT saved as files anywhere** (verified 2026-11-19: no copy in either folder). Their binding content is summarized in §12 of this file. The full original wording is UNAVAILABLE to a new session — do not invent requirements beyond §12 and `PRODUCT_AUDIT.md`; ask the owner if something is not covered.
+  - `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` — roadmap R0–R13 and decisions D1–D16 (file).
+  - ADRs in `docs/adr/` (0001–0015) and specs in `docs/specs/` (pre-pivot sanitized specs).
+- **Safe stop phrase:** «وقف عند نقطة آمنة وحدّث الهاند أوف» → finish or roll back the in-flight small change, verify git, update this file and `SESSION_HANDOFF.md`, commit/push only verified work.
 
 ## 2. Repository
-- Path: `D:\Workspace\crm-platform` · remote `origin` = `github.com/ali-kassab/crm-platform` (private, owned by the user).
-- Working branch: **`feature/saas-foundation`** (created from `main` @ `163d49c`). `main` must stay unchanged.
-- Author/committer: `ali-kassab <alikassab155@gmail.com>` (local git config). No Claude co-author trailer.
-- Push: verified commits → `origin feature/saas-foundation` automatically. Never main, never force.
+- Path: `D:\Workspace\crm-platform` · remote `origin` = `https://github.com/ali-kassab/crm-platform.git` (private, owned by the user).
+- Working branch: **`feature/saas-foundation`** (created from `main` @ `163d49c`).
+- **`main` status (verified 2026-11-19 via `git fetch`):** the owner merged **PR #3** (`feature/saas-foundation` → `main`) on GitHub → `origin/main` = `7ae560a` ("Merge pull request #3"), which contains every commit up to `dc393ca`. The **local** `main` ref is stale at `163d49c` (31 commits behind `origin/main`). Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
+- Author/committer: `ali-kassab <alikassab155@gmail.com>` (local git config, verified). **No Claude co-author trailer or Claude/Anthropic attribution** in commits or PR text.
+- Push: verified commits → `origin feature/saas-foundation` automatically. Never `main`, never force-push, never rewrite history, never delete branches, never open a PR (opening and merging PRs is the owner's decision).
 
 ## 3. Overall status
 | Area | Status |
@@ -29,9 +40,11 @@
 | R8 Finance alignment | ✅ complete (2026-11-19, `f8c850a`) |
 | R9 Frontend foundation | ✅ complete (2026-11-19, `a06072d`) |
 | R10 Frontend workflows | ✅ core done (2026-11-19, `14bf98c`) — see 4k for what is left |
-| R11 NestJS realtime | ⏭ next (not started) |
-| R12–R13 | ⚪ not started |
-| Frontend, NestJS realtime, subscriptions | ⚪ not started |
+| R11 NestJS realtime | ✅ complete (2026-11-20, `0c4f936`) — see 4l; live end-to-end run still blocked (§7) |
+| R12 Reports & Arabic PDF | ⚪ not started |
+| R13 Performance & production readiness (+ R10 leftovers) | ⚪ not started |
+
+Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 is only on the feature branch).
 
 ## 4. Completed — R0 Security & foundations
 1. **Tenant isolation is fail-closed** (audit S1, critical) — commit `17f1fff`.
@@ -103,7 +116,7 @@
 - New events `operations/OperationsEvents.JobAssigned` (published by `JobService.create/update` for newly added assignees only) and `VisitScheduled` (`VisitService.schedule/reschedule`). `JobService.ensureAssigned` (visit-driven) publishes nothing — the visit notification covers it. The actor is never notified of their own action.
 - `resource.Notification` added to `messages_ar.properties`.
 - Tests: `notifications/NotificationsIT` (3).
-- Not done (by design for now): no retention/cleanup of old notifications, no e-mail/push delivery, no realtime push (R11).
+- Not done (by design for now): no retention/cleanup of old notifications, no e-mail/push delivery; realtime "new notification" hints added in R11 (4l).
 
 ## 4g. Completed — R6 Equipment, warranties, maintenance plans, SLA — commit `17ed30a`
 - Flyway `V15__equipment_maintenance_sla.sql`: `equipment` (unique lower(serial) per workspace), `job_equipment`, warranties +`contact_id`/`location_id`/`equipment_id`/`reminder_days` (default 30)/`reminder_sent_at`, `maintenance_plans` (+assignees, +equipment), `maintenance_occurrences` UNIQUE(plan_id, due_date), jobs +`response_due_at`, +`maintenance_plan_id`.
@@ -144,10 +157,27 @@
 - Tests: `e2e/workflows.spec.ts` (work order end-to-end, technician visits, finance, subscription renewal) — full suite **22 passed, 2 skipped**; lint 0 errors; bundle 241.1 kB gzip.
 - **Not done in R10 (carry to R13 polish):** maintenance-plan and equipment screens, platform-admin screens (plans, payment methods, request review — decision: admin UI at the final stage), calendar view, dashboard KPIs beyond the home cards, sector onboarding wizard, visit reports/photos/materials UI. Still not run against the real backend (see 4j).
 
-## 5. Current phase & exact next steps — R11 NestJS realtime
-Not started. Directive: a **separate NestJS service** (`realtime-service/`) only for genuinely real-time features, fed by Java (outbox/broker to evaluate), Java stays the source of truth. Decision D4: evaluate STOMP vs Redis Streams and HS256-shared-secret vs RS256 before changing anything. Minimum useful scope: push new in-app notifications and job/visit status changes to connected users of the same workspace; authenticate the socket with the existing access token; strict per-workspace/per-user rooms.
+## 4l. Completed — R11 NestJS realtime — commit `0c4f936`
+Design: `docs/adr/0015-realtime-nestjs-redis-tickets.md`, **approved by the owner on 2026-11-20** as a deliberate deviation from `PRODUCT_AUDIT.md` D4 (Redis pub/sub instead of Streams/outbox; one-time socket tickets instead of RS256). Lost hints are accepted; the frontend recovers by refetching from the Java API. Realtime is never used for business operations or persistence.
+- **Backend** — `notifications/NotificationEvents.NotificationsCreated` (published by `NotificationService.notify` for the non-empty recipient set); module `realtime/`: `RealtimeProperties` (`app.realtime.enabled` ← `REALTIME_ENABLED`, `channel` `rt:events`, `ticket-ttl` 60 s), `RealtimeRelay` (`@TransactionalEventListener`, after commit, failures only logged) relays `NotificationsCreated` (per user), `AuditRecorded` for JOB, VISIT, MATERIAL, APPROVAL, EQUIPMENT, MAINTENANCE_PLAN, and **`WorkEvents.BoardChanged`** (entity type `BOARD`, board id + change type such as `TASK_CREATED`; no titles); `RealtimeTicketController` `POST /api/v1/realtime/ticket` (authenticated workspace members only; 256-bit SecureRandom ticket → Redis `rt:ticket:<t>` = `{userId, workspaceId}`, TTL 60 s). `SubscriptionEnforcement` exempts `/api/v1/realtime/` (read-only workspaces still get hints).
+- **realtime-service/** (NestJS 12, socket.io 4, ioredis, TS 5.9) — see `realtime-service/README.md`. Socket path `/realtime/socket.io`; ticket consumed with atomic `GETDEL` (format-checked before Redis is queried; claims must be UUIDs); rooms `ws:<workspaceId>` and `user:<userId>:<workspaceId>` only; every message from the channel is shape-validated and anything else dropped; `GET /health`. Env `PORT` (3001), `REDIS_URL`, `REALTIME_CHANNEL`, `ALLOWED_ORIGINS`.
+- **Frontend** — `src/lib/realtime.ts` `useRealtime(userId, workspaceId)`, called from `AppShell`: fetches a ticket first and only then lazy-loads `socket.io-client` (separate `realtime` chunk, not on the critical path); every (re)connect uses a fresh ticket; ticket/socket failures retry with backoff 5 s → 5 min, the app stays on plain REST; on `notification` invalidates `['notifications']`; on `changed` invalidates (batched 250 ms) `['jobs']`, `['visits']`, `['outstanding']`, `['job', jobId]` (and `['job', entityId]` for JOB), or `['board', boardId]` for BOARD; **after every reconnect invalidates all queries** to catch up on missed hints; socket closed on sign-out / workspace change. `/realtime` ws dev proxy in `vite.config.ts`.
+- R11 acceptance (from `PRODUCT_AUDIT.md`): live job/visit/notification updates ✅; board updates ✅ relayed (no board screen exists in the frontend yet — the `['board', id]` key is the convention for when it does); cross-tenant isolation ✅ (`gateway.spec.ts` room isolation incl. same user in two workspaces; `RealtimeIT` workspace id in each hint); dedup on redelivery — **not applicable** (pub/sub, approved); switch-off ✅ (`REALTIME_ENABLED=false` stops publishing; frontend works without the service — e2e runs with the ticket endpoint returning 404).
+- Tests: `realtime/RealtimeIT` (3: id-only job/notification hints, rejected change publishes nothing; ticket random/TTL/claims, 401 without auth; board hint has board id + type, no title); `realtime-service` `pnpm test` (6: ticket rejection + single use, room isolation, garbage dropped, health; Redis ticket store: single use, malformed tickets never reach Redis, non-UUID claims rejected).
+- **Not done:** no live run of browser + Java + Redis + NestJS together (local DB password issue, §7); Dockerfile/docker-compose entry for `realtime-service` (R13); no frontend notifications list/badge yet (the `['notifications']` key is ready); a socket that is already open is not closed when the user is removed from the workspace elsewhere (it only receives ids; accepted, documented in the README).
+
+## 5. Current phase & next steps
+R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: OpenHTMLtoPDF + ICU4J shaping + embedded Arabic font; verify a real Arabic PDF renders correctly). Next Flyway migration is `V18`. Then R13 (performance baselines, CI incl. Linux Playwright baselines, Dockerfiles for backend/frontend/realtime-service, backups, readiness + R10 leftovers in 4k).
+
+**Exact next steps for a new session (in order):**
+1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
+2. Start R12 per `PRODUCT_AUDIT.md` §15; continuous execution rules in §12 apply.
+3. After R12: tests → commit → push → update both handoff files; then R13.
 
 ## 6. Tests (actual results)
+- 2026-11-20, R11 final tree (committed as `0c4f936`): `./mvnw test` **127 tests, 0 failures, 0 errors, 0 skipped with the JVM on UTC (`-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"`); the same run in the default zone right after local midnight had 2 date-boundary failures (`BillingIT.trialThenManualPaymentApprovedByThePlatformAdmin`, `OperationsIT.expiryFlipsOnlyActiveWarrantiesPastTheirEnd`) unrelated to R11 — see §7**; `RealtimeIT` alone **3/3 passed**; `realtime-service` `pnpm test` **6/6 passed**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK (**254.3 kB gzip** total, limit 350; `realtime` chunk 12.5 kB, lazy, not preloaded), `pnpm test:e2e` **22 passed, 2 skipped**.
+- 2026-11-19 (audit pass), R11 uncommitted tree on top of `dc393ca`: `./mvnw test` **126 tests, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **3/3 passed**; frontend `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip), `pnpm test:e2e` **22 passed, 2 skipped**.
+- 2026-11-19, R11 (uncommitted tree, earlier): `RealtimeIT` alone **2/2 passed**; `realtime-service` `pnpm test` **3/3 passed**.
 - 2026-11-19, frontend @ `14bf98c`: `pnpm test:e2e` **22 passed, 2 skipped**, `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip).
 - 2026-11-19, frontend @ `a06072d`: `pnpm build` OK (budget 222.7 kB gzip), `pnpm lint` 0 errors, `pnpm test:e2e` 14 passed / 2 skipped. Backend unchanged since `f8c850a` (124 tests green).
 - 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
@@ -157,13 +187,25 @@ Not started. Directive: a **separate NestJS service** (`realtime-service/`) only
 - 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
-- S4 no subscription enforcement (R7). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
+- ~~S4 no subscription enforcement~~ — resolved in R7 (read-only mode + plan limits).
+- S7 rate limiting only on auth, uploads, admin login and subscription requests.
+- ~~S8 (HS256 secret sharing with NestJS)~~ — resolved in R11 (ADR-0015, approved 2026-11-20): one-time Redis tickets; NestJS never sees JWTs or keys.
+- Realtime hints are best-effort (Redis pub/sub): lost during disconnects by design; the frontend refetches after reconnect. Never use them for business logic.
+- Realtime has never run live (browser + Java + Redis + NestJS); only integration tests on each side.
+- **Never run against the real backend end to end.** Local Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fix requires the owner: reset the local dev DB volume (destroys local dev data) or align `.env`. Not done.
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
+- Scheduler dates (maintenance, warranties, subscriptions) use the server clock (UTC), not the workspace time zone. **Test flake from this:** some ITs compute dates with `LocalDate.now()` in the JVM zone (Cairo, +02:00) while the server uses UTC, so between 00:00 and 02:00 local time `BillingIT` and `OperationsIT` fail (seen 2026-11-20 00:11; both pass with `-Duser.timezone=UTC`). Fix in R13: pin the test JVM to UTC (surefire `argLine`) or inject the clock in those tests.
+- No notification retention/cleanup; no e-mail delivery for billing/maintenance notices (in-app only).
+- Playwright screenshot baselines are Windows-only (`*-win32.png`); Linux CI needs its own baselines.
+- Seeded plan prices are placeholders (§4h).
 
 ## 8. Decisions
-- Approved (2026-11-19): D1 visits as a separate entity; D2 standalone jobs; D3 defer the automation engine; D4 NestJS realtime (evaluate STOMP/Redis Streams/RS256 before changing); D5 7-day grace → read-only, never delete; D6 14-day trial; D7 configurable limits; D8 TECHNICIAN + FINANCE roles; D9 hide flowcharts; D10 customer kind + optional email; D11 ar-EG / EGP / Africa/Cairo defaults; D12 materials as job cost lines; D13 branch `feature/saas-foundation`; D14 staff-recorded approvals; D15 Arabic PDF libraries later; D16 roadmap order. Commercial values are provisional and configurable. The user is the first Platform Admin; the dashboard UI is deferred to the final stage.
-- Waiting for approval: none.
+- Approved (2026-11-19): D1 visits as a separate entity; D2 standalone jobs; D3 defer the automation engine; D4 NestJS realtime; D5 7-day grace → read-only, never delete; D6 14-day trial; D7 configurable limits; D8 TECHNICIAN + FINANCE roles; D9 hide flowcharts; D10 customer kind + optional email; D11 ar-EG / EGP / Africa/Cairo defaults; D12 materials as job cost lines; D13 branch `feature/saas-foundation`; D14 staff-recorded approvals; D15 Arabic PDF libraries (OpenHTMLtoPDF + ICU4J + embedded Arabic font) when R12 starts; D16 roadmap order. Commercial values are provisional and configurable. The user is the first Platform Admin; the platform-admin dashboard UI is deferred to the final stage.
+- **Approved 2026-11-20 — D4 realtime deviation (ADR-0015):** keep Redis pub/sub (no Redis Streams, no outbox), keep one-time WebSocket connection tickets, Java stays the source of truth, no RS256 migration solely for realtime; lost events are accepted and the frontend recovers by refetching authoritative state after reconnect/refresh; realtime is never relied on for critical business operations or persistence. "Dedup on redelivery" from the audit's R11 acceptance therefore does not apply. Use the simplest, lowest-cost implementation.
+- **Waiting for the owner's approval:**
+  1. Real plan prices (seeded SOLO/TEAM/BUSINESS values are placeholders).
+  2. Local dev DB: reset the Postgres volume or align `.env` (needed for any live end-to-end run).
 
 ## 9. Technical decisions (with reasoning)
 - Fail-closed via a non-matching sentinel tenant, not by throwing in the resolver: Hibernate resolves a tenant for every session, including public endpoints that touch only global identity tables.
@@ -198,9 +240,47 @@ Not started. Directive: a **separate NestJS service** (`realtime-service/`) only
 | `936a3be` | docs: update handoff - R7 billing complete |
 | `f8c850a` | feat(finance): project-level payments and outstanding balances |
 | `4111550` | docs: update handoff - R8 finance alignment complete |
+| `73e8cc6` | docs: fix tools path in handoff |
 | `a06072d` | feat(frontend): Arabic-first RTL shell, auth, i18n and customers screen |
 | `28bdca3` | docs: update handoff - R9 frontend foundation complete |
 | `14bf98c` | feat(frontend): work orders, visits, finance and subscription screens |
+| `dc393ca` | docs: update handoff - R10 core screens complete |
+| `7ae560a` | (on `origin/main` only) Merge pull request #3 — merged by the owner on GitHub |
+| `0c4f936` | feat(realtime): live hints via NestJS, Redis pub/sub and one-time socket tickets |
+| (next) | docs: update handoff - R11 realtime complete (**HEAD**, pushed) — adds this file's update and `SESSION_HANDOFF.md` |
 
-## 11. Uncommitted / unpushed
-- None. `main` untouched at `163d49c`.
+## 11. Working tree (2026-11-20)
+- Branch `feature/saas-foundation`; after the R11 feature commit and the handoff docs commit, everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `7ae560a` (PR #3; does not contain R11); local `main` stale at `163d49c` — leave it alone.
+- Ignored, not committed: `node_modules/`, `dist/`, `backend/target/`, Playwright reports.
+- Local Docker: `docker compose` containers are stopped; the local Postgres volume password mismatch blocks running the backend against `.env` (§7).
+
+## 12. Permanent constraints (summary of the Master Directive, Implementation Authorization and approved decisions)
+These must not be violated. The original directive texts are not available as files (§1); this list and `PRODUCT_AUDIT.md` are the reference.
+
+**Product**
+- Arabic-first (RTL default, English secondary), Egypt first; only the three sectors (fit-out/contracting, CCTV/security/access control, maintenance/field service); no generic-CRM features; flowcharts hidden (D9), automation engine deferred (D3).
+- Works for a one-person workspace up to companies; technicians see only their assigned work (enforced server-side, 404 for others).
+- SaaS with plans managed by the Platform Admin and a **manual payment workflow** (Vodafone Cash / InstaPay receipts approved by the admin) — **no payment gateway**. Expiry restricts writing but **never deletes data** (D5). Commercial values (prices, trial 14 d, grace 7 d, limits) are provisional and must stay configurable.
+- No paid SMS. Java Spring Boot stays the core and the source of truth; realtime lives in a separate NestJS service.
+- Destructive removals of features or data need explicit owner approval.
+
+**Architecture & security**
+- Fail-closed tenancy (`TenantContext.NONE`); listeners use `@TransactionalEventListener` + `TenantWork`; never `@ApplicationModuleListener`; no `@Transactional` on event-listener/scheduled methods; constructor injection only (ArchUnit bans `@Autowired`); Spring Modulith boundaries (`ModularityTests`) must stay green.
+- Platform-level tables (audit, billing) filter the workspace explicitly in every tenant query; bulk updates repeat the workspace filter.
+- Every new `ApiException` message needs Arabic text in `backend/src/main/resources/i18n/error-texts_ar.tsv`, every new code an `error.<CODE>` and every new not-found resource a `resource.<Name>` in `messages_ar.properties` (`ErrorTextsCoverageTest`).
+- Searches compare `app_search_norm(column)` with `Pagination.likePattern(q)`.
+- Flyway migrations are additive and never edited after commit; next migration is `V18`.
+- Frontend: shadcn/ui components only (added with `pnpm dlx shadcn@latest add <name>`), never hand-built; TypeScript 5.9; bundle budget enforced by `pnpm build`.
+- No `terraform apply`, no deployment.
+
+**Git & process**
+- Work only on `feature/saas-foundation`; commit focused, verified units (tests green) authored as `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution; push verified commits to `origin feature/saas-foundation` automatically.
+- Never push/merge to `main`, never force-push, never rewrite history, never delete branches, never create a PR, never change repo visibility.
+- Continuous execution (owner, 2026-11-19): run the remaining phases back to back without asking, **except** stop for a critical security issue, a destructive/irreversible operation, a product/business decision not covered by the directive or `PRODUCT_AUDIT.md`, a requirement conflict (as the D4 deviation was until approved on 2026-11-20), or a real blocker.
+- After every phase: tests → commit → push → update `PROJECT_HANDOFF.md` and `SESSION_HANDOFF.md`.
+
+**Operations that always need the owner's explicit approval**
+- Resetting/deleting any database or Docker volume; deleting data or features.
+- Anything on `main`, PRs, repo settings, force pushes, history rewrites.
+- Changing approved decisions D1–D16 (D4 as amended by ADR-0015 on 2026-11-20) or setting real prices.
+- Deploying or applying infrastructure.
