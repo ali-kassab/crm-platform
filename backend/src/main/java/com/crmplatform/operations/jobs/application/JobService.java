@@ -301,7 +301,8 @@ public class JobService implements JobDirectory, Jobs {
     private static Map<String, Object> snapshot(Job j) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("title", j.getTitle());
-        m.put("budget", j.getBudget() == null ? null : j.getBudget().toPlainString());
+        m.put("budget", j.getBudget() == null ? null
+                : j.getBudget().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
         m.put("startDate", String.valueOf(j.getStartDate()));
         m.put("estimatedEndDate", String.valueOf(j.getEstimatedEndDate()));
         m.put("teamManagerMemberId", j.getTeamManagerMemberId());

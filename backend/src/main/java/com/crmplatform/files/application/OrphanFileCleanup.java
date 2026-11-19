@@ -1,6 +1,6 @@
 package com.crmplatform.files.application;
 
-import com.crmplatform.shared.tenant.TenantContext;
+import com.crmplatform.shared.tenant.TenantWork;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +14,17 @@ class OrphanFileCleanup {
     private static final Logger log = LoggerFactory.getLogger(OrphanFileCleanup.class);
 
     private final FileService files;
+    private final TenantWork tenantWork;
 
-    OrphanFileCleanup(FileService files) {
+    OrphanFileCleanup(FileService files, TenantWork tenantWork) {
         this.files = files;
+        this.tenantWork = tenantWork;
     }
 
     @Scheduled(cron = "${app.files.orphan-cleanup-cron:0 17 * * * *}")
     @SchedulerLock(name = "files-orphan-cleanup", lockAtMostFor = "PT10M")
     void run() {
-        int removed = TenantContext.runAs(TenantContext.SYSTEM, null, files::purgeOrphans);
+        int removed = tenantWork.callAsSystem(files::purgeOrphans);
         if (removed > 0) {
             log.info("Removed {} orphaned uploads", removed);
         }

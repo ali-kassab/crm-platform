@@ -6,7 +6,7 @@ import com.crmplatform.operations.jobs.domain.JobRepository;
 import com.crmplatform.operations.warranties.application.WarrantyService;
 import com.crmplatform.shared.events.DomainEvents.JobDeleted;
 import com.crmplatform.shared.events.DomainEvents.ProjectDeleted;
-import com.crmplatform.shared.tenant.TenantContext;
+import com.crmplatform.shared.tenant.TenantWork;
 import java.util.UUID;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
-import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /** Hooks the operations module provides to lower modules, and its reactions to their events. */
 @Configuration(proxyBeanMethods = false)
@@ -42,10 +42,12 @@ class OperationsIntegration {
 
         private final JobService jobs;
         private final WarrantyService warranties;
+        private final TenantWork tenantWork;
 
-        Handlers(JobService jobs, WarrantyService warranties) {
+        Handlers(JobService jobs, WarrantyService warranties, TenantWork tenantWork) {
             this.jobs = jobs;
             this.warranties = warranties;
+            this.tenantWork = tenantWork;
         }
 
         /** BR-056: a project's jobs and warranties go with it, in the same transaction. */
@@ -60,10 +62,10 @@ class OperationsIntegration {
             warranties.unlinkJob(event.jobId());
         }
 
-        @ApplicationModuleListener
+        @TransactionalEventListener
         void on(LabelDeleted event) {
             if (event.tag()) {
-                TenantContext.runAs(event.workspaceId(), null, () -> {
+                tenantWork.run(event.workspaceId(), null, () -> {
                     jobs.detachTag(event.labelId());
                     warranties.detachTag(event.labelId());
                 });
@@ -78,15 +80,17 @@ class OperationsIntegration {
         private static final Logger log = LoggerFactory.getLogger(WarrantyExpiry.class);
 
         private final WarrantyService warranties;
+        private final TenantWork tenantWork;
 
-        WarrantyExpiry(WarrantyService warranties) {
+        WarrantyExpiry(WarrantyService warranties, TenantWork tenantWork) {
             this.warranties = warranties;
+            this.tenantWork = tenantWork;
         }
 
         @Scheduled(cron = "${app.operations.warranty-expiry-cron:0 5 0 * * *}")
         @SchedulerLock(name = "warranty-expiry", lockAtMostFor = "PT10M")
         void run() {
-            int expired = TenantContext.runAs(TenantContext.SYSTEM, null, warranties::expireEnded);
+            int expired = tenantWork.callAsSystem(warranties::expireEnded);
             if (expired > 0) {
                 log.info("Marked {} warranties as expired", expired);
             }

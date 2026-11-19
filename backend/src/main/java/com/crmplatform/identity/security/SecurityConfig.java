@@ -39,7 +39,8 @@ class SecurityConfig {
 
     private static final String[] PUBLIC_POST = {
             "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
-            "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset", "/api/v1/auth/invitations/accept"};
+            "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset", "/api/v1/auth/invitations/accept",
+            "/api/v1/admin/auth/login"};
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtToUserConverter converter, ProblemWriter problems,

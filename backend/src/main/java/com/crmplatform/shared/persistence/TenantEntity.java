@@ -1,7 +1,9 @@
 package com.crmplatform.shared.persistence;
 
 import jakarta.persistence.Column;
+import com.crmplatform.shared.tenant.TenantContext;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.TenantId;
@@ -38,6 +40,15 @@ public abstract class TenantEntity extends BaseEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    /** Rejects writes of workspace data outside a real workspace scope (no context, NONE or SYSTEM). */
+    @PrePersist
+    void requireWorkspaceScope() {
+        UUID scope = TenantContext.workspaceId().orElse(TenantContext.NONE);
+        if (TenantContext.NONE.equals(scope) || TenantContext.SYSTEM.equals(scope)) {
+            throw new IllegalStateException("Workspace data can only be created inside a workspace context");
+        }
     }
 
     public void markDeleted(Instant at, UUID by) {

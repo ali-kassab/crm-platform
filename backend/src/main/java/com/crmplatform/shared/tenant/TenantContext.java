@@ -13,8 +13,18 @@ import java.util.function.Supplier;
  */
 public final class TenantContext {
 
-    /** Sentinel tenant that bypasses tenant filtering; only for platform-level jobs. */
+    /**
+     * Sentinel tenant that bypasses tenant filtering. Only platform-level jobs may use it, and only
+     * explicitly via {@code runAs(SYSTEM, …)}; it is never the default.
+     */
     public static final UUID SYSTEM = new UUID(0L, 0L);
+
+    /**
+     * Tenant used when no context is set. It matches no row, so a code path that forgot to set a
+     * tenant sees nothing instead of everything (fail-closed), and inserts are rejected by
+     * {@code TenantEntity}.
+     */
+    public static final UUID NONE = new UUID(-1L, -1L);
 
     private static final ThreadLocal<Scope> CURRENT = new ThreadLocal<>();
 

@@ -51,6 +51,8 @@ public final class BoardRepositories {
 
         @Query("select c.taskId, count(c) from TaskComment c where c.taskId in :taskIds group by c.taskId")
         List<Object[]> countByTask(Collection<UUID> taskIds);
+
+        long countByTaskId(UUID taskId);
     }
 
     public interface BoardTemplateRepository extends JpaRepository<BoardTemplate, UUID> {
