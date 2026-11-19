@@ -77,14 +77,18 @@ public class ContactController {
             @RequestParam(required = false) UUID statusId, @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId, @RequestParam(required = false) UUID representativeId,
             @RequestParam(required = false) Boolean active, @RequestParam(required = false) String q,
+            @RequestParam(required = false) String kind,
             @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size,
             @RequestParam(required = false) List<String> sort) {
         if (type != null && !List.of("CLIENT", "PROSPECT", "PARTNER", "LEAD").contains(type)) {
             throw com.crmplatform.shared.error.ApiException.badRequest("VALIDATION_ERROR", "Unknown contact type");
         }
+        if (kind != null && !List.of("INDIVIDUAL", "COMPANY").contains(kind)) {
+            throw com.crmplatform.shared.error.ApiException.badRequest("VALIDATION_ERROR", "kind must be INDIVIDUAL or COMPANY");
+        }
         var pageable = Pagination.pageable(page, size, sort, SORT, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Contact> result = contacts.search(new ContactFilter(type, statusId, categoryId, tagId, representativeId,
-                active, q), pageable);
+                active, q, kind), pageable);
         return PageResponse.of(result.map(new Assembler(result.getContent())::toResponse));
     }
 
@@ -155,7 +159,7 @@ public class ContactController {
             tags.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
             MemberSummary rep = c.getRepresentativeUserId() == null ? null : people.get(c.getRepresentativeUserId());
             Address a = c.getAddress();
-            return new ContactResponse(c.getId(), c.getType().name(), new Name(c.getTitle(), c.getFirstName(),
+            return new ContactResponse(c.getId(), c.getType().name(), c.getKind().name(), new Name(c.getTitle(), c.getFirstName(),
                     c.getMiddleName(), c.getLastName()), c.fullName(), c.getCompany(), c.getIndustry(),
                     c.getPosition(), c.getEmail(), c.getPhone(), c.getMobile(), c.getWorkPhone(),
                     a == null ? null : new AddressData(a.getLine1(), a.getLine2(), a.getCity(), a.getRegion(),
@@ -171,8 +175,8 @@ public class ContactController {
     // ------------------------------------------------------------------ DTOs
 
     public record NameRequest(@Pattern(regexp = "^(Mr|Mrs|Ms|Mx|Dr|Eng|Prof)$") String title,
-            @NotBlank @Size(max = 60) String first, @Size(max = 60) String middle,
-            @NotBlank @Size(max = 60) String last) {
+            @Size(max = 60) String first, @Size(max = 60) String middle,
+            @Size(max = 60) String last) {
     }
 
     public record AddressRequest(@Size(max = 200) String line1, @Size(max = 200) String line2,
@@ -185,11 +189,11 @@ public class ContactController {
 
     public record ContactRequest(
             @NotBlank @Pattern(regexp = "^(CLIENT|PROSPECT|PARTNER|LEAD)$") String type,
-            @Valid @jakarta.validation.constraints.NotNull NameRequest name,
+            @Valid NameRequest name,
             @Size(max = 150) String company,
             @Size(max = 100) String industry,
             @Size(max = 100) String position,
-            @NotBlank @Email @Size(max = 254) String email,
+            @Email @Size(max = 254) String email,
             @Size(max = 30) String phone,
             @Size(max = 30) String mobile,
             @Size(max = 30) String workPhone,
@@ -203,14 +207,15 @@ public class ContactController {
             UUID representativeUserId,
             Boolean contractSigned,
             Boolean active,
-            Map<String, Object> metadata) {
+            Map<String, Object> metadata,
+            @Pattern(regexp = "^(INDIVIDUAL|COMPANY)$") String kind) {
 
         ContactData toData() {
             NameRequest n = name;
             return new ContactData(type, n == null ? null : n.title(), n == null ? null : n.first(),
                     n == null ? null : n.middle(), n == null ? null : n.last(), company, industry, position, email,
                     phone, mobile, workPhone, address == null ? null : address.toData(), latitude, longitude,
-                    imageFileId, categoryId, statusId, tagIds, representativeUserId, contractSigned, active, metadata);
+                    imageFileId, categoryId, statusId, tagIds, representativeUserId, contractSigned, active, metadata, kind);
         }
     }
 
@@ -223,14 +228,14 @@ public class ContactController {
     public record Person(UUID userId, String name, String email) {
     }
 
-    public record ContactResponse(UUID id, String type, Name name, String fullName, String company, String industry,
+    public record ContactResponse(UUID id, String type, String kind, Name name, String fullName, String company, String industry,
             String position, String email, String phone, String mobile, String workPhone, AddressData address,
             BigDecimal latitude, BigDecimal longitude, UUID imageFileId, UUID categoryId, LabelSummary status,
             List<LabelSummary> tags, Person representative, boolean contractSigned, boolean active,
             Map<String, Object> metadata, Instant createdAt, Instant updatedAt, long version, List<String> warnings) {
 
         ContactResponse withWarnings(List<String> w) {
-            return new ContactResponse(id, type, name, fullName, company, industry, position, email, phone, mobile,
+            return new ContactResponse(id, type, kind, name, fullName, company, industry, position, email, phone, mobile,
                     workPhone, address, latitude, longitude, imageFileId, categoryId, status, tags, representative,
                     contractSigned, active, metadata, createdAt, updatedAt, version, w);
         }

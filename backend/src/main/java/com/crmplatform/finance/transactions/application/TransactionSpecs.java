@@ -3,6 +3,7 @@ package com.crmplatform.finance.transactions.application;
 import com.crmplatform.finance.transactions.application.TransactionService.TransactionFilter;
 import com.crmplatform.finance.transactions.domain.Transaction;
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,8 +44,8 @@ final class TransactionSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.or(cb.like(cb.lower(root.get("title")), like, '\\'),
-                        cb.like(cb.lower(root.get("payee")), like, '\\')));
+                p.add(cb.or(cb.like(SearchText.column(cb, root.get("title")), like, '\\'),
+                        cb.like(SearchText.column(cb, root.get("payee")), like, '\\')));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

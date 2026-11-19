@@ -5,6 +5,7 @@ import com.crmplatform.files.FileKind;
 import com.crmplatform.files.Files;
 import com.crmplatform.files.Files.FileSummary;
 import com.crmplatform.operations.Jobs;
+import com.crmplatform.operations.Warranties;
 import com.crmplatform.operations.warranties.domain.Warranty;
 import com.crmplatform.operations.warranties.domain.WarrantyRepository;
 import com.crmplatform.shared.error.ApiException;
@@ -29,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Warranties and their daily expiry (FR-OPS-06, FR-OPS-07, BR-064, BR-065). */
 @Service
-public class WarrantyService {
+public class WarrantyService implements Warranties {
 
     static final String OWNER = "WARRANTY";
 
@@ -55,6 +56,18 @@ public class WarrantyService {
     @Transactional(readOnly = true)
     public Page<Warranty> search(WarrantyFilter filter, Pageable pageable) {
         return warranties.findAll(WarrantySpecs.matching(filter), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WarrantyOverview> ofProjects(java.util.Collection<UUID> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return List.of();
+        }
+        return warranties.findByProjectIdInOrderByEndDateAsc(new HashSet<>(projectIds)).stream()
+                .map(w -> new WarrantyOverview(w.getId(), w.getProjectId(), w.getJobId(), w.getTitle(), w.getProvider(),
+                        w.getStatus().name(), w.getStartDate(), w.getEndDate()))
+                .toList();
     }
 
     @Transactional(readOnly = true)

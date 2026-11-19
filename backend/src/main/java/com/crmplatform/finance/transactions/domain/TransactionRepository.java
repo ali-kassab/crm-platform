@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID>, JpaSpecificationExecutor<Transaction> {
 
+    List<Transaction> findByContactIdAndVoidedAtIsNullOrderByCommitmentDateDescCreatedAtDesc(UUID contactId,
+            org.springframework.data.domain.Pageable page);
+
     /** Rows of {type, Σ amount, count} over non-voided transactions of a job (BR-094). */
     @Query("select t.type, sum(t.amount), count(t) from Transaction t where t.jobId = :id and t.voidedAt is null "
             + "group by t.type")

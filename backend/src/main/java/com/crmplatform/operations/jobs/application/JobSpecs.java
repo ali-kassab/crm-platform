@@ -3,6 +3,7 @@ package com.crmplatform.operations.jobs.application;
 import com.crmplatform.operations.jobs.application.JobService.JobFilter;
 import com.crmplatform.operations.jobs.domain.Job;
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,8 +34,8 @@ final class JobSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.or(cb.like(cb.lower(root.get("title")), like, '\\'),
-                        cb.like(cb.lower(root.get("description")), like, '\\')));
+                p.add(cb.or(cb.like(SearchText.column(cb, root.get("title")), like, '\\'),
+                        cb.like(SearchText.column(cb, root.get("description")), like, '\\')));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

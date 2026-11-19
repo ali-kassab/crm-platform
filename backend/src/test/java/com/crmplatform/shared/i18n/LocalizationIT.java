@@ -73,12 +73,13 @@ class LocalizationIT {
                 .andExpect(jsonPath("$.detail").value("تتبع المهمة مشروعًا أو أمر عمل، وليس الاثنين معًا"));
 
         // field validation
-        mvc.perform(json(post("/api/v1/contacts"), "{\"type\":\"CLIENT\",\"email\":\"%s\"}".formatted(Api.uniqueEmail()))
+        mvc.perform(json(post("/api/v1/contacts"), "{\"name\":{\"first\":\"سامي\"},\"email\":\"%s\"}"
+                        .formatted(Api.uniqueEmail()))
                 .with(s.auth()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.title").value("بيانات غير صالحة"))
-                .andExpect(jsonPath("$.errors[0].field").value("name"))
+                .andExpect(jsonPath("$.errors[0].field").value("type"))
                 .andExpect(jsonPath("$.errors[0].code").value("REQUIRED"))
                 .andExpect(jsonPath("$.errors[0].message").value("هذا الحقل مطلوب"));
 

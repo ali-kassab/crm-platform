@@ -1,6 +1,8 @@
 package com.crmplatform.finance.transactions.application;
 
 import com.crmplatform.crm.Contacts;
+import com.crmplatform.finance.Accounting;
+import org.springframework.data.domain.PageRequest;
 import com.crmplatform.finance.transactions.domain.Transaction.Type;
 import com.crmplatform.finance.transactions.domain.TransactionRepository;
 import com.crmplatform.operations.Jobs;
@@ -18,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * deleted jobs still count for their project and contact (EC-23).
  */
 @Service
-public class AccountingService {
+public class AccountingService implements Accounting {
 
     private final TransactionRepository transactions;
     private final Jobs jobs;
@@ -48,6 +50,24 @@ public class AccountingService {
     public Summary contact(UUID contactId) {
         contacts.find(contactId).orElseThrow(() -> ApiException.notFound("Contact"));
         return summarize(projects.budgetTotalOfContact(contactId), transactions.totalsByContact(contactId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Totals ofContact(UUID contactId) {
+        Summary s = contact(contactId);
+        return new Totals(s.contract(), s.received(), s.actualCost(), s.remaining(), s.profitLoss(),
+                s.transactionCount(), s.overpaid());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TransactionOverview> recentOfContact(UUID contactId, int limit) {
+        return transactions.findByContactIdAndVoidedAtIsNullOrderByCommitmentDateDescCreatedAtDesc(contactId,
+                        PageRequest.of(0, Math.max(1, Math.min(limit, 100)))).stream()
+                .map(t -> new TransactionOverview(t.getId(), t.getJobId(), t.getProjectId(), t.getType().name(),
+                        t.getAmount(), t.getTitle(), t.getMethod().name(), t.getCommitmentDate(), t.getDueDate()))
+                .toList();
     }
 
     static Summary summarize(BigDecimal contract, List<Object[]> rows) {

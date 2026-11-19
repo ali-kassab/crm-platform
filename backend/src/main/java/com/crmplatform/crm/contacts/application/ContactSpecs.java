@@ -3,6 +3,8 @@ package com.crmplatform.crm.contacts.application;
 import com.crmplatform.crm.contacts.application.ContactService.ContactFilter;
 import com.crmplatform.crm.contacts.domain.Contact;
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,9 @@ final class ContactSpecs {
             if (f.type() != null) {
                 p.add(cb.equal(root.get("type"), Contact.Type.valueOf(f.type())));
             }
+            if (f.kind() != null) {
+                p.add(cb.equal(root.get("kind"), Contact.Kind.valueOf(f.kind())));
+            }
             if (f.statusId() != null) {
                 p.add(cb.equal(root.get("statusId"), f.statusId()));
             }
@@ -38,11 +43,14 @@ final class ContactSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                var fullName = cb.lower(cb.concat(cb.concat(root.get("firstName"), " "), root.get("lastName")));
+                // names may be absent (company customers), so each part is coalesced before joining
+                Expression<String> first = cb.coalesce(root.get("firstName"), "");
+                Expression<String> last = cb.coalesce(root.get("lastName"), "");
+                Expression<String> fullName = cb.concat(cb.concat(first, " "), last);
                 p.add(cb.or(
-                        cb.like(fullName, like, '\\'),
-                        cb.like(cb.lower(root.get("email")), like, '\\'),
-                        cb.like(cb.lower(cb.coalesce(root.get("company"), "")), like, '\\'),
+                        cb.like(SearchText.column(cb, fullName), like, '\\'),
+                        cb.like(SearchText.column(cb, cb.coalesce(root.get("email"), "")), like, '\\'),
+                        cb.like(SearchText.column(cb, cb.coalesce(root.get("company"), "")), like, '\\'),
                         cb.like(cb.coalesce(root.get("phone"), ""), like, '\\'),
                         cb.like(cb.coalesce(root.get("mobile"), ""), like, '\\')));
             }

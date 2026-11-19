@@ -104,3 +104,7 @@ locale must look like ar-EG or en-US	تنسيق الإعدادات الإقلي�
 currency must be an ISO 4217 code such as EGP	يجب أن تكون العملة رمزًا من ثلاثة أحرف مثل EGP
 timeZone must be an IANA zone such as Africa/Cairo	المنطقة الزمنية غير صحيحة، مثال: Africa/Cairo
 sector must be FIT_OUT, SECURITY_SYSTEMS or MAINTENANCE	القطاع يجب أن يكون التشطيبات أو أنظمة الأمان أو الصيانة
+kind must be INDIVIDUAL or COMPANY	نوع العميل يجب أن يكون فردًا أو شركة
+A first name is required for an individual customer	الاسم الأول مطلوب للعميل الفرد
+A company name is required for a company customer	اسم الشركة مطلوب لعميل الشركة
+Add a phone number or an email	أضف رقم هاتف أو بريدًا إلكترونيًا

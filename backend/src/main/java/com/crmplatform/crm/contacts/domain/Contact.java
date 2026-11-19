@@ -30,20 +30,27 @@ public class Contact extends TenantEntity {
 
     public enum Type { CLIENT, PROSPECT, PARTNER, LEAD }
 
+    /** An individual customer, or a company (whose person name is an optional contact person). */
+    public enum Kind { INDIVIDUAL, COMPANY }
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private Type type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Kind kind = Kind.INDIVIDUAL;
+
     @Column(name = "name_title", length = 10)
     private String title;
 
-    @Column(name = "first_name", nullable = false, length = 60)
+    @Column(name = "first_name", length = 60)
     private String firstName;
 
     @Column(name = "middle_name", length = 60)
     private String middleName;
 
-    @Column(name = "last_name", nullable = false, length = 60)
+    @Column(name = "last_name", length = 60)
     private String lastName;
 
     @Column(length = 150)
@@ -55,7 +62,7 @@ public class Contact extends TenantEntity {
     @Column(length = 100)
     private String position;
 
-    @Column(nullable = false, length = 254)
+    @Column(length = 254)
     private String email;
 
     @Column(length = 20)
@@ -107,11 +114,10 @@ public class Contact extends TenantEntity {
     protected Contact() {
     }
 
-    public Contact(Type type, String firstName, String lastName, String email) {
+    /** Names, organisation and channels are set by the caller, which validates the kind's rules. */
+    public Contact(Type type, Kind kind) {
         this.type = type;
-        this.firstName = firstName.trim();
-        this.lastName = lastName.trim();
-        this.email = email;
+        this.kind = kind;
     }
 
     // ----------------------------------------------------------------- mutators (used by ContactService)
@@ -120,11 +126,19 @@ public class Contact extends TenantEntity {
         this.type = type;
     }
 
+    public void setKind(Kind kind) {
+        this.kind = kind;
+    }
+
     public void setName(String title, String first, String middle, String last) {
         this.title = title;
-        this.firstName = first.trim();
-        this.middleName = middle == null || middle.isBlank() ? null : middle.trim();
-        this.lastName = last.trim();
+        this.firstName = trimToNull(first);
+        this.middleName = trimToNull(middle);
+        this.lastName = trimToNull(last);
+    }
+
+    private static String trimToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
     }
 
     public void setOrganisation(String company, String industry, String position) {
@@ -187,12 +201,30 @@ public class Contact extends TenantEntity {
 
     // ----------------------------------------------------------------- getters
 
+    /** The person's name (first, middle, last — whichever exist), or null if there is none. */
+    public String personName() {
+        String name = String.join(" ", java.util.stream.Stream.of(firstName, middleName, lastName)
+                .filter(java.util.Objects::nonNull).toList());
+        return name.isEmpty() ? null : name;
+    }
+
+    /**
+     * How the customer is shown everywhere: an individual by name; a company by its company name.
+     * Kept as {@code fullName} for API compatibility.
+     */
     public String fullName() {
-        return firstName + (middleName == null ? "" : " " + middleName) + " " + lastName;
+        if (kind == Kind.COMPANY) {
+            return company;
+        }
+        return personName();
     }
 
     public Type getType() {
         return type;
+    }
+
+    public Kind getKind() {
+        return kind;
     }
 
     public String getTitle() {

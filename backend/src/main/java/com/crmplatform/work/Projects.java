@@ -32,6 +32,9 @@ public interface Projects {
     /** Σ budgets of the contact's active projects; zero when it has none (BR-094 contact contract). */
     BigDecimal budgetTotalOfContact(UUID contactId);
 
+    /** The contact's active projects, newest start first (customer history). */
+    List<ProjectSummary> ofContact(UUID contactId);
+
     record ProjectSummary(UUID id, String name, String type, BigDecimal budget, UUID locationId, UUID contactId,
             UUID managerUserId, LocalDate startDate, LocalDate estimatedEndDate) {
     }

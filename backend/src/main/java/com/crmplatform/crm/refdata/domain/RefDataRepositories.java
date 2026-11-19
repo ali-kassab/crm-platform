@@ -15,7 +15,7 @@ public final class RefDataRepositories {
 
     public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
-        @Query("select c from Category c where (:q is null or lower(c.name) like :q escape '\\')")
+        @Query("select c from Category c where (:q is null or app_search_norm(c.name) like :q escape '\\')")
         Page<Category> search(String q, Pageable pageable);
 
         @Query("select count(c) > 0 from Category c where lower(c.name) = lower(:name) and (:excludeId is null or c.id <> :excludeId)")
@@ -24,7 +24,7 @@ public final class RefDataRepositories {
 
     public interface StatusRepository extends JpaRepository<Status, UUID> {
 
-        @Query("select s from Status s where (:q is null or lower(s.name) like :q escape '\\') "
+        @Query("select s from Status s where (:q is null or app_search_norm(s.name) like :q escape '\\') "
                 + "and (:categoryId is null or s.categoryId = :categoryId)")
         Page<Status> search(String q, UUID categoryId, Pageable pageable);
 
@@ -42,7 +42,7 @@ public final class RefDataRepositories {
 
     public interface TagRepository extends JpaRepository<Tag, UUID> {
 
-        @Query("select t from Tag t where (:q is null or lower(t.name) like :q escape '\\') "
+        @Query("select t from Tag t where (:q is null or app_search_norm(t.name) like :q escape '\\') "
                 + "and (:categoryId is null or t.categoryId = :categoryId)")
         Page<Tag> search(String q, UUID categoryId, Pageable pageable);
 

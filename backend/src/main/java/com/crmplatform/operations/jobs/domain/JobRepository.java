@@ -11,6 +11,8 @@ public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificatio
 
     List<Job> findByProjectId(UUID projectId);
 
+    List<Job> findByProjectIdInOrderByStartDateDesc(Collection<UUID> projectIds);
+
     /** Rows of {projectId, Σ budget} over the projects' active jobs (BR-055). */
     @Query("select j.projectId, sum(j.budget) from Job j where j.projectId in :projectIds group by j.projectId")
     List<Object[]> budgetTotals(Collection<UUID> projectIds);

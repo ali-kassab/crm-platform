@@ -227,6 +227,18 @@ public class JobService implements JobDirectory, Jobs {
 
     @Override
     @Transactional(readOnly = true)
+    public List<JobOverview> ofProjects(Collection<UUID> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return List.of();
+        }
+        return jobs.findByProjectIdInOrderByStartDateDesc(new HashSet<>(projectIds)).stream()
+                .map(j -> new JobOverview(j.getId(), j.getProjectId(), j.getTitle(), j.getStartDate(),
+                        j.getEstimatedEndDate(), j.getBudget()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<JobSummary> find(UUID jobId) {
         return jobId == null ? Optional.empty()
                 : jobs.findById(jobId).map(j -> new JobSummary(j.getId(), j.getProjectId(), j.getTitle(), j.getBudget()));

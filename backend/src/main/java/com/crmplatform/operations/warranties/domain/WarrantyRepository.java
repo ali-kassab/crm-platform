@@ -13,6 +13,8 @@ public interface WarrantyRepository extends JpaRepository<Warranty, UUID>, JpaSp
 
     List<Warranty> findByProjectId(UUID projectId);
 
+    List<Warranty> findByProjectIdInOrderByEndDateAsc(java.util.Collection<UUID> projectIds);
+
     List<Warranty> findByJobId(UUID jobId);
 
     @Query("select w from Warranty w join w.tagIds t where t = :tagId")

@@ -61,7 +61,7 @@ public final class BoardRepositories {
 
         List<BoardTemplate> findByIsDefaultTrue();
 
-        @Query("select t from BoardTemplate t where (:q is null or lower(t.title) like :q escape '\\')")
+        @Query("select t from BoardTemplate t where (:q is null or app_search_norm(t.title) like :q escape '\\')")
         org.springframework.data.domain.Page<BoardTemplate> search(String q, org.springframework.data.domain.Pageable p);
     }
 }
