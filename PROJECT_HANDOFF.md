@@ -25,8 +25,9 @@
 | R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
 | R5 Notifications (in-app) | ✅ complete (2026-11-19, `20cfa98`) |
 | R6 Equipment, warranties, preventive maintenance, SLA | ✅ complete (2026-11-19, `17ed30a`) |
-| R7 Subscriptions & Platform Admin | ⏭ next (not started) |
-| R8–R13 | ⚪ not started |
+| R7 Subscriptions & Platform Admin | ✅ complete (2026-11-19, `c9d34e0`) |
+| R8 Finance alignment | ⏭ next (not started) |
+| R9–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -111,10 +112,22 @@
 - Tests: `operations/MaintenanceIT` (3; uses JDBC to move dates into the past — no controllable clock).
 - Known limits: dates use the server clock (UTC), not the workspace time zone; generation runs daily (or on demand).
 
-## 5. Current phase & exact next steps — R7 Subscriptions & Platform Admin
-Not started. `PRODUCT_AUDIT.md` R7 row (~line 207): new platform-level `billing` module + `identity`; tables `plans`, `payment_methods`, `subscriptions`, `subscription_requests`, `subscription_events`; tenant APIs `/subscription/**`, platform `/admin/**`; manual payment (Vodafone Cash / InstaPay receipts) approved by the platform admin, no gateway; 14-day trial (D6), 7-day grace then read-only, never delete (D5), configurable limits (D7); tenant cannot change its own status; feature flag to disable enforcement. Next migration `V16`.
+## 4h. Completed — R7 Subscriptions & Platform Admin — commit `c9d34e0`
+- Flyway `V16__billing.sql`: `billing_plans` (seeded **provisional** SOLO 300/3000 EGP 1 user, TEAM 900/9000 5 users, BUSINESS 2500/25000 25 users — prices are placeholders for the owner to set), `billing_payment_methods`, `subscriptions` (UNIQUE workspace), `subscription_requests` (one PENDING per workspace), `subscription_events` (append-only trigger); `RECEIPT` file purpose; existing workspaces backfilled with a 14-day TEAM trial.
+- Module `billing` (platform-level, explicit workspace filters): `domain/{Plan, PaymentMethod, Subscription, SubscriptionRequest, SubscriptionEvent, BillingPeriod, BillingRepositories}`, `application/{BillingProperties (app.billing.*), SubscriptionService, BillingAdminService, PlanLimits (UsageGuard impl), UsageCounter (read-only JDBC counts), BillingIntegration (trial on WorkspaceCreated in the same tx; daily `SubscriptionLifecycle` ShedLock `subscription-lifecycle`)}`, `web/{SubscriptionController, BillingAdminController, SubscriptionEnforcement}`; `BillingEvents.SubscriptionNotice` → notifications `SUBSCRIPTION_*`.
+- Lifecycle: TRIAL/ACTIVE → GRACE (7 d, writable) → EXPIRED (read-only); SUSPENDED (admin, read-only); status is computed on read too (`effectiveStatus`), so access never depends on the scheduler. Read-only = every non-GET `/api/**` returns **402 `SUBSCRIPTION_INACTIVE`** except `/subscription`, `/auth/`, `/me`, `/notifications`, `/admin/` and receipt upload (`POST /files?purpose=RECEIPT`). Nothing is ever deleted. Flag `BILLING_ENFORCEMENT_ENABLED=false` disables read-only mode and limits.
+- Tenant APIs: `GET /subscription` (status, plan, limits, usage, daysLeft, pendingRequest), `GET /subscription/plans`, `GET /subscription/payment-methods`, `GET/POST /subscription/requests` + `POST /requests/{id}/cancel` (`workspace:manage`). Tenants can never change status.
+- Admin APIs (`platform:admin`): `/admin/plans` (GET/POST/PATCH), `/admin/payment-methods` (GET/POST/PATCH), `/admin/subscription-requests` (list by status, detail, `receipt-url`, `approve`, `reject` with reason), `/admin/workspaces` (list with status/q), `/admin/workspaces/{id}` (subscription + history + requests), `POST /admin/workspaces/{id}/subscription` `{action: EXTEND|SUSPEND|REACTIVATE|CHANGE_PLAN}`. All audited via `AuditTrail.platform`.
+- Limits (`shared/limits/UsageGuard`): USERS (invite + accept), ACTIVE_PROJECTS, JOBS_PER_MONTH (plan-generated PM jobs exempt), STORAGE_BYTES → 409 `PLAN_LIMIT_REACHED`. Injected as `ObjectProvider<UsageGuard>` constructor params (ArchUnit forbids `@Autowired`).
+- `Files` API: `downloadUrlOfOwned`, `usedBytes`.
+- Tests: `billing/BillingIT` (3; admin sessions via `AccessTokenService.issuePlatform` for a throwaway user so `PlatformAdminIT` keeps its fresh-bootstrap path).
+- Not done: subscription e-mails (in-app notices only); `PlatformAdminIT`-style UI is R10.
+
+## 5. Current phase & exact next steps — R8 Finance alignment
+Not started. `PRODUCT_AUDIT.md` R8 row (~line 208): money on standalone jobs/projects (transactions on standalone jobs already work since R3; check project-level transactions without a job), materials cost in profitability (done in R4 — verify), outstanding balances list `GET /accounting/outstanding`; hand-computed rollup tests incl. materials; migration reversible. Next migration `V17`.
 
 ## 6. Tests (actual results)
+- 2026-11-19, `./mvnw test` @ `c9d34e0` (R7): **123 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `17ed30a` (R6): **120 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` @ `20cfa98` (R5): **117 tests, 0 failures, 0 errors, 0 skipped**.
 - 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
@@ -156,6 +169,8 @@ Not started. `PRODUCT_AUDIT.md` R7 row (~line 207): new platform-level `billing`
 | `20cfa98` | feat(notifications): in-app notifications for assignments, visits and project teams |
 | `424e421` | docs: update handoff - R5 notifications complete |
 | `17ed30a` | feat(operations): equipment register, warranty links and reminders, maintenance plans, SLA |
+| `af1c310` | docs: update handoff - R6 maintenance and SLA complete |
+| `c9d34e0` | feat(billing): subscriptions with manual payments, read-only expiry and plan limits |
 
 ## 11. Uncommitted / unpushed
 - None. `main` untouched at `163d49c`.
