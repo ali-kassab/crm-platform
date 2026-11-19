@@ -10,13 +10,18 @@ import org.springframework.stereotype.Component;
 /**
  * Supplies Hibernate's discriminator-based multi-tenancy with the active workspace. Every entity
  * with a {@code @TenantId} field is automatically filtered by, and stamped with, this value.
+ *
+ * <p>Fail-closed: without a context the tenant is {@link TenantContext#NONE}, which matches no
+ * row. Only an explicit {@link TenantContext#SYSTEM} scope is treated as root (unfiltered). The
+ * tenant is fixed when a Hibernate session opens, so the context must be set <em>before</em> a
+ * transaction starts (see {@link TenantWork}).
  */
 @Component
 public class TenantIdentifierResolver implements CurrentTenantIdentifierResolver<UUID>, HibernatePropertiesCustomizer {
 
     @Override
     public UUID resolveCurrentTenantIdentifier() {
-        return TenantContext.workspaceId().orElse(TenantContext.SYSTEM);
+        return TenantContext.workspaceId().orElse(TenantContext.NONE);
     }
 
     @Override

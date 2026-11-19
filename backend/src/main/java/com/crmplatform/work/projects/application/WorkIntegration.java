@@ -5,7 +5,7 @@ import com.crmplatform.crm.CrmReferences.ProjectUsage;
 import com.crmplatform.crm.LabelDeleted;
 import com.crmplatform.identity.WorkspaceCreated;
 import com.crmplatform.milestones.MilestoneOwner;
-import com.crmplatform.shared.tenant.TenantContext;
+import com.crmplatform.shared.tenant.TenantWork;
 import com.crmplatform.work.WorkReferences.JobDirectory;
 import com.crmplatform.work.boards.application.BoardService;
 import com.crmplatform.work.boards.domain.BoardRepositories.TaskRepository;
@@ -14,12 +14,8 @@ import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.event.TransactionalEventListener;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /** Hooks the work module provides to lower modules, and its reactions to their events. */
 @Configuration(proxyBeanMethods = false)
@@ -93,26 +89,24 @@ class WorkIntegration {
 
         private final BoardService boards;
         private final ProjectService projects;
-        private final TransactionTemplate requiresNew;
+        private final TenantWork tenantWork;
 
-        Handlers(BoardService boards, ProjectService projects, PlatformTransactionManager tm) {
+        Handlers(BoardService boards, ProjectService projects, TenantWork tenantWork) {
             this.boards = boards;
             this.projects = projects;
-            this.requiresNew = new TransactionTemplate(tm);
-            this.requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            this.tenantWork = tenantWork;
         }
 
         /** Seeds the workspace's default board template right after sign-up (AUTH_FLOWS F1). */
         @TransactionalEventListener
         void on(WorkspaceCreated event) {
-            TenantContext.runAs(event.workspaceId(), event.ownerUserId(),
-                    () -> requiresNew.executeWithoutResult(s -> boards.seedDefaultTemplate()));
+            tenantWork.run(event.workspaceId(), event.ownerUserId(), boards::seedDefaultTemplate);
         }
 
-        @ApplicationModuleListener
+        @TransactionalEventListener
         void on(LabelDeleted event) {
             if (event.tag()) {
-                TenantContext.runAs(event.workspaceId(), null, () -> projects.detachTag(event.labelId()));
+                tenantWork.run(event.workspaceId(), null, () -> projects.detachTag(event.labelId()));
             }
         }
     }
