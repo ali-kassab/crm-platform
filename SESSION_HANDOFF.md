@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20: R11 complete (`0c4f936`), R11 browser tests and the skills policy added afterwards. State verified with git and fresh test runs on that date. Everything marked UNVERIFIED could not be checked._
+_Updated 2026-11-20: R12 (reports & Arabic PDF) complete (`c27961a`); R13 not started. State verified with git and fresh test runs on that date. Everything marked UNVERIFIED could not be checked._
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -47,9 +47,9 @@ Every new session MUST follow this for new work; `PROJECT_HANDOFF.md` §0c is th
 If a requirement is not covered by these, ask the owner instead of guessing.
 
 ## 4. Git state (2026-11-20)
-- Branch: **`feature/saas-foundation`**. Last commits: `0c4f936` feat(realtime) → `fac6486` docs (R11 handoff) → `40e5da3` test(frontend) realtime browser tests → `c2ce290` docs (skills policy) → docs commit "docs: reuse-first policy for future components" (HEAD). All pushed to `origin/feature/saas-foundation`.
+- Branch: **`feature/saas-foundation`**. Last commits: … → `e1ad62b` docs (reuse-first policy) → `c27961a` feat(reporting) R12 → docs commit "docs: update handoff - R12 reports and Arabic PDF complete" (HEAD). All pushed to `origin/feature/saas-foundation` (verify with `git status -sb`).
 - Remote: `origin` = `https://github.com/ali-kassab/crm-platform.git`.
-- `origin/main` = **`7ae560a`** (PR #3, merged by the owner; contains R0–R10, **not R11**). Local `main` is stale at `163d49c`. **Do not touch `main` in any way**; opening/merging a PR for R11 is the owner's decision.
+- `origin/main` = **`7ae560a`** (PR #3, merged by the owner; contains R0–R10, **not R11 or R12**). Local `main` is stale at `163d49c`. **Do not touch `main` in any way**; opening/merging a PR for R11 is the owner's decision.
 - Git identity (local config): `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution lines.
 - Working tree: clean apart from git-ignored files (`node_modules/`, `dist/`, `backend/target/`, Playwright reports).
 - Remote verified by the successful push of `0c4f936` and the docs commit on 2026-11-20.
@@ -69,8 +69,14 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 | R9 Frontend foundation | `a06072d` | build/lint OK, e2e 14 passed / 2 skipped |
 | R10 Frontend workflows (core) | `14bf98c` | e2e 22 passed / 2 skipped |
 | R11 Realtime (NestJS + Redis pub/sub + one-time tickets) | `0c4f936` | see below |
-| R12 Reports & Arabic PDF | — | not started |
+| R12 Reports & Arabic PDF | `c27961a` | 131 backend tests, e2e 36 passed / 2 skipped |
 | R13 Performance & readiness | — | not started |
+
+**Tests actually run for R12 (2026-11-20, committed as `c27961a`):**
+- `backend`: `./mvnw test` with the JVM on UTC → **131 tests, 0 failures, 0 errors, 0 skipped** (incl. `ReportsIT` 2/2 — real Arabic PDF verified: embedded Plex font, photos + signature embedded, Arabic text in logical order, no internal notes/costs, access 404/401 rules, dashboard tenant isolation and permissions; `VisitReportPdfTest` 2/2).
+- `realtime-service`: `pnpm test` → **6/6**.
+- `frontend`: `pnpm lint` 0 errors; `pnpm build` OK **256.8 kB gzip**; `pnpm test:e2e` → **36 passed, 2 skipped** (incl. `e2e/reports.spec.ts` 4 scenarios × desktop/mobile).
+- Rendered PDF pages were checked visually (Arabic RTL and English) from `backend/target/reports-it/*.png`.
 
 **Tests actually run for R11 (2026-11-20, on the committed tree):**
 - `backend`: `./mvnw test` → **127 tests, 0 failures, 0 errors, 0 skipped with the JVM on UTC (`-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"`); the same run in the default zone right after local midnight had 2 date-boundary failures (`BillingIT.trialThenManualPaymentApprovedByThePlatformAdmin`, `OperationsIT.expiryFlipsOnlyActiveWarrantiesPastTheirEnd`) unrelated to R11 — see §7** (includes `RealtimeIT` 3/3, `ModularityTests`, `LayeringRulesTest`).
@@ -84,10 +90,15 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 - Frontend `src/lib/realtime.ts` (`useRealtime` in `AppShell`): ticket first, lazy socket.io, fresh ticket per reconnect, backoff 5 s → 5 min, invalidates TanStack queries (batched), refetches everything after a reconnect, closes on sign-out.
 - Known limits: no live run; no Dockerfile/compose entry for realtime-service (R13); no notifications list UI and no board UI yet; an open socket is not force-closed when a member is removed elsewhere (ids only; accepted and documented).
 
+## 6b. What R12 delivered (details in `PROJECT_HANDOFF.md` 4m)
+- `GET /api/v1/reports/visits/{visitId}/pdf?lang=ar|en` — technical visit report PDF (OpenHTMLtoPDF 1.1.112 LGPL-2.1 unmodified + ICU4J bidi/shaping + embedded IBM Plex Sans Arabic OFL); same access as the visit (technicians: own visits); only `data:` resources; no costs/internal notes; 30/min per user; `no-store`.
+- `GET /api/v1/reports/dashboard?period=WEEK|MONTH|QUARTER|YEAR|ALL` (`reports:read`; money only with `finance:read`) — counts via tenant-filtered JPQL in the workspace time zone.
+- Frontend: lazy dashboard panel on the home page (reports:read only), "Download PDF report" button on visits (job detail + technician's visits).
+- Not done: charts (KPI tiles only), live run against the real backend, visit-report/photo editing UI (R10 leftovers → R13).
+
 ## 7. Next steps, in execution order
 1. Open the active repo and verify the state matches §4 (commands in §10). If it differs, the repository wins — update the handoffs before doing anything else.
-2. **R12 — reports & Arabic PDF** (D15: OpenHTMLtoPDF + ICU4J shaping + embedded Arabic font; verify a real Arabic PDF). Next Flyway migration is `V18`. Tests → commit → push → update both handoffs.
-3. **R13** — performance baselines/load test, Dockerfiles (backend, frontend, realtime-service) + docker-compose entry for realtime-service, CI (Linux Playwright baselines), backups, deployment config (no apply/deploy), plus R10 leftovers (`PROJECT_HANDOFF.md` 4k) and a notifications list/badge UI.
+2. **Wait for the owner's explicit go-ahead.** The next phase is **R13 — Performance & production readiness**: performance baselines/load test, Dockerfiles (backend, frontend, realtime-service) + docker-compose entry for realtime-service, CI (Linux Playwright baselines), backups, deployment config (no apply/deploy), test-JVM time-zone fix, plus R10 leftovers (`PROJECT_HANDOFF.md` 4k) and a notifications list/badge UI. Follow §2b and §2c.
 
 ## 8. Open decisions and operations needing the owner
 Open decisions (ask; do not decide alone):
@@ -116,7 +127,7 @@ Always requires the owner's explicit approval: database/volume resets or data de
 cd /d/Workspace/crm-platform
 git branch --show-current          # expect: feature/saas-foundation
 git status --short                 # expect: nothing
-git log --oneline -2               # expect: the reuse-first docs commit, then c2ce290
+git log --oneline -2               # expect: the R12 docs commit, then c27961a
 git fetch origin && git status -sb # expect: in sync with origin/feature/saas-foundation
 ```
 Toolchain: Docker Desktop must be running for backend tests (Testcontainers). If Docker crashes on stale sockets, run `D:\Workspace\tools\fix-docker-sockets.ps1`. Node 24 + pnpm:
