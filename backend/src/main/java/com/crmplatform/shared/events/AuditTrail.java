@@ -39,6 +39,16 @@ public class AuditTrail {
         publish(action, entityType, entityId, projectId, jobId, copy(details));
     }
 
+    /**
+     * Records a platform-level action (no workspace), e.g. platform-admin account changes. Never
+     * carries secrets: callers pass only non-sensitive details.
+     */
+    public void platform(String action, String entityType, UUID entityId, UUID actorUserId, String actorLabel,
+            Map<String, ?> details) {
+        publisher.publishEvent(new DomainEvents.AuditRecorded(null, actorUserId, actorLabel, action, entityType,
+                entityId, null, null, copy(details)));
+    }
+
     /** Field-level diff: {@code field -> {from, to}} for every changed key. */
     public static Map<String, Object> diff(Map<String, ?> before, Map<String, ?> after) {
         Map<String, Object> changes = new LinkedHashMap<>();

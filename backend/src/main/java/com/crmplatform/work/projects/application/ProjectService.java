@@ -450,7 +450,8 @@ public class ProjectService implements Projects {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("name", p.getName());
         m.put("type", p.getType().name());
-        m.put("budget", p.getBudget() == null ? null : p.getBudget().toPlainString());
+        m.put("budget", p.getBudget() == null ? null
+                : p.getBudget().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
         m.put("startDate", String.valueOf(p.getStartDate()));
         m.put("estimatedEndDate", String.valueOf(p.getEstimatedEndDate()));
         m.put("locationId", p.getLocationId());
