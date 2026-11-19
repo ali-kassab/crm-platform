@@ -171,7 +171,8 @@
       "FOLLOW_UP_REQUIRED": "Follow-up required",
       "NOT_RESOLVED": "Not resolved",
       "CUSTOMER_UNAVAILABLE": "Customer unavailable"
-    }
+    },
+    "downloadReport": "Download PDF report"
   },
   "finance": {
     "title": "Finance",
@@ -215,5 +216,32 @@
       "REJECTED": "Rejected",
       "CANCELLED": "Cancelled"
     }
+  },
+  "dashboard": {
+    "title": "Overview",
+    "periods": {
+      "WEEK": "Last 7 days",
+      "MONTH": "This month",
+      "QUARTER": "This quarter",
+      "YEAR": "This year",
+      "ALL": "All time"
+    },
+    "jobs": "Work orders",
+    "openJobs": "Open work orders",
+    "slaBreached": "Past response time",
+    "jobsCreated": "New in period",
+    "jobsCompleted": "Completed in period",
+    "visits": "Visits",
+    "visitsToday": "Visits today",
+    "visitsOverdue": "Overdue visits",
+    "visitsCompleted": "Completed in period",
+    "visitsMissed": "Missed in period",
+    "maintenance": "Maintenance and warranties",
+    "maintenanceOverdue": "Overdue maintenance",
+    "warrantiesExpiring": "Warranties ending in 30 days",
+    "finance": "Money",
+    "received": "Received in period",
+    "paid": "Paid in period",
+    "outstanding": "Owed by customers"
   }
 }

@@ -40,7 +40,7 @@ const BASE = '/api/v1'
 
 async function send(path: string, { body, retry = true, headers, ...init }: Options = {}): Promise<Response> {
   const h = new Headers(headers)
-  h.set('Accept', 'application/json')
+  if (!h.has('Accept')) h.set('Accept', 'application/json') // file downloads ask for their own type
   h.set('Accept-Language', i18n.language)
   // required by the refresh/logout endpoints (CSRF defence for the HttpOnly cookie)
   h.set('X-Requested-With', 'XMLHttpRequest')
@@ -94,6 +94,38 @@ export async function api<T>(path: string, options?: Options): Promise<T> {
   const json = text ? (JSON.parse(text) as unknown) : null
   if (!response.ok) throw new ApiError(response.status, json as Record<string, unknown> | null)
   return json as T
+}
+
+/**
+ * Downloads a file through the API with the current session (the browser can't add the Bearer token
+ * to a plain link) and saves it under the server's file name.
+ */
+export async function download(path: string, accept: string, fallbackName: string): Promise<void> {
+  let response: Response
+  try {
+    response = await send(path, { headers: { Accept: `${accept}, application/problem+json` } })
+  } catch {
+    throw new ApiError(0, { detail: i18n.t('errors.network'), code: 'NETWORK' })
+  }
+  if (!response.ok) {
+    let problem: Record<string, unknown> | null = null
+    try {
+      problem = (await response.json()) as Record<string, unknown>
+    } catch {
+      problem = null
+    }
+    throw new ApiError(response.status, problem)
+  }
+  const blob = await response.blob()
+  const match = /filename="?([^";]+)"?/i.exec(response.headers.get('Content-Disposition') ?? '')
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = match?.[1] ?? fallbackName
+  document.body.append(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
 
 // ------------------------------------------------------------------ shared types

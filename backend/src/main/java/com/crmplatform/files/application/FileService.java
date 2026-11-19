@@ -142,6 +142,14 @@ public class FileService implements Files {
 
     @Override
     @Transactional(readOnly = true)
+    public java.util.Optional<StoredContent> contentOfOwned(UUID fileId, String ownerType, UUID ownerId) {
+        return files.findById(fileId) // tenant-scoped: other workspaces' files are invisible
+                .filter(f -> ownerType.equals(f.getOwnerType()) && ownerId.equals(f.getOwnerId()))
+                .map(f -> new StoredContent(f.getKind(), f.getContentType(), storage.get(f.getStorageKey())));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long usedBytes() {
         return files.usedBytes();
     }

@@ -18,6 +18,12 @@ public interface WorkspaceMembers {
     /** Active owners and admins of the active workspace (recipients of workspace-level reminders). */
     java.util.Set<UUID> managers();
 
+    /** Display settings of the active workspace (documents, dashboards). */
+    WorkspaceProfile currentWorkspace();
+
+    record WorkspaceProfile(UUID id, String name, String defaultLanguage, String currency, String timeZone) {
+    }
+
     record MemberSummary(UUID userId, String firstName, String lastName, String email, String role) {
         public String fullName() {
             return firstName + " " + lastName;

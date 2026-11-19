@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${lang}" th:dir="${dir}">
+<head>
+<meta charset="UTF-8"/>
+<title th:text="#{report.visit.title}">Technical visit report</title>
+<!--
+  Layout uses floats, not tables: the PDF engine does not mirror table columns for right-to-left
+  text, while floats follow the direction rules below (.s = start side, .e = end side).
+-->
+<style>
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+    @bottom-center { content: element(footer); }
+  }
+  html, body { font-family: 'Plex Arabic'; font-size: 10pt; line-height: 1.6; color: #1f1f1f; }
+  body { margin: 0; }
+  html[dir="rtl"] body { direction: rtl; text-align: right; }
+  html[dir="ltr"] body { direction: ltr; text-align: left; }
+  html[dir="rtl"] .s { float: right; }
+  html[dir="rtl"] .e { float: left; text-align: left; }
+  html[dir="ltr"] .s { float: left; }
+  html[dir="ltr"] .e { float: right; text-align: right; }
+  .row { overflow: hidden; clear: both; }
+  /* user text keeps its own direction (see VisitReportPdf.Directions) */
+  div[dir="rtl"], span[dir="rtl"] { direction: rtl; }
+  div[dir="ltr"], span[dir="ltr"] { direction: ltr; }
+  .keep { page-break-inside: avoid; }
+
+  .footer { position: running(footer); font-size: 8pt; color: #737373; text-align: center; }
+  .pageno::after { content: counter(page); }
+  .pages::after { content: counter(pages); }
+
+  .masthead { border-bottom: 2px solid #1f1f1f; padding-bottom: 8px; margin-bottom: 6px; }
+  .workspace { font-size: 16pt; font-weight: 700; line-height: 1.3; }
+  .doc-title { font-size: 11pt; color: #404040; }
+  .issued { font-size: 8.5pt; color: #737373; padding-top: 6px; }
+
+  h2 { font-size: 11pt; font-weight: 700; margin: 14px 0 6px 0; padding-bottom: 3px; border-bottom: 1px solid #e5e5e5; clear: both; }
+
+  .fact { width: 50%; margin-bottom: 6px; }
+  .fact.wide { width: 100%; }
+  .fact .k { font-size: 8.5pt; color: #737373; }
+  .fact .v { font-weight: 700; }
+
+  .section { margin-bottom: 8px; page-break-inside: avoid; }
+  .section .label { font-weight: 700; }
+  .section .text { white-space: pre-wrap; }
+  .empty { color: #737373; }
+
+  .grid-head { background: #f5f5f5; font-weight: 700; border-bottom: 1px solid #d4d4d4; }
+  .grid-row { border-bottom: 1px solid #e5e5e5; }
+  .grid-head .c, .grid-row .c { padding: 5px 6px; }
+  .c.name { width: 52%; }
+  .c.qty { width: 20%; }
+  .c.unit { width: 20%; }
+
+  .photo { width: 48%; margin-bottom: 10px; page-break-inside: avoid; }
+  .photo img { width: 100%; border: 1px solid #e5e5e5; }
+  .caption { font-size: 8.5pt; color: #737373; text-align: center; }
+
+  .confirm { page-break-inside: avoid; }
+  .signature { max-height: 32mm; max-width: 70mm; border-bottom: 1px solid #d4d4d4; }
+</style>
+</head>
+<body>
+<div class="footer">
+  <span th:text="#{report.visit.page}">Page</span> <span class="pageno"></span>
+  <span th:text="#{report.visit.of}">of</span> <span class="pages"></span>
+</div>
+
+<div class="masthead row">
+  <div class="s">
+    <div class="workspace" th:dir="${bidi.of(workspace)}" th:text="${workspace}">Workspace</div>
+    <div class="doc-title" th:text="#{report.visit.title}">Technical visit report</div>
+  </div>
+  <div class="e issued"><span th:text="#{report.visit.generated}">Issued</span>: <span th:text="${generatedAt}">date</span></div>
+</div>
+
+<h2 th:text="#{report.visit.details}">Visit details</h2>
+<div class="row">
+  <div class="fact s"><div class="k" th:text="#{report.visit.customer}">Customer</div><div class="v" th:dir="${bidi.of(customerName)}" th:text="${customerName}">Customer</div></div>
+  <div class="fact s"><div class="k" th:text="#{report.visit.job}">Work order</div><div class="v" th:dir="${bidi.of(jobTitle)}" th:text="${jobTitle}">Job</div></div>
+</div>
+<div class="row">
+  <div class="fact s"><div class="k" th:text="#{report.visit.site}">Site</div><div class="v" th:dir="${bidi.of(siteName)}" th:text="${siteName}">Site</div></div>
+  <div class="fact s"><div class="k" th:text="#{report.visit.jobType}">Type</div><div class="v" th:text="${jobType}">Type</div></div>
+</div>
+<div class="row">
+  <div class="fact s" th:if="${customerPhone != null}"><div class="k" th:text="#{report.visit.phone}">Phone</div><div class="v"><span dir="ltr" th:text="${customerPhone}">phone</span></div></div>
+  <div class="fact s" th:if="${customerPhone == null}"><div class="k"></div><div class="v"></div></div>
+  <div class="fact s"><div class="k" th:text="#{report.visit.priority}">Priority</div><div class="v" th:text="${priority}">Priority</div></div>
+</div>
+<div class="row" th:if="${siteAddress != null}">
+  <div class="fact wide s"><div class="k" th:text="#{report.visit.address}">Address</div><div class="v" th:dir="${bidi.of(siteAddress)}" th:text="${siteAddress}">Address</div></div>
+</div>
+<div class="row">
+  <div class="fact s"><div class="k" th:text="#{report.visit.scheduled}">Scheduled</div><div class="v" th:text="${scheduled}">when</div></div>
+  <div class="fact s"><div class="k" th:text="#{report.visit.status}">Status</div><div class="v" th:text="${visitStatus}">status</div></div>
+</div>
+<div class="row" th:if="${actual != null or outcome != null}">
+  <div class="fact s"><div class="k" th:text="#{report.visit.actual}">Performed</div><div class="v" th:text="${actual}">when</div></div>
+  <div class="fact s"><div class="k" th:text="#{report.visit.outcome}">Outcome</div><div class="v" th:text="${outcome}">outcome</div></div>
+</div>
+<div class="row" th:if="${!technicians.isEmpty()}">
+  <div class="fact wide s"><div class="k" th:text="#{report.visit.technicians}">Technicians</div><div class="v" th:with="names=${#strings.listJoin(technicians, lang == 'ar' ? '، ' : ', ')}" th:dir="${bidi.of(names)}" th:text="${names}">names</div></div>
+</div>
+<div class="row" th:if="${reportedIssue != null}">
+  <div class="fact wide s"><div class="k" th:text="#{report.visit.reportedIssue}">Reported issue</div><div class="v" th:dir="${bidi.of(reportedIssue)}" th:text="${reportedIssue}">issue</div></div>
+</div>
+
+<h2 th:text="#{report.visit.report}">Technical report</h2>
+<div th:if="${sections.isEmpty()}" class="empty" th:text="#{report.visit.noReport}">No report.</div>
+<div class="section" th:each="s : ${sections}">
+  <div class="label" th:text="${s.label}">Label</div>
+  <div class="text" th:dir="${bidi.of(s.text)}" th:text="${s.text}">Text</div>
+</div>
+
+<th:block th:if="${!materials.isEmpty()}">
+  <h2 th:text="#{report.visit.materials}">Materials used</h2>
+  <div class="row grid-head">
+    <div class="c name s" th:text="#{report.visit.material}">Item</div>
+    <div class="c qty s" th:text="#{report.visit.quantity}">Quantity</div>
+    <div class="c unit s" th:text="#{report.visit.unit}">Unit</div>
+  </div>
+  <div class="row grid-row" th:each="m : ${materials}">
+    <div class="c name s" th:dir="${bidi.of(m.name)}" th:text="${m.name}">name</div>
+    <div class="c qty s" th:text="${m.quantity}">1</div>
+    <div class="c unit s" th:dir="${bidi.of(m.unit)}" th:text="${m.unit}">pcs</div>
+  </div>
+</th:block>
+
+<th:block th:if="${!photos.isEmpty()}">
+  <!-- the heading stays on the same page as the first row of photos -->
+  <div class="keep">
+    <h2 th:text="#{report.visit.photos}">Photos</h2>
+    <div class="row">
+      <div class="photo s" th:each="p, i : ${photos[0]}" th:classappend="${i.index == 1} ? 'e' : ''">
+        <img th:src="${p.src}" alt=""/>
+        <div class="caption" th:text="${p.caption}">Before</div>
+      </div>
+    </div>
+  </div>
+  <div class="row" th:each="row, r : ${photos}" th:if="${r.index > 0}">
+    <div class="photo s" th:each="p, i : ${row}" th:classappend="${i.index == 1} ? 'e' : ''">
+      <img th:src="${p.src}" alt=""/>
+      <div class="caption" th:text="${p.caption}">Before</div>
+    </div>
+  </div>
+</th:block>
+
+<div class="confirm">
+  <h2 th:text="#{report.visit.confirmation}">Customer confirmation</h2>
+  <div th:if="${confirmation == null}" class="empty" th:text="#{report.visit.notConfirmed}">Not confirmed.</div>
+  <th:block th:if="${confirmation != null}">
+    <div class="row">
+      <div class="fact s"><div class="k" th:text="#{report.visit.confirmedBy}">Confirmed by</div><div class="v" th:dir="${bidi.of(confirmation.name)}" th:text="${confirmation.name}">name</div></div>
+      <div class="fact s"><div class="k" th:text="#{report.visit.confirmedAt}">Confirmed on</div><div class="v" th:text="${confirmation.at}">date</div></div>
+    </div>
+    <div class="row" th:if="${confirmation.signatureSrc != null}">
+      <div class="fact wide s"><div class="k" th:text="#{report.visit.signature}">Signature</div><img class="signature" th:src="${confirmation.signatureSrc}" alt=""/></div>
+    </div>
+  </th:block>
+</div>
+</body>
+</html>

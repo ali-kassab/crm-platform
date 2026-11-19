@@ -26,12 +26,22 @@ public class AccountingService implements Accounting {
     private final Jobs jobs;
     private final Projects projects;
     private final Contacts contacts;
+    private final OutstandingBalances outstanding;
 
-    public AccountingService(TransactionRepository transactions, Jobs jobs, Projects projects, Contacts contacts) {
+    public AccountingService(TransactionRepository transactions, Jobs jobs, Projects projects, Contacts contacts,
+            OutstandingBalances outstanding) {
         this.transactions = transactions;
         this.jobs = jobs;
         this.projects = projects;
         this.contacts = contacts;
+        this.outstanding = outstanding;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PeriodSummary periodSummary(java.time.LocalDate from, java.time.LocalDate to) {
+        return new PeriodSummary(transactions.sumInPeriod(Type.RECEIVED, from, to),
+                transactions.sumInPeriod(Type.PAID, from, to), outstanding.total());
     }
 
     @Transactional(readOnly = true)

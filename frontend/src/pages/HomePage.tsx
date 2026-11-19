@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
@@ -6,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSubscription } from '@/lib/subscription'
+
+// loaded only for users who may see it (reports:read), keeping it out of everyone else's bundle
+const DashboardPanel = lazy(() => import('@/pages/dashboard/DashboardPanel'))
 
 export function HomePage() {
   const { t, i18n } = useTranslation()
@@ -55,6 +59,11 @@ export function HomePage() {
           </Card>
         )}
       </div>
+      {can('reports:read') && (
+        <Suspense fallback={<Skeleton className="h-48" />}>
+          <DashboardPanel />
+        </Suspense>
+      )}
     </div>
   )
 }

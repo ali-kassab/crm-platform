@@ -9,6 +9,7 @@ import { formatDateTime } from '@/lib/format'
 import { useSubscription } from '@/lib/subscription'
 import { useMyVisits } from './api'
 import { VisitActions } from './VisitActions'
+import { VisitReportButton } from './VisitReportButton'
 
 /** The technician's day: upcoming and running visits, one card each (phone-first). */
 export function VisitsPage() {
@@ -49,7 +50,10 @@ export function VisitsPage() {
             </CardHeader>
             <CardContent className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">{v.notes}</p>
-              <VisitActions visit={v} disabled={subscription?.readOnly} />
+              <div className="flex flex-wrap gap-2">
+                <VisitReportButton visit={v} />
+                <VisitActions visit={v} disabled={subscription?.readOnly} />
+              </div>
             </CardContent>
           </Card>
         ))

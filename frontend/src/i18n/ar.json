@@ -171,7 +171,8 @@
       "FOLLOW_UP_REQUIRED": "تحتاج متابعة",
       "NOT_RESOLVED": "لم يتم الحل",
       "CUSTOMER_UNAVAILABLE": "العميل غير متاح"
-    }
+    },
+    "downloadReport": "تحميل التقرير PDF"
   },
   "finance": {
     "title": "الحسابات",
@@ -215,5 +216,32 @@
       "REJECTED": "مرفوض",
       "CANCELLED": "ملغي"
     }
+  },
+  "dashboard": {
+    "title": "نظرة عامة",
+    "periods": {
+      "WEEK": "آخر 7 أيام",
+      "MONTH": "هذا الشهر",
+      "QUARTER": "هذا الربع",
+      "YEAR": "هذه السنة",
+      "ALL": "الكل"
+    },
+    "jobs": "أوامر العمل",
+    "openJobs": "أوامر عمل مفتوحة",
+    "slaBreached": "تجاوزت وقت الاستجابة",
+    "jobsCreated": "أوامر جديدة في الفترة",
+    "jobsCompleted": "أوامر مكتملة في الفترة",
+    "visits": "الزيارات",
+    "visitsToday": "زيارات اليوم",
+    "visitsOverdue": "زيارات متأخرة",
+    "visitsCompleted": "زيارات منتهية في الفترة",
+    "visitsMissed": "زيارات فائتة في الفترة",
+    "maintenance": "الصيانة والضمان",
+    "maintenanceOverdue": "صيانة دورية متأخرة",
+    "warrantiesExpiring": "ضمانات تنتهي خلال 30 يومًا",
+    "finance": "الحسابات",
+    "received": "المحصّل في الفترة",
+    "paid": "المدفوع في الفترة",
+    "outstanding": "مستحق على العملاء"
   }
 }

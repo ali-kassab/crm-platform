@@ -10,6 +10,8 @@ public interface JobMaterialRepository extends JpaRepository<JobMaterial, UUID> 
 
     List<JobMaterial> findByJobIdOrderByCreatedAtAsc(UUID jobId);
 
+    List<JobMaterial> findByVisitIdOrderByCreatedAtAsc(UUID visitId);
+
     @Query("select coalesce(sum(m.quantity * m.unitCost), 0) from JobMaterial m where m.jobId = :jobId")
     BigDecimal costOfJob(UUID jobId);
 
