@@ -3,6 +3,7 @@ package com.crmplatform.operations.warranties.application;
 import com.crmplatform.operations.warranties.application.WarrantyService.WarrantyFilter;
 import com.crmplatform.operations.warranties.domain.Warranty;
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +28,14 @@ final class WarrantySpecs {
                 p.add(cb.equal(root.get("status"), Warranty.Status.valueOf(f.status())));
             }
             if (f.provider() != null && !f.provider().isBlank()) {
-                p.add(cb.like(cb.lower(root.get("provider")), Pagination.likePattern(f.provider()), '\\'));
+                p.add(cb.like(SearchText.column(cb, root.get("provider")), Pagination.likePattern(f.provider()), '\\'));
             }
             if (f.endingBefore() != null) {
                 p.add(cb.lessThan(root.get("endDate"), f.endingBefore()));
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.like(cb.lower(root.get("title")), like, '\\'));
+                p.add(cb.like(SearchText.column(cb, root.get("title")), like, '\\'));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

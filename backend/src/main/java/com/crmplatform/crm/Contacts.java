@@ -34,9 +34,11 @@ public interface Contacts {
     void changeType(UUID contactId, String type, Boolean active, UUID statusId);
 
     record ContactSummary(UUID id, String type, String fullName, String company, String email, String phone,
-            UUID representativeUserId, UUID statusId, Map<String, Object> metadata, String city) {
+            UUID representativeUserId, UUID statusId, Map<String, Object> metadata, String city, String mobile) {
     }
 
-    record LocationSummary(UUID id, UUID contactId, String name, String type, String city) {
+    /** Includes what a technician needs to reach the site (address line, access notes, coordinates). */
+    record LocationSummary(UUID id, UUID contactId, String name, String type, String city, String addressLine1,
+            String accessInstructions, java.math.BigDecimal latitude, java.math.BigDecimal longitude) {
     }
 }

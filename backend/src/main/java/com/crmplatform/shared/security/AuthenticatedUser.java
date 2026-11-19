@@ -10,6 +10,7 @@ import java.util.UUID;
  *
  * @param role        workspace role name, or {@code null} if the user is no longer a member
  * @param tokenId     access-token {@code jti}, used for the logout-all denylist
+ * @param language    UI language at token issue time ({@code ar}/{@code en}); may be null for old tokens
  */
 public record AuthenticatedUser(
         UUID userId,
@@ -18,7 +19,8 @@ public record AuthenticatedUser(
         Set<String> permissions,
         boolean superAdmin,
         String tokenId,
-        Instant tokenExpiresAt) {
+        Instant tokenExpiresAt,
+        String language) {
 
     public boolean isMember() {
         return role != null;

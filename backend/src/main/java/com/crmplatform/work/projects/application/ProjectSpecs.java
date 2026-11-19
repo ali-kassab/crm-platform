@@ -1,6 +1,7 @@
 package com.crmplatform.work.projects.application;
 
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import com.crmplatform.work.projects.application.ProjectService.ProjectFilter;
 import com.crmplatform.work.projects.domain.Project;
 import jakarta.persistence.criteria.Predicate;
@@ -39,8 +40,8 @@ final class ProjectSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.or(cb.like(cb.lower(root.get("name")), like, '\\'),
-                        cb.like(cb.lower(root.get("description")), like, '\\')));
+                p.add(cb.or(cb.like(SearchText.column(cb, root.get("name")), like, '\\'),
+                        cb.like(SearchText.column(cb, root.get("description")), like, '\\')));
             }
             if (restrictToIds != null) {
                 p.add(root.get("id").in(restrictToIds));

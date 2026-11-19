@@ -5,13 +5,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.util.ArrayList;
+import com.crmplatform.shared.i18n.ErrorTexts;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -43,15 +46,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final String TYPE_BASE = "https://crm-platform.dev/problems/";
 
     private final ObjectProvider<Tracer> tracer;
+    private final ErrorTexts texts;
 
-    public GlobalExceptionHandler(ObjectProvider<Tracer> tracer) {
+    public GlobalExceptionHandler(ObjectProvider<Tracer> tracer, ErrorTexts texts) {
         this.tracer = tracer;
+        this.texts = texts;
     }
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ProblemDetail> handleApi(ApiException ex, HttpServletRequest request) {
-        ProblemDetail problem = problem(ex.status(), ex.code(), ex.getMessage(), request);
-        ex.properties().forEach(problem::setProperty);
+        ProblemDetail problem = baseProblem(ex.status(), ex.code(), ex.getMessage(), request.getRequestURI(),
+                ex.properties());
+        ex.properties().forEach((key, value) -> problem.setProperty(key,
+                "errors".equals(key) && value instanceof List<?> list ? texts.fields(list, locale()) : value));
+        if ("VALIDATION_ERROR".equals(ex.code()) && ex.properties().get("errors") instanceof List<?>) {
+            problem.setTitle(texts.validationTitle(locale()));
+        }
         HttpHeaders headers = new HttpHeaders();
         Object retryAfter = ex.properties().get("retryAfter");
         if (retryAfter != null) {
@@ -153,10 +163,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private ProblemDetail validationBody(List<Map<String, String>> errors, String path) {
-        ProblemDetail problem = baseProblem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
-                errors.size() == 1 ? "1 field is invalid" : errors.size() + " fields are invalid", path);
-        problem.setTitle("Validation failed");
-        problem.setProperty("errors", errors);
+        ProblemDetail problem = baseProblem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "", path);
+        problem.setDetail(texts.fieldsInvalid(errors.size(), locale()));
+        problem.setTitle(texts.validationTitle(locale()));
+        problem.setProperty("errors", texts.fields(errors, locale()));
         return problem;
     }
 
@@ -165,15 +175,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private ProblemDetail baseProblem(HttpStatus status, String code, String detail, String path) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        return baseProblem(status, code, detail, path, Map.of());
+    }
+
+    /** Title and detail are localized for the request language; {@code code} never changes. */
+    private ProblemDetail baseProblem(HttpStatus status, String code, String detail, String path,
+            Map<String, Object> properties) {
+        Locale locale = locale();
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, texts.detail(code, detail, properties, locale));
         problem.setType(URI.create(TYPE_BASE + code.toLowerCase().replace('_', '-')));
-        problem.setTitle(status.getReasonPhrase());
+        problem.setTitle(texts.title(status, locale));
         if (path != null) {
             problem.setInstance(URI.create(path));
         }
         problem.setProperty("code", code);
         problem.setProperty("traceId", traceId());
         return problem;
+    }
+
+    private static Locale locale() {
+        return LocaleContextHolder.getLocale();
     }
 
     private String traceId() {

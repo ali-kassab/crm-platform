@@ -80,15 +80,18 @@ public class InvitationService {
                 now.plus(properties.invitationTtl()), inviterId));
 
         Workspace workspace = workspaces.findById(workspaceId).orElseThrow(() -> ApiException.notFound("Workspace"));
-        String inviterName = users.findById(inviterId).map(User::getFullName).orElse("A teammate");
-        String html = templates.render("workspace-invitation", Map.of(
+        // an existing account's language preference wins; otherwise the inviting workspace's default
+        String language = users.findByEmail(email).map(u -> u.effectiveLanguage(workspace))
+                .orElse(workspace.getDefaultLanguage());
+        String inviterName = users.findById(inviterId).map(User::getFullName).orElse("");
+        String html = templates.render("workspace-invitation", language, Map.of(
                 "inviterName", inviterName,
                 "workspaceName", workspace.getName(),
-                "role", role.name().charAt(0) + role.name().substring(1).toLowerCase(),
+                "role", templates.text("role." + role.name(), language),
                 "acceptUrl", clientBaseUrl + "/accept-invite?token=" + raw,
                 "expiresInDays", properties.invitationTtl().toDays()));
-        afterCommit(() -> emailSender.send(new EmailSender.EmailMessage(List.of(email),
-                "You're invited to " + workspace.getName() + " on CRM Platform", html, null)));
+        String subject = templates.subject("invitation", language, workspace.getName());
+        afterCommit(() -> emailSender.send(new EmailSender.EmailMessage(List.of(email), subject, html, null)));
         return invitation;
     }
 

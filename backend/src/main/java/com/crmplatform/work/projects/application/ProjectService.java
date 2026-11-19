@@ -319,6 +319,18 @@ public class ProjectService implements Projects {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ProjectSummary> ofContact(UUID contactId) {
+        List<Project> found = projects.findByContactIdOrderByStartDateDesc(contactId);
+        if (found.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, UUID> managers = teamMembers.findByProjectIdInAndManagerTrue(found.stream().map(Project::getId)
+                .toList()).stream().collect(Collectors.toMap(TeamMember::getProjectId, TeamMember::getUserId, (a, b) -> a));
+        return found.stream().map(p -> summary(p, managers.get(p.getId()))).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Set<UUID> teamMemberIds(UUID projectId) {
         return teamMembers.findByProjectId(projectId).stream().map(TeamMember::getId).collect(Collectors.toSet());
     }

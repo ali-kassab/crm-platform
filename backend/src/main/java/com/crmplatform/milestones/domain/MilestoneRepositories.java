@@ -18,7 +18,7 @@ public final class MilestoneRepositories {
     }
 
     public interface MilestoneTemplateRepository extends JpaRepository<MilestoneTemplate, UUID> {
-        @Query("select t from MilestoneTemplate t where (:q is null or lower(t.name) like :q escape '\\')")
+        @Query("select t from MilestoneTemplate t where (:q is null or app_search_norm(t.name) like :q escape '\\')")
         Page<MilestoneTemplate> search(String q, Pageable pageable);
     }
 }

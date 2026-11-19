@@ -7,6 +7,10 @@ import com.crmplatform.identity.domain.Role;
 import com.crmplatform.identity.web.IdentityDtos.CreateInvitationRequest;
 import com.crmplatform.identity.web.IdentityDtos.DeleteWorkspaceRequest;
 import com.crmplatform.identity.web.IdentityDtos.InvitationResponse;
+import com.crmplatform.identity.web.IdentityDtos.LanguagePreferenceRequest;
+import com.crmplatform.shared.web.Patches;
+import org.springframework.web.bind.annotation.PutMapping;
+import tools.jackson.databind.JsonNode;
 import com.crmplatform.identity.web.IdentityDtos.MeResponse;
 import com.crmplatform.identity.web.IdentityDtos.MemberResponse;
 import com.crmplatform.identity.web.IdentityDtos.UpdateMemberRequest;
@@ -49,11 +53,23 @@ public class WorkspaceController {
     private final WorkspaceService workspaces;
     private final MemberService members;
     private final InvitationService invitations;
+    private final Patches patches;
 
-    public WorkspaceController(WorkspaceService workspaces, MemberService members, InvitationService invitations) {
+    public WorkspaceController(WorkspaceService workspaces, MemberService members, InvitationService invitations,
+            Patches patches) {
         this.workspaces = workspaces;
         this.members = members;
         this.invitations = invitations;
+        this.patches = patches;
+    }
+
+    /**
+     * Sets or clears ({@code null}) the caller's UI language. The new language applies to tokens
+     * issued from now on; send {@code Accept-Language} to switch immediately.
+     */
+    @PutMapping("/me/language")
+    public UserSummary setLanguage(@Valid @RequestBody LanguagePreferenceRequest body) {
+        return UserSummary.of(workspaces.setPreferredLanguage(CurrentUser.id(), body.language()));
     }
 
     // -------------------------------------------------------------- profile
@@ -78,8 +94,12 @@ public class WorkspaceController {
 
     @PatchMapping("/workspace")
     @PreAuthorize("hasAuthority('workspace:manage')")
-    public WorkspaceSummary rename(@Valid @RequestBody UpdateWorkspaceRequest body) {
-        return WorkspaceSummary.of(workspaces.rename(CurrentUser.require().workspaceId(), body.name()));
+    public WorkspaceSummary update(@RequestBody JsonNode body) {
+        var patch = patches.read(body, UpdateWorkspaceRequest.class);
+        UpdateWorkspaceRequest r = patch.value();
+        return WorkspaceSummary.of(workspaces.updateSettings(CurrentUser.require().workspaceId(),
+                new WorkspaceService.WorkspaceSettings(r.name(), r.defaultLanguage(), r.locale(), r.currency(),
+                        r.timeZone(), r.sector()), patch.fields()));
     }
 
     @DeleteMapping("/workspace")

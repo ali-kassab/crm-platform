@@ -1,6 +1,11 @@
 spring:
   application:
     name: crm-platform
+  messages:
+    # Arabic-first system text: i18n/messages_ar.properties; English: i18n/messages.properties
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
   threads:
     virtual:
       enabled: false

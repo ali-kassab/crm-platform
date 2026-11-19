@@ -19,8 +19,12 @@
 |---|---|
 | Backend modules shared, identity, files, milestones, crm, work, operations, finance | ✅ implemented + tested (pre-pivot) |
 | R0 Security & foundations | ✅ complete (2026-11-19) |
-| R1 Localization & workspace settings | ⏭ next (not started) |
-| R2–R13 | ⚪ not started |
+| R1 Localization & workspace settings (backend) | ✅ complete (2026-11-19, `2f8fab6`) |
+| R2 Customers | ✅ complete (2026-11-19, `88d9473`) |
+| R3 Work orders, visits, technician role | ✅ complete (2026-11-19, `7438edf`) |
+| R4 Visit reports, photo purposes, materials, approvals | ✅ complete (2026-11-19, `376987b`) |
+| R5 Notifications (in-app) | ⏭ next (not started) |
+| R6–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -50,20 +54,50 @@
    - `TaskService` comment counts via `TaskCommentRepository.countByTaskId`.
    - `performance/PerformanceGuardsIT` (2).
 
-## 5. Current phase & exact next steps — R1 Localization & workspace settings (backend)
-Not started. Planned order:
-1. Flyway `V10`: `workspaces` + `default_language` (default `ar`), `currency` (default `EGP`), `sector` (nullable: `FIT_OUT`, `SECURITY_SYSTEMS`, `MAINTENANCE`); new-workspace defaults `locale` → `ar-EG`, `time_zone` → `Africa/Cairo`; `users.preferred_language` (nullable → falls back to the workspace).
-2. Workspace settings API (`PATCH /api/v1/workspace` extended, `workspace:manage`) and `PATCH /api/v1/me` language; registration accepts optional language/sector.
-3. Backend i18n: `MessageSource` (`messages.properties` en, `messages_ar.properties` ar) keyed by the existing stable error codes; locale = explicit `Accept-Language` > user preference > workspace default > `ar`; `GlobalExceptionHandler` localizes `title`/`detail` and validation messages, keeps `code` unchanged.
-4. Arabic e-mail templates (invitation, password reset) chosen by the recipient's language.
-5. Tests: the same error in ar/en; Arabic names/addresses round-trip; Arabic search (Arabic letter normalisation أ/ا/إ, ى/ي, ة/ه not handled yet — decide in R2).
-Then R2 customers → R3 work orders / visits / technician role (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
+## 4b. Completed — R1 Localization & workspace settings (backend) — commit `2f8fab6`
+- Flyway `V10__workspace_settings_and_language.sql`: `workspaces.default_language` (default `ar`), `currency` (default `EGP`), `sector` (`FIT_OUT` / `SECURITY_SYSTEMS` / `MAINTENANCE`, nullable); defaults `locale` `ar-EG`, `time_zone` `Africa/Cairo`; `users.preferred_language` (nullable). Existing rows keep their values.
+- `identity/domain/Workspace` (`Sector`, `configure`, `DEFAULT_*`), `User.preferredLanguage` + `effectiveLanguage(workspace)`.
+- APIs: `PATCH /api/v1/workspace` is now a **partial** update (name, defaultLanguage, locale, currency [ISO 4217], timeZone [IANA], sector; `workspace:manage`) via `WorkspaceService.updateSettings`; `PUT /api/v1/me/language` `{language: "ar"|"en"|null}`; registration accepts optional `language` (`en` → locale `en-EG`) and `sector`. `AuthResponse.language`, `WorkspaceSummary` (+defaultLanguage, currency, sector), `UserSummary.preferredLanguage`.
+- Access tokens carry `lng` (effective language) → `AuthenticatedUser.language`.
+- `shared/i18n`: `Languages` (ar default, en), `RequestLanguage` (bean `localeResolver`: Accept-Language > token language > ar), `ErrorTexts` (Arabic by exact English message from `resources/i18n/error-texts_ar.tsv`, then `error.<CODE>` in `resources/i18n/messages_ar.properties`, then generic; English keeps the original message). `GlobalExceptionHandler` + `identity/security/ProblemWriter` localize title/detail/field messages; `code` unchanged. `ApiException.notFound` adds a `resource` property (used for "X غير موجود").
+- `spring.messages.basename: i18n/messages` (UTF-8). `shared/mail/EmailTemplates.render(template, language, vars)` + `subject(...)`; Arabic RTL templates `templates/email/*_ar.html`; invitation uses the invitee's language (existing account) else the workspace default; password reset uses the user's language.
+- Tests: `shared/i18n/LocalizationIT` (6) and `shared/i18n/ErrorTextsCoverageTest` (2; fails if any literal error message lacks Arabic text or any error code lacks an Arabic fallback).
+- **Rule for new code:** every new `ApiException` message needs a line in `error-texts_ar.tsv` and every new code an `error.<CODE>` key — the coverage test enforces it.
+- Known gaps: messages built at runtime (e.g. `field + " is required"`) show the per-code Arabic fallback; Arabic workspace names produce an ASCII slug like `workspace-…`; Arabic letter normalisation in search (أ/ا/إ, ى/ي, ة/ه) is not handled yet.
+
+## 4c. Completed — R2 Customers — commit `88d9473`
+- Flyway `V11__customers_and_arabic_search.sql`: `contacts.kind` (`INDIVIDUAL`/`COMPANY`), `email`, `first_name`, `last_name` nullable; checks `ck_contacts_kind_name` (individual → first name, company → company) and `ck_contacts_reachable` (≥ 1 of email/phone/mobile/work_phone); SQL function `app_search_norm(text)`.
+- `crm/contacts`: `Contact.Kind`, `personName()`, `fullName()` = company name for companies; `ContactService.requireIdentity` (field errors `name.first` / `company` / `phone`); email null clears it; `GET /contacts?kind=`; `kind` in request/response.
+- Search: `shared/web/SearchText` (Java twin of `app_search_norm`), `Pagination.likePattern` normalises the query; `shared/persistence/SearchFunctionContributor` (registered in `META-INF/services/org.hibernate.boot.model.FunctionContributor`) so JPQL uses `app_search_norm(x) like :q`; all Specs use `SearchText.column(cb, …)`. **Rule:** new searches must compare `app_search_norm(column)` with `Pagination.likePattern(q)`.
+- New module **`reporting`** (top of the dependency graph, read-only): `application/CustomerHistoryService`, `web/CustomerHistoryController` → `GET /api/v1/contacts/{id}/history` (crm:read; money only with finance:read). New public APIs: `work.Projects.ofContact`, `operations.Jobs.ofProjects` (+`JobOverview`), `operations.Warranties` (implemented by `WarrantyService`), `finance.Accounting` (implemented by `AccountingService`).
+- Tests: `crm/CustomersIT` (5, incl. Java↔SQL normalisation parity); `ContactsIT`, `LocalizationIT` adjusted.
+- Not done: no trigram index for `%…%` searches yet (fine for current volumes; measure in R13).
+
+## 4d. Completed — R3 Work orders, visits, technician role — commit `7438edf`
+- Flyway `V12__work_orders_visits_roles.sql`: jobs `project_id` nullable, `contact_id` + `location_id` NOT NULL (backfilled from projects), `type`, `status`, `priority`, `reported_issue`, `internal_notes`, `actual_start_at`, `completed_at`, dates optional, budget default 0; `job_assignees`; `job_visits` + `visit_assignees`; `transactions.project_id` nullable; membership/invitation role checks include `TECHNICIAN`, `FINANCE`.
+- `operations/jobs/domain/Job` = the work order (`Type`, `Priority`, `Status` with allowed transitions in `Status.canMoveTo`, `moveTo`, `assign`); `JobService` (standalone jobs via `resolveSite`, `changeStatus`, `advanceForVisit`, `ensureAssigned`), `JobAccess` (technician scoping: `ops:assigned` without `ops:read` → only assigned work, 404 otherwise), `JobController` (`POST /jobs/{id}/status`, new filters, customer + site embedded).
+- `operations/visits` (domain `JobVisit`, `VisitService`, `VisitController`): `/jobs/{id}/visits`, `/visits?assignee=me&from&to&status&overdue`, `/visits/{id}/start|complete|cancel|reschedule`; hourly `MissedVisits` (ShedLock, `missed-visits-cron`, 2 h grace).
+- `Role.TECHNICIAN` (refdata:read, ops:assigned, files:upload), `Role.FINANCE`; `Permissions.OPS_ASSIGNED`.
+- `crm.Contacts.ContactSummary` +mobile, `LocationSummary` +addressLine1, accessInstructions, latitude, longitude. CRM delete guards ask every `ProjectUsage` bean (operations registers `jobUsage`).
+- Finance: transactions on standalone jobs (customer from the job); customer contract = project budgets + standalone job budgets. `operations.Jobs` (+`ofContact`, `standaloneBudgetTotalOfContact`), `operations.Warranties.ofProjectsOrJobs`; customer history lists all jobs.
+- Tests: `operations/WorkOrdersIT` (5).
+
+## 4e. Completed — R4 Visit reports, photo purposes, materials, approvals — commit `376987b`
+- Flyway `V13__reports_files_materials_approvals.sql`: `stored_files.purpose` + `thumbnail_key`; `visit_reports` (unique per visit); `job_materials`; `job_approvals`.
+- files: `FilePurpose`, `FileOwnerAccess` SPI, `FileSummary` (+purpose, hasThumbnail), 320 px WebP thumbnails (`FileInspector.THUMBNAIL_EDGE`), `GET /files/{id}/thumbnail-url`, upload `purpose` param; `Permissions.FILES_READ` (all roles except TECHNICIAN); technicians open only own uploads or files of assigned work (`OperationsIntegration.operationsFileAccess`: owner types JOB, VISIT, VISIT_REPORT, JOB_APPROVAL).
+- `operations/visits`: `VisitReport(+Repository)`, `VisitReportService`, `VisitReportController` (`GET/PUT /visits/{id}/report`, `GET/POST /visits/{id}/files`).
+- `operations/jobs`: `JobMaterial`, `JobApproval` (+repositories), `JobExecutionService`, `JobExecutionController` (`/jobs/{id}/materials`, `/jobs/{id}/approvals`, `.../approvals/{aid}/decision`).
+- Finance: `materialsCost` in job/project/customer rollups (`Jobs.materialsCostOf*`), profit = contract − actual cost − materials cost; `finance.Accounting.Totals` and history `Totals` include it.
+- Tests: `operations/FieldEvidenceIT` (2).
+
+## 5. Current phase & exact next steps — R5 Notifications (in-app)
+Not started. Plan: new `notifications` module (table `notifications`: workspace, recipient user, type, payload jsonb, read_at, created_at); listeners via `TenantWork` for existing events (`TaskAssigned`, `ProjectMembersChanged`, `ProjectDeletedNotice`) plus job assignment and visit scheduling; `GET /api/v1/notifications` (mine, unread filter), `POST /notifications/{id}/read`, `POST /notifications/read-all`; Arabic/English text rendered by the client from `type` + payload; strict per-user isolation tests. Then R6 equipment, warranties, preventive maintenance and SLA.
 
 ## 6. Tests (actual results)
-- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `b4f2299`: **94 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
+- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `376987b`: **114 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
-- S4 no subscription enforcement (R7). S5 no technician scoping (R3). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
+- S4 no subscription enforcement (R7). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
 
@@ -86,7 +120,16 @@ Then R2 customers → R3 work orders / visits / technician role (roadmap: `D:\Wo
 | `bc33f2a` | feat(audit): persist audit events append-only with per-workspace reads |
 | `365a68f` | feat(identity): bootstrap the first platform admin securely from the environment |
 | `b4f2299` | perf: gzip responses and remove per-row queries from project lookups |
-| (next commit) | docs: update handoff — R0 complete |
+| `0d575bf` | docs: update handoff - R0 security and foundations complete |
+| `2f8fab6` | feat(i18n): Arabic-first workspace settings, user language and localized errors |
+| `19a7e3e` | docs: update handoff - R1 localization complete |
+| `88d9473` | feat(crm): individual and company customers, Arabic-aware search, customer history |
+| `8bb659f` | docs: update handoff - R2 customers complete |
+| `f410cc5` | docs: handoff - R3 in progress, stopped mid-phase |
+| `7438edf` | feat(operations): work orders, visits and technician scoping |
+| `eefd676` | docs: update handoff - R3 work orders complete |
+| `376987b` | feat(operations): visit reports, photo purposes and thumbnails, materials, approvals |
+| (next commit) | docs: update handoff - R4 complete |
 
 ## 11. Uncommitted / unpushed
-- None after the handoff commit. `main` is untouched at `163d49c`.
+- None. `main` untouched at `163d49c`.

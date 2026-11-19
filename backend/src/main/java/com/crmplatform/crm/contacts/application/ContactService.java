@@ -96,13 +96,15 @@ public class ContactService implements Contacts {
     @Transactional
     public Result create(ContactData d) {
         String email = normalizeEmail(d.email());
-        if (contacts.emailTaken(email, null)) {
+        if (email != null && contacts.emailTaken(email, null)) {
             throw ApiException.conflict("EMAIL_TAKEN", "A contact with this email already exists");
         }
-        Contact c = new Contact(parseType(d.type()), d.firstName(), d.lastName(), email);
+        Contact c = new Contact(parseType(d.type()), parseKind(d.kind()));
         c.setName(d.title(), d.firstName(), d.middleName(), d.lastName());
-        c.setOrganisation(d.company(), d.industry(), d.position());
+        c.setOrganisation(blankToNull(d.company()), d.industry(), d.position());
+        c.setEmail(email);
         c.setPhones(phone(d.phone(), "phone"), phone(d.mobile(), "mobile"), phone(d.workPhone(), "workPhone"));
+        requireIdentity(c);
         c.setContractSigned(Boolean.TRUE.equals(d.contractSigned()));
         c.setActive(d.active() == null || d.active());
         c.setMetadata(validMetadata(d.metadata()));
@@ -137,18 +139,18 @@ public class ContactService implements Contacts {
         List<String> warnings = new ArrayList<>();
 
         patch.ifPresent("type", d.type(), v -> c.setType(parseType(required(v, "type"))));
+        patch.ifPresent("kind", d.kind(), v -> c.setKind(parseKind(required(v, "kind"))));
         if (patch.has("name")) { // the name object is replaced as a whole
-            c.setName(d.title(), required(d.firstName(), "name.first"), d.middleName(),
-                    required(d.lastName(), "name.last"));
+            c.setName(d.title(), d.firstName(), d.middleName(), d.lastName());
         }
         if (patch.has("company") || patch.has("industry") || patch.has("position")) {
-            c.setOrganisation(patch.has("company") ? d.company() : c.getCompany(),
+            c.setOrganisation(patch.has("company") ? blankToNull(d.company()) : c.getCompany(),
                     patch.has("industry") ? d.industry() : c.getIndustry(),
                     patch.has("position") ? d.position() : c.getPosition());
         }
-        if (patch.has("email")) {
-            String email = normalizeEmail(required(d.email(), "email"));
-            if (contacts.emailTaken(email, id)) {
+        if (patch.has("email")) { // null clears it (phone-only customers)
+            String email = normalizeEmail(d.email());
+            if (email != null && contacts.emailTaken(email, id)) {
                 throw ApiException.conflict("EMAIL_TAKEN", "A contact with this email already exists");
             }
             c.setEmail(email);
@@ -181,6 +183,7 @@ public class ContactService implements Contacts {
                 files.delete(previousImage);
             }
         }
+        requireIdentity(c); // the kind's naming rule and at least one way to reach the customer
 
         Set<UUID> added = difference(c.getTagIds(), previousTags);
         Set<UUID> removed = difference(previousTags, c.getTagIds());
@@ -195,9 +198,9 @@ public class ContactService implements Contacts {
     @Transactional
     public void delete(UUID id) {
         Contact c = get(id);
-        ProjectUsage usage = projectUsage.getIfAvailable();
-        if (usage != null && usage.contactHasProjects(id)) {
-            throw ApiException.conflict("HAS_PROJECTS", "This contact still has active projects");
+        // every module that references customers (projects, jobs) is asked
+        if (projectUsage.stream().anyMatch(u -> u.contactHasProjects(id))) {
+            throw ApiException.conflict("HAS_PROJECTS", "This contact still has active projects or jobs");
         }
         Instant now = Instant.now(clock);
         locations.findByContactId(id).forEach(l -> l.markDeleted(now, TenantContext.userId().orElse(null)));
@@ -442,7 +445,43 @@ public class ContactService implements Contacts {
     }
 
     private static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(java.util.Locale.ROOT);
+        return email == null || email.isBlank() ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
+    private static Contact.Kind parseKind(String kind) {
+        if (kind == null) {
+            return Contact.Kind.INDIVIDUAL;
+        }
+        try {
+            return Contact.Kind.valueOf(kind);
+        } catch (RuntimeException e) {
+            throw ApiException.badRequest("VALIDATION_ERROR", "kind must be INDIVIDUAL or COMPANY");
+        }
+    }
+
+    /**
+     * D10: an individual needs a first name, a company needs a company name, and every customer
+     * needs at least one phone number or an email (many customers have no email).
+     */
+    private static void requireIdentity(Contact c) {
+        if (c.getKind() == Contact.Kind.INDIVIDUAL && c.getFirstName() == null) {
+            throw fieldError("name.first", "REQUIRED", "A first name is required for an individual customer");
+        }
+        if (c.getKind() == Contact.Kind.COMPANY && c.getCompany() == null) {
+            throw fieldError("company", "REQUIRED", "A company name is required for a company customer");
+        }
+        if (c.getEmail() == null && c.getPhone() == null && c.getMobile() == null && c.getWorkPhone() == null) {
+            throw fieldError("phone", "REQUIRED", "Add a phone number or an email");
+        }
+    }
+
+    private static ApiException fieldError(String field, String code, String message) {
+        return new ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message,
+                Map.of("errors", List.of(Map.of("field", field, "code", code, "message", message))));
     }
 
     private static <T> T required(T value, String field) {
@@ -470,6 +509,7 @@ public class ContactService implements Contacts {
     static Map<String, Object> snapshot(Contact c) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("type", c.getType().name());
+        m.put("kind", c.getKind().name());
         m.put("name", c.fullName());
         m.put("email", c.getEmail());
         m.put("company", c.getCompany());
@@ -485,12 +525,14 @@ public class ContactService implements Contacts {
     private static ContactSummary summary(Contact c) {
         return new ContactSummary(c.getId(), c.getType().name(), c.fullName(), c.getCompany(), c.getEmail(),
                 c.getPhone(), c.getRepresentativeUserId(), c.getStatusId(), c.getMetadata(),
-                c.getAddress() == null ? null : c.getAddress().getCity());
+                c.getAddress() == null ? null : c.getAddress().getCity(), c.getMobile());
     }
 
     private static LocationSummary summary(Location l) {
         return new LocationSummary(l.getId(), l.getContactId(), l.getName(), l.getType().name(),
-                l.getAddress() == null ? null : l.getAddress().getCity());
+                l.getAddress() == null ? null : l.getAddress().getCity(),
+                l.getAddress() == null ? null : l.getAddress().getLine1(), l.getAccessInstructions(), l.getLatitude(),
+                l.getLongitude());
     }
 
     // ------------------------------------------------------------------ types
@@ -503,11 +545,11 @@ public class ContactService implements Contacts {
             String company, String industry, String position, String email, String phone, String mobile,
             String workPhone, AddressData address, java.math.BigDecimal latitude, java.math.BigDecimal longitude,
             UUID imageFileId, UUID categoryId, UUID statusId, Set<UUID> tagIds, UUID representativeUserId,
-            Boolean contractSigned, Boolean active, Map<String, Object> metadata) {
+            Boolean contractSigned, Boolean active, Map<String, Object> metadata, String kind) {
     }
 
     public record ContactFilter(String type, UUID statusId, UUID categoryId, UUID tagId, UUID representativeId,
-            Boolean active, String q) {
+            Boolean active, String q, String kind) {
     }
 
     public record Result(Contact contact, List<String> warnings) {

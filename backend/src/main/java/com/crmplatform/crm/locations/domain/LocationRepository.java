@@ -14,6 +14,6 @@ public interface LocationRepository extends JpaRepository<Location, UUID> {
     @Query("select l from Location l where (:contactId is null or l.contactId = :contactId) "
             + "and (:type is null or l.type = :type) "
             + "and (:city is null or lower(l.address.city) = :city) "
-            + "and (:q is null or lower(l.name) like :q escape '\\')")
+            + "and (:q is null or app_search_norm(l.name) like :q escape '\\')")
     Page<Location> search(UUID contactId, Location.Type type, String city, String q, Pageable pageable);
 }

@@ -1,6 +1,7 @@
 package com.crmplatform.work.boards.application;
 
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import com.crmplatform.work.boards.application.TaskService.TaskFilter;
 import com.crmplatform.work.boards.domain.Task;
 import jakarta.persistence.criteria.Predicate;
@@ -46,7 +47,7 @@ final class TaskSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.like(cb.lower(root.get("title")), like, '\\'));
+                p.add(cb.like(SearchText.column(cb, root.get("title")), like, '\\'));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

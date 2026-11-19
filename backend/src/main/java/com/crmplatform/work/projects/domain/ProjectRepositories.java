@@ -16,6 +16,8 @@ public final class ProjectRepositories {
 
         boolean existsByContactId(UUID contactId);
 
+        List<Project> findByContactIdOrderByStartDateDesc(UUID contactId);
+
         boolean existsByLocationId(UUID locationId);
 
         @Query("select coalesce(sum(p.budget), 0) from Project p where p.contactId = :contactId")

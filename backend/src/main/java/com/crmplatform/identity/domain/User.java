@@ -45,7 +45,27 @@ public class User extends BaseEntity {
     @Column(name = "last_workspace_id")
     private UUID lastWorkspaceId;
 
+    /** {@code ar} / {@code en}; null = follow the active workspace's default language. */
+    @Column(name = "preferred_language", length = 5)
+    private String preferredLanguage;
+
     protected User() {
+    }
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
+    }
+
+    /** The language this user sees in a workspace: their preference, else the workspace default. */
+    public String effectiveLanguage(Workspace workspace) {
+        if (preferredLanguage != null) {
+            return preferredLanguage;
+        }
+        return workspace == null ? Workspace.DEFAULT_LANGUAGE : workspace.getDefaultLanguage();
     }
 
     public User(String email, String passwordHash, String firstName, String lastName) {

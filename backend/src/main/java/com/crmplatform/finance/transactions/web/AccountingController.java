@@ -42,11 +42,13 @@ public class AccountingController {
         return AccountingResponse.of(accounting.contact(id));
     }
 
-    public record AccountingResponse(String contract, String received, String actualCost, String remaining,
+    public record AccountingResponse(String contract, String received, String actualCost, String materialsCost,
+            String remaining,
             String profitLoss, long transactionCount, boolean overpaid) {
 
         static AccountingResponse of(Summary s) {
             return new AccountingResponse(money(s.contract()), money(s.received()), money(s.actualCost()),
+                    money(s.materialsCost()),
                     money(s.remaining()), money(s.profitLoss()), s.transactionCount(), s.overpaid());
         }
 

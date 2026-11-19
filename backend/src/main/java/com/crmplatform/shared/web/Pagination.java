@@ -54,7 +54,11 @@ public final class Pagination {
         return PageRequest.of(p, s, sort);
     }
 
-    /** Escapes LIKE wildcards so user search text is matched literally; returns a contains-pattern. */
+    /**
+     * Normalises the search text ({@link SearchText}, Arabic-aware), escapes LIKE wildcards so it
+     * is matched literally, and returns a contains-pattern. Compare it with
+     * {@code app_search_norm(column)}, never with the raw column.
+     */
     public static String likePattern(String q) {
         if (q == null || q.isBlank()) {
             return null;
@@ -63,7 +67,7 @@ public final class Pagination {
         if (trimmed.length() > 100) {
             throw ApiException.badRequest("VALIDATION_ERROR", "q must be at most 100 characters");
         }
-        String escaped = trimmed.toLowerCase().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        String escaped = SearchText.normalize(trimmed).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
         return "%" + escaped + "%";
     }
 }

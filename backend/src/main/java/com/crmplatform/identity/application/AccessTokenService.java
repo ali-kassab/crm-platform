@@ -26,7 +26,7 @@ public class AccessTokenService {
         this.clock = clock;
     }
 
-    public IssuedAccessToken issue(UUID userId, UUID workspaceId, Role role, boolean superAdmin) {
+    public IssuedAccessToken issue(UUID userId, UUID workspaceId, Role role, boolean superAdmin, String language) {
         Instant now = Instant.now(clock);
         Instant expiresAt = now.plus(properties.accessTokenTtl());
         String jti = UUID.randomUUID().toString();
@@ -40,6 +40,7 @@ public class AccessTokenService {
                 .claim("role", role.name())
                 .claim("perms", List.copyOf(role.permissions()))
                 .claim("sa", superAdmin)
+                .claim("lng", language)
                 .build();
         String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
                 .getTokenValue();
@@ -51,7 +52,7 @@ public class AccessTokenService {
      * fail-closed {@code NONE} tenant, so tenant endpoints see no data; only {@code /me},
      * {@code /auth/**} and {@code /admin/**} are reachable. No refresh token is issued.
      */
-    public IssuedAccessToken issuePlatform(UUID userId, java.time.Duration ttl) {
+    public IssuedAccessToken issuePlatform(UUID userId, java.time.Duration ttl, String language) {
         Instant now = Instant.now(clock);
         Instant expiresAt = now.plus(ttl);
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -63,6 +64,7 @@ public class AccessTokenService {
                 .claim("wid", com.crmplatform.shared.tenant.TenantContext.NONE.toString())
                 .claim("sa", true)
                 .claim("scope_type", "platform")
+                .claim("lng", language)
                 .build();
         String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
                 .getTokenValue();

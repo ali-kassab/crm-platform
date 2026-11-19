@@ -83,8 +83,13 @@ class ContactsIT {
                 .andExpect(jsonPath("$.position").value("CEO"))
                 .andExpect(jsonPath("$.email").isNotEmpty())
                 .andExpect(jsonPath("$.fullName").value("Sam Rivera"));
+        // D10: email is optional when the customer can be reached by phone
         mvc.perform(json(patch("/api/v1/contacts/" + id), "{\"email\":null}").with(s.auth()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").doesNotExist());
+        mvc.perform(json(patch("/api/v1/contacts/" + id), "{\"phone\":null}").with(s.auth()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("phone"));
     }
 
     @Test

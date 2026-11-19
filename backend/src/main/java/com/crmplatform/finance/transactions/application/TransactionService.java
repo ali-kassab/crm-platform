@@ -68,9 +68,12 @@ public class TransactionService {
         if (d.projectId() != null && !Objects.equals(d.projectId(), job.projectId())) {
             throw ApiException.badRequest("JOB_NOT_IN_PROJECT", "The job does not belong to the project"); // BR-091
         }
-        Projects.ProjectSummary project = projects.find(job.projectId())
-                .orElseThrow(() -> ApiException.referenceNotFound("projectId"));
-        UUID contactId = d.contactId() != null ? d.contactId() : project.contactId(); // EC-26
+        if (job.projectId() != null) {
+            projects.find(job.projectId()).orElseThrow(() -> ApiException.referenceNotFound("projectId"));
+        }
+        // EC-26: defaults to the job's customer (= the project's customer for project jobs); standalone
+        // service jobs (D2) have no project and still carry their customer
+        UUID contactId = d.contactId() != null ? d.contactId() : job.contactId();
         if (contacts.find(contactId).isEmpty()) {
             throw ApiException.referenceNotFound("contactId");
         }

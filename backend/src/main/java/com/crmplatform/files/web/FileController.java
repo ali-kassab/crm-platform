@@ -38,7 +38,9 @@ public class FileController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('files:upload')")
     @ResponseStatus(HttpStatus.CREATED)
-    public UploadResponse upload(@RequestParam FileKind kind, @RequestPart("files") List<MultipartFile> parts)
+    public UploadResponse upload(@RequestParam FileKind kind,
+            @RequestParam(required = false) com.crmplatform.files.FilePurpose purpose,
+            @RequestPart("files") List<MultipartFile> parts)
             throws IOException {
         List<FileService.Upload> uploads = new ArrayList<>();
         for (MultipartFile part : parts) {
@@ -47,7 +49,7 @@ public class FileController {
             }
             uploads.add(new FileService.Upload(part.getOriginalFilename(), part.getBytes()));
         }
-        return new UploadResponse(files.upload(kind, uploads).stream().map(FileResponse::of).toList());
+        return new UploadResponse(files.upload(kind, purpose, uploads).stream().map(FileResponse::of).toList());
     }
 
     @GetMapping("/{id}")
@@ -60,6 +62,12 @@ public class FileController {
         return new DownloadUrl(files.downloadUrl(id), Instant.now().plusSeconds(300));
     }
 
+    /** Small WebP preview for image lists (mobile-friendly); 404 for documents. */
+    @GetMapping("/{id}/thumbnail-url")
+    public DownloadUrl thumbnailUrl(@PathVariable UUID id) {
+        return new DownloadUrl(files.thumbnailUrl(id), Instant.now().plusSeconds(300));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
@@ -67,10 +75,10 @@ public class FileController {
     }
 
     public record FileResponse(UUID id, FileKind kind, String name, String contentType, long sizeBytes,
-            boolean attached, Instant createdAt) {
+            boolean attached, Instant createdAt, com.crmplatform.files.FilePurpose purpose, boolean hasThumbnail) {
         static FileResponse of(StoredFile f) {
             return new FileResponse(f.getId(), f.getKind(), f.getOriginalName(), f.getContentType(), f.getSizeBytes(),
-                    f.isAttached(), f.getCreatedAt());
+                    f.isAttached(), f.getCreatedAt(), f.getPurpose(), f.getThumbnailKey() != null);
         }
     }
 

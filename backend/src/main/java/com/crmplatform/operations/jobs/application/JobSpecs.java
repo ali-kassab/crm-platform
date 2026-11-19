@@ -3,6 +3,7 @@ package com.crmplatform.operations.jobs.application;
 import com.crmplatform.operations.jobs.application.JobService.JobFilter;
 import com.crmplatform.operations.jobs.domain.Job;
 import com.crmplatform.shared.web.Pagination;
+import com.crmplatform.shared.web.SearchText;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
-/** Whitelisted job filters (FR-OPS-02). */
+/** Whitelisted job filters (FR-OPS-02, directive §5C). */
 final class JobSpecs {
 
     private JobSpecs() {
@@ -21,6 +22,29 @@ final class JobSpecs {
             List<Predicate> p = new ArrayList<>();
             if (f.projectId() != null) {
                 p.add(cb.equal(root.get("projectId"), f.projectId()));
+            }
+            if (Boolean.TRUE.equals(f.standalone())) {
+                p.add(cb.isNull(root.get("projectId")));
+            } else if (Boolean.FALSE.equals(f.standalone())) {
+                p.add(cb.isNotNull(root.get("projectId")));
+            }
+            if (f.contactId() != null) {
+                p.add(cb.equal(root.get("contactId"), f.contactId()));
+            }
+            if (f.locationId() != null) {
+                p.add(cb.equal(root.get("locationId"), f.locationId()));
+            }
+            if (f.type() != null) {
+                p.add(cb.equal(root.get("type"), JobService.parseType(f.type())));
+            }
+            if (f.status() != null) {
+                p.add(cb.equal(root.get("status"), JobService.parseStatus(f.status())));
+            }
+            if (f.priority() != null) {
+                p.add(cb.equal(root.get("priority"), JobService.parsePriority(f.priority())));
+            }
+            if (f.assigneeUserId() != null) {
+                p.add(cb.isMember(f.assigneeUserId(), root.<Collection<UUID>>get("assigneeUserIds")));
             }
             if (f.tagId() != null) {
                 p.add(cb.isMember(f.tagId(), root.<Collection<UUID>>get("tagIds")));
@@ -33,8 +57,9 @@ final class JobSpecs {
             }
             String like = Pagination.likePattern(f.q());
             if (like != null) {
-                p.add(cb.or(cb.like(cb.lower(root.get("title")), like, '\\'),
-                        cb.like(cb.lower(root.get("description")), like, '\\')));
+                p.add(cb.or(cb.like(SearchText.column(cb, root.get("title")), like, '\\'),
+                        cb.like(SearchText.column(cb, root.get("description")), like, '\\'),
+                        cb.like(SearchText.column(cb, cb.coalesce(root.get("reportedIssue"), "")), like, '\\')));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

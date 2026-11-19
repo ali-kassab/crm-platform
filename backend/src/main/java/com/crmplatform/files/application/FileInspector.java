@@ -32,6 +32,7 @@ public class FileInspector {
     static final long MAX_DOCUMENT_BYTES = 10L * 1024 * 1024;
     private static final long MAX_PIXELS = 40_000_000L;
     private static final int MAX_EDGE = 2048;
+    static final int THUMBNAIL_EDGE = 320;
 
     private static final Map<String, String> DOCUMENT_TYPES = Map.of(
             "application/pdf", "pdf",
@@ -64,9 +65,11 @@ public class FileInspector {
         }
         try {
             BufferedImage image = readBounded(content);
-            BufferedImage scaled = downscale(image);
+            BufferedImage scaled = downscale(image, MAX_EDGE);
             byte[] webp = encodeWebp(scaled);
-            return new Inspected(replaceExtension(originalName, "webp"), "image/webp", webp);
+            // small preview for lists and mobile networks (directive §9C)
+            byte[] thumbnail = encodeWebp(downscale(scaled, THUMBNAIL_EDGE));
+            return new Inspected(replaceExtension(originalName, "webp"), "image/webp", webp, thumbnail);
         } catch (IOException | RuntimeException e) {
             throw unsupported("The image could not be read");
         }
@@ -90,7 +93,7 @@ public class FileInspector {
             case "ppt" -> "application/vnd.ms-powerpoint";
             default -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
         };
-        return new Inspected(sanitizeName(originalName), contentType, content);
+        return new Inspected(sanitizeName(originalName), contentType, content, null);
     }
 
     private static BufferedImage readBounded(byte[] content) throws IOException {
@@ -113,15 +116,15 @@ public class FileInspector {
         }
     }
 
-    private static BufferedImage downscale(BufferedImage image) {
+    private static BufferedImage downscale(BufferedImage image, int maxEdge) {
         int w = image.getWidth();
         int h = image.getHeight();
         int longEdge = Math.max(w, h);
         int type = image.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB;
         int nw = w;
         int nh = h;
-        if (longEdge > MAX_EDGE) {
-            double ratio = (double) MAX_EDGE / longEdge;
+        if (longEdge > maxEdge) {
+            double ratio = (double) maxEdge / longEdge;
             nw = Math.max(1, (int) Math.round(w * ratio));
             nh = Math.max(1, (int) Math.round(h * ratio));
         }
@@ -187,6 +190,7 @@ public class FileInspector {
         return new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "PAYLOAD_TOO_LARGE", message);
     }
 
-    public record Inspected(String name, String contentType, byte[] content) {
+    /** {@code thumbnail} is a small WebP preview for images, null for documents. */
+    public record Inspected(String name, String contentType, byte[] content, byte[] thumbnail) {
     }
 }

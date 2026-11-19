@@ -11,7 +11,7 @@ public interface FlowchartRepository extends JpaRepository<Flowchart, UUID> {
 
     @Query("select f from Flowchart f where (:projectId is null or f.projectId = :projectId) "
             + "and (:favorite is null or f.favorite = :favorite) and (:ownerId is null or f.ownerUserId = :ownerId) "
-            + "and (:q is null or lower(f.title) like :q escape '\\')")
+            + "and (:q is null or app_search_norm(f.title) like :q escape '\\')")
     Page<Flowchart> search(UUID projectId, Boolean favorite, UUID ownerId, String q, Pageable pageable);
 
     List<Flowchart> findByProjectId(UUID projectId);

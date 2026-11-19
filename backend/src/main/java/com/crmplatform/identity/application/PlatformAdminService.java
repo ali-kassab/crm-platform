@@ -70,7 +70,8 @@ public class PlatformAdminService {
             throw ApiException.unauthorized("INVALID_CREDENTIALS", "Invalid email or password");
         }
         loginAttempts.reset(email);
-        var token = accessTokens.issuePlatform(user.getId(), properties.sessionTtl());
+        var token = accessTokens.issuePlatform(user.getId(), properties.sessionTtl(),
+                user.effectiveLanguage(null));
         audit.platform("ADMIN_LOGIN", "PLATFORM_ADMIN", user.getId(), user.getId(), null, Map.of("ip", clientIp));
         return new PlatformSession(token.value(), token.expiresInSeconds(), user);
     }

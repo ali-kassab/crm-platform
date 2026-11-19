@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><title>دعوة للانضمام</title></head>
+<body dir="rtl" style="font-family: Tahoma, Arial, sans-serif; color: #111827; line-height: 1.8; text-align: right;">
+  <p>دعاك <strong th:text="${inviterName}">أحد الزملاء</strong> للانضمام إلى
+     <strong th:text="${workspaceName}">مساحة العمل</strong> بصفة
+     <span th:text="${role}">عضو</span>.</p>
+  <p><a th:href="${acceptUrl}" style="background:#111827;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;">قبول الدعوة</a></p>
+  <p>تنتهي صلاحية هذه الدعوة خلال <span th:text="${expiresInDays}">7</span> أيام.</p>
+</body>
+</html>
