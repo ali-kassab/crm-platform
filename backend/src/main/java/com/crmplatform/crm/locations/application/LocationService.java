@@ -111,9 +111,9 @@ public class LocationService {
     @Transactional
     public void delete(UUID id) {
         Location l = get(id);
-        ProjectUsage usage = projectUsage.getIfAvailable();
-        if (usage != null && usage.locationHasProjects(id)) {
-            throw ApiException.conflict("HAS_PROJECTS", "This location still has active projects");
+        // every module that references sites (projects, jobs) is asked
+        if (projectUsage.stream().anyMatch(u -> u.locationHasProjects(id))) {
+            throw ApiException.conflict("HAS_PROJECTS", "This location still has active projects or jobs");
         }
         l.markDeleted(Instant.now(clock), TenantContext.userId().orElse(null));
         audit.deleted("LOCATION", id, null, null);

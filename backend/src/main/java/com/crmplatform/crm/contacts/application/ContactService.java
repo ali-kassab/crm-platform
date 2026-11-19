@@ -198,9 +198,9 @@ public class ContactService implements Contacts {
     @Transactional
     public void delete(UUID id) {
         Contact c = get(id);
-        ProjectUsage usage = projectUsage.getIfAvailable();
-        if (usage != null && usage.contactHasProjects(id)) {
-            throw ApiException.conflict("HAS_PROJECTS", "This contact still has active projects");
+        // every module that references customers (projects, jobs) is asked
+        if (projectUsage.stream().anyMatch(u -> u.contactHasProjects(id))) {
+            throw ApiException.conflict("HAS_PROJECTS", "This contact still has active projects or jobs");
         }
         Instant now = Instant.now(clock);
         locations.findByContactId(id).forEach(l -> l.markDeleted(now, TenantContext.userId().orElse(null)));
@@ -525,12 +525,14 @@ public class ContactService implements Contacts {
     private static ContactSummary summary(Contact c) {
         return new ContactSummary(c.getId(), c.getType().name(), c.fullName(), c.getCompany(), c.getEmail(),
                 c.getPhone(), c.getRepresentativeUserId(), c.getStatusId(), c.getMetadata(),
-                c.getAddress() == null ? null : c.getAddress().getCity());
+                c.getAddress() == null ? null : c.getAddress().getCity(), c.getMobile());
     }
 
     private static LocationSummary summary(Location l) {
         return new LocationSummary(l.getId(), l.getContactId(), l.getName(), l.getType().name(),
-                l.getAddress() == null ? null : l.getAddress().getCity());
+                l.getAddress() == null ? null : l.getAddress().getCity(),
+                l.getAddress() == null ? null : l.getAddress().getLine1(), l.getAccessInstructions(), l.getLatitude(),
+                l.getLongitude());
     }
 
     // ------------------------------------------------------------------ types

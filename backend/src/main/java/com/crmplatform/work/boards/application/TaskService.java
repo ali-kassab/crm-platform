@@ -351,6 +351,9 @@ public class TaskService {
         if (requested == null || requested.isEmpty()) {
             return Set.of();
         }
+        if (projectId == null) { // standalone service job: no project team to assign from
+            throw ApiException.badRequest("ASSIGNEE_NOT_IN_TEAM", "Assignees must be members of the project team");
+        }
         Set<UUID> team = teamMembers.findByProjectId(projectId).stream().map(TeamMember::getId)
                 .collect(Collectors.toSet());
         if (!team.containsAll(requested)) {

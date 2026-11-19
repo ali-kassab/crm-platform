@@ -1,9 +1,11 @@
 package com.crmplatform.operations.jobs.application;
 
+import com.crmplatform.crm.Contacts;
 import com.crmplatform.crm.LabelCatalog;
 import com.crmplatform.files.FileKind;
 import com.crmplatform.files.Files;
 import com.crmplatform.files.Files.FileSummary;
+import com.crmplatform.identity.WorkspaceMembers;
 import com.crmplatform.operations.Jobs;
 import com.crmplatform.operations.jobs.domain.Job;
 import com.crmplatform.operations.jobs.domain.JobRepository;
@@ -41,7 +43,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Jobs inside projects (FR-OPS-01..05, BR-055, BR-060..063). */
+/**
+ * Jobs / work orders (FR-OPS-01..05, directive §5C/§5D): inside a project (fit-out) or standalone
+ * for a customer and site (service). Technicians ({@code ops:assigned}) only ever see and change jobs
+ * assigned to them — enforced here, not in the UI.
+ */
 @Service
 public class JobService implements JobDirectory, Jobs {
 
@@ -49,6 +55,8 @@ public class JobService implements JobDirectory, Jobs {
 
     private final JobRepository jobs;
     private final Projects projects;
+    private final Contacts contacts;
+    private final WorkspaceMembers members;
     private final Boards boards;
     private final LabelCatalog labels;
     private final Files files;
@@ -56,10 +64,12 @@ public class JobService implements JobDirectory, Jobs {
     private final AuditTrail audit;
     private final Clock clock;
 
-    public JobService(JobRepository jobs, Projects projects, Boards boards, LabelCatalog labels, Files files,
-            ApplicationEventPublisher events, AuditTrail audit, Clock clock) {
+    public JobService(JobRepository jobs, Projects projects, Contacts contacts, WorkspaceMembers members, Boards boards,
+            LabelCatalog labels, Files files, ApplicationEventPublisher events, AuditTrail audit, Clock clock) {
         this.jobs = jobs;
         this.projects = projects;
+        this.contacts = contacts;
+        this.members = members;
         this.boards = boards;
         this.labels = labels;
         this.files = files;
@@ -70,14 +80,22 @@ public class JobService implements JobDirectory, Jobs {
 
     // ------------------------------------------------------------------ queries
 
+    /** Callers limited to their own work get their assigned jobs only, whatever the filter says. */
     @Transactional(readOnly = true)
     public Page<Job> search(JobFilter filter, Pageable pageable) {
-        return jobs.findAll(JobSpecs.matching(filter), pageable);
+        JobFilter effective = JobAccess.limitedToAssigned()
+                ? filter.withAssignee(JobAccess.currentUser()) : filter;
+        return jobs.findAll(JobSpecs.matching(effective), pageable);
     }
 
+    /** Throws 404 (not 403) for a job the caller may not see, so ids of others' work don't leak. */
     @Transactional(readOnly = true)
     public Job get(UUID id) {
-        return jobs.findById(id).orElseThrow(() -> ApiException.notFound("Job"));
+        Job job = jobs.findById(id).orElseThrow(() -> ApiException.notFound("Job"));
+        if (JobAccess.limitedToAssigned() && !job.isAssignedTo(JobAccess.currentUser())) {
+            throw ApiException.notFound("Job");
+        }
+        return job;
     }
 
     @Transactional(readOnly = true)
@@ -89,16 +107,21 @@ public class JobService implements JobDirectory, Jobs {
 
     @Transactional
     public Job create(JobData d) {
-        projects.find(d.projectId()).orElseThrow(() -> ApiException.referenceNotFound("projectId"));
+        Site site = resolveSite(d.projectId(), d.contactId(), d.locationId());
         validateDates(d.startDate(), d.estimatedEndDate());
-        Team team = resolveTeam(d.projectId(), d.teamManagerUserId(), d.teamMemberUserIds());
+        Team team = d.projectId() == null ? requireNoTeam(d) : resolveTeam(d.projectId(), d.teamManagerUserId(),
+                d.teamMemberUserIds());
         Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
         labels.requireTags(tags, "tagIds");
 
-        Job job = new Job(d.projectId(), d.title(), d.description());
+        Job job = new Job(d.projectId(), site.contactId(), site.locationId(), d.title(), d.description());
+        job.classify(parseType(d.type()), parsePriority(d.priority()));
+        job.setReportedIssue(d.reportedIssue());
+        job.setInternalNotes(d.internalNotes());
         job.setSchedule(d.startDate(), d.estimatedEndDate());
-        job.setBudget(required(d.budget(), "budget"));
+        job.setBudget(d.budget() == null ? BigDecimal.ZERO : d.budget());
         job.setTeam(team.manager(), team.members());
+        job.assign(validAssignees(d.assigneeUserIds()));
         job.replaceTags(tags);
         Job saved = jobs.save(job);
 
@@ -118,23 +141,45 @@ public class JobService implements JobDirectory, Jobs {
         Set<UUID> previousTags = job.getTagIds();
 
         patch.ifPresent("title", d.title(), v -> job.setTitle(required(v, "title")));
-        patch.ifPresent("description", d.description(), v -> job.setDescription(required(v, "description")));
-        patch.ifPresent("budget", d.budget(), v -> job.setBudget(required(v, "budget")));
+        patch.ifPresent("description", d.description(), job::setDescription);
+        patch.ifPresent("reportedIssue", d.reportedIssue(), job::setReportedIssue);
+        patch.ifPresent("internalNotes", d.internalNotes(), job::setInternalNotes);
+        patch.ifPresent("budget", d.budget(), v -> job.setBudget(v == null ? BigDecimal.ZERO : v));
+        if (patch.has("type") || patch.has("priority")) {
+            job.classify(patch.has("type") ? parseType(required(d.type(), "type")) : job.getType(),
+                    patch.has("priority") ? parsePriority(required(d.priority(), "priority")) : job.getPriority());
+        }
         if (patch.has("startDate") || patch.has("estimatedEndDate")) {
             LocalDate start = patch.has("startDate") ? d.startDate() : job.getStartDate();
             LocalDate end = patch.has("estimatedEndDate") ? d.estimatedEndDate() : job.getEstimatedEndDate();
             validateDates(start, end);
             job.setSchedule(start, end);
         }
+        if (patch.has("contactId") || patch.has("locationId")) {
+            if (job.getProjectId() != null && patch.has("contactId")) {
+                throw ApiException.badRequest("VALIDATION_ERROR", "A project job keeps the project's customer");
+            }
+            Site site = resolveSite(job.getProjectId(),
+                    patch.has("contactId") ? d.contactId() : job.getContactId(),
+                    patch.has("locationId") ? d.locationId() : job.getLocationId());
+            job.setSite(site.contactId(), site.locationId());
+        }
         if (patch.has("teamManagerUserId") || patch.has("teamMemberUserIds")) {
+            if (job.getProjectId() == null) {
+                throw ApiException.badRequest("TEAM_NEEDS_PROJECT",
+                        "Project teams only apply to project jobs; assign technicians instead");
+            }
             Team current = currentTeamAsUsers(job);
             UUID manager = patch.has("teamManagerUserId") ? d.teamManagerUserId() : current.manager();
-            Collection<UUID> members = patch.has("teamMemberUserIds") ? d.teamMemberUserIds() : current.members();
+            Collection<UUID> teamUsers = patch.has("teamMemberUserIds") ? d.teamMemberUserIds() : current.members();
             if (!patch.has("teamMemberUserIds") && manager != null) {
-                members = members.stream().filter(u -> !u.equals(manager)).toList(); // promoted member leaves the list
+                teamUsers = teamUsers.stream().filter(u -> !u.equals(manager)).toList(); // promoted member leaves the list
             }
-            Team team = resolveTeam(job.getProjectId(), manager, members);
+            Team team = resolveTeam(job.getProjectId(), manager, teamUsers);
             job.setTeam(team.manager(), team.members());
+        }
+        if (patch.has("assigneeUserIds")) {
+            job.assign(validAssignees(d.assigneeUserIds()));
         }
         if (patch.has("tagIds")) {
             Set<UUID> tags = d.tagIds() == null ? Set.of() : new HashSet<>(d.tagIds());
@@ -156,6 +201,48 @@ public class JobService implements JobDirectory, Jobs {
         publishTags(id, minus(job.getTagIds(), previousTags), minus(previousTags, job.getTagIds()));
         audit.updated("JOB", id, job.getProjectId(), id, before, snapshot(job));
         return job;
+    }
+
+    /** Lifecycle move (also allowed to the assigned technician). */
+    @Transactional
+    public Job changeStatus(UUID id, String status) {
+        Job job = get(id);
+        Job.Status from = job.getStatus();
+        job.moveTo(parseStatus(status), Instant.now(clock));
+        jobs.saveAndFlush(job);
+        if (from != job.getStatus()) {
+            audit.action("STATUS", "JOB", id, job.getProjectId(), id,
+                    Map.of("from", from.name(), "to", job.getStatus().name()));
+        }
+        return job;
+    }
+
+    /** Used by visits: scheduling a NEW job marks it SCHEDULED; starting a visit starts the job. */
+    @Transactional
+    public void advanceForVisit(UUID jobId, Job.Status target) {
+        Job job = jobs.findById(jobId).orElseThrow(() -> ApiException.notFound("Job"));
+        boolean moves = switch (target) {
+            case SCHEDULED -> job.getStatus() == Job.Status.NEW;
+            case IN_PROGRESS -> job.getStatus() == Job.Status.NEW || job.getStatus() == Job.Status.SCHEDULED
+                    || job.getStatus() == Job.Status.ON_HOLD;
+            default -> job.getStatus().canMoveTo(target);
+        };
+        if (moves) {
+            Job.Status from = job.getStatus();
+            job.moveTo(target, Instant.now(clock));
+            audit.action("STATUS", "JOB", jobId, job.getProjectId(), jobId,
+                    Map.of("from", from.name(), "to", target.name()));
+        }
+    }
+
+    /** Visit assignees become job assignees, so they can see the job they visit. */
+    @Transactional
+    public void ensureAssigned(UUID jobId, Set<UUID> userIds) {
+        Job job = jobs.findById(jobId).orElseThrow(() -> ApiException.notFound("Job"));
+        Set<UUID> all = new HashSet<>(job.getAssigneeUserIds());
+        if (all.addAll(validAssignees(userIds))) {
+            job.assign(all);
+        }
     }
 
     /** Soft-deletes the job with its board and tasks; its budget stops counting (EC-23). */
@@ -231,20 +318,91 @@ public class JobService implements JobDirectory, Jobs {
         if (projectIds == null || projectIds.isEmpty()) {
             return List.of();
         }
-        return jobs.findByProjectIdInOrderByStartDateDesc(new HashSet<>(projectIds)).stream()
-                .map(j -> new JobOverview(j.getId(), j.getProjectId(), j.getTitle(), j.getStartDate(),
-                        j.getEstimatedEndDate(), j.getBudget()))
+        return jobs.findByProjectIdInOrderByStartDateDesc(new HashSet<>(projectIds)).stream().map(JobService::overview)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobOverview> ofContact(UUID contactId) {
+        return jobs.findByContactIdOrderByCreatedAtDesc(contactId).stream().map(JobService::overview).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal standaloneBudgetTotalOfContact(UUID contactId) {
+        return jobs.standaloneBudgetTotalOfContact(contactId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<JobSummary> find(UUID jobId) {
         return jobId == null ? Optional.empty()
-                : jobs.findById(jobId).map(j -> new JobSummary(j.getId(), j.getProjectId(), j.getTitle(), j.getBudget()));
+                : jobs.findById(jobId).map(j -> new JobSummary(j.getId(), j.getProjectId(), j.getTitle(), j.getBudget(),
+                        j.getContactId(), j.getLocationId()));
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static JobOverview overview(Job j) {
+        return new JobOverview(j.getId(), j.getProjectId(), j.getTitle(), j.getStartDate(), j.getEstimatedEndDate(),
+                j.getBudget(), j.getType().name(), j.getStatus().name(), j.getPriority().name(), j.getLocationId());
+    }
+
+    /**
+     * A project job takes the project's customer (and its site unless another site of that customer
+     * is given); a standalone job needs a customer and one of that customer's sites.
+     */
+    private Site resolveSite(UUID projectId, UUID contactId, UUID locationId) {
+        if (projectId != null) {
+            Projects.ProjectSummary project = projects.find(projectId)
+                    .orElseThrow(() -> ApiException.referenceNotFound("projectId"));
+            UUID location = locationId == null ? project.locationId() : locationId;
+            requireLocationOf(project.contactId(), location);
+            return new Site(project.contactId(), location);
+        }
+        if (contactId == null) {
+            throw ApiException.badRequest("JOB_CUSTOMER_REQUIRED", "A job needs a project or a customer");
+        }
+        contacts.find(contactId).orElseThrow(() -> ApiException.referenceNotFound("contactId"));
+        if (locationId == null) {
+            throw ApiException.badRequest("JOB_SITE_REQUIRED", "Choose the customer's site for this job");
+        }
+        requireLocationOf(contactId, locationId);
+        return new Site(contactId, locationId);
+    }
+
+    private void requireLocationOf(UUID contactId, UUID locationId) {
+        Contacts.LocationSummary location = contacts.location(locationId)
+                .orElseThrow(() -> ApiException.referenceNotFound("locationId"));
+        if (!location.contactId().equals(contactId)) {
+            throw ApiException.badRequest("LOCATION_NOT_OF_CUSTOMER", "The site does not belong to this customer");
+        }
+    }
+
+    private Set<UUID> validAssignees(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<UUID> unique = new LinkedHashSet<>(userIds);
+        if (unique.size() > 20) {
+            throw ApiException.badRequest("VALIDATION_ERROR", "A job can have at most 20 assigned technicians");
+        }
+        for (UUID u : unique) {
+            if (!members.isActiveMember(u)) {
+                throw ApiException.referenceNotFound("assigneeUserIds");
+            }
+        }
+        return unique;
+    }
+
+    private Team requireNoTeam(JobData d) {
+        if (d.teamManagerUserId() != null || (d.teamMemberUserIds() != null && !d.teamMemberUserIds().isEmpty())) {
+            throw ApiException.badRequest("TEAM_NEEDS_PROJECT",
+                    "Project teams only apply to project jobs; assign technicians instead");
+        }
+        return new Team(null, Set.of());
+    }
 
     /**
      * Maps user ids to project team members, adding users to the project team when needed
@@ -259,24 +417,56 @@ public class JobService implements JobDirectory, Jobs {
             throw ApiException.badRequest("VALIDATION_ERROR", "A job team can have at most 50 members");
         }
         UUID manager = managerUserId == null ? null : projects.ensureTeamMember(projectId, managerUserId);
-        Set<UUID> members = new LinkedHashSet<>();
-        users.forEach(u -> members.add(projects.ensureTeamMember(projectId, u)));
-        return new Team(manager, members);
+        Set<UUID> teamMembers = new LinkedHashSet<>();
+        users.forEach(u -> teamMembers.add(projects.ensureTeamMember(projectId, u)));
+        return new Team(manager, teamMembers);
     }
 
     private Team currentTeamAsUsers(Job job) {
         Map<UUID, UUID> userByMember = projects.team(job.getProjectId()).stream()
                 .collect(Collectors.toMap(Projects.TeamMemberSummary::teamMemberId, Projects.TeamMemberSummary::userId));
         UUID manager = job.getTeamManagerMemberId() == null ? null : userByMember.get(job.getTeamManagerMemberId());
-        Set<UUID> members = job.getMemberIds().stream().map(userByMember::get).filter(java.util.Objects::nonNull)
+        Set<UUID> teamMembers = job.getMemberIds().stream().map(userByMember::get).filter(java.util.Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return new Team(manager, members);
+        return new Team(manager, teamMembers);
     }
 
     private void publishTags(UUID jobId, Set<UUID> added, Set<UUID> removed) {
         if (!added.isEmpty() || !removed.isEmpty()) {
             events.publishEvent(new TagsChanged(TenantContext.requireWorkspaceId(), TaggableType.JOB, jobId, added,
                     removed, AutomationChain.nextDepth()));
+        }
+    }
+
+    static Job.Type parseType(String value) {
+        if (value == null) {
+            return Job.Type.CORRECTIVE_REPAIR;
+        }
+        try {
+            return Job.Type.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("VALIDATION_ERROR",
+                    "type must be INSTALLATION, PREVENTIVE_MAINTENANCE, CORRECTIVE_REPAIR or INSPECTION");
+        }
+    }
+
+    static Job.Priority parsePriority(String value) {
+        if (value == null) {
+            return Job.Priority.NORMAL;
+        }
+        try {
+            return Job.Priority.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("VALIDATION_ERROR", "priority must be LOW, NORMAL, HIGH or URGENT");
+        }
+    }
+
+    static Job.Status parseStatus(String value) {
+        try {
+            return Job.Status.valueOf(value == null ? "" : value);
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("VALIDATION_ERROR",
+                    "status must be NEW, SCHEDULED, IN_PROGRESS, ON_HOLD, COMPLETED or CANCELLED");
         }
     }
 
@@ -289,10 +479,7 @@ public class JobService implements JobDirectory, Jobs {
     }
 
     private static void validateDates(LocalDate start, LocalDate end) {
-        if (start == null || end == null) {
-            throw ApiException.badRequest("VALIDATION_ERROR", "startDate and estimatedEndDate are required");
-        }
-        if (end.isBefore(start)) {
+        if (start != null && end != null && end.isBefore(start)) {
             throw ApiException.badRequest("VALIDATION_ERROR", "estimatedEndDate must be on or after startDate");
         }
     }
@@ -313,11 +500,16 @@ public class JobService implements JobDirectory, Jobs {
     private static Map<String, Object> snapshot(Job j) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("title", j.getTitle());
+        m.put("type", j.getType().name());
+        m.put("priority", j.getPriority().name());
+        m.put("status", j.getStatus().name());
         m.put("budget", j.getBudget() == null ? null
                 : j.getBudget().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
         m.put("startDate", String.valueOf(j.getStartDate()));
         m.put("estimatedEndDate", String.valueOf(j.getEstimatedEndDate()));
+        m.put("locationId", j.getLocationId());
         m.put("teamManagerMemberId", j.getTeamManagerMemberId());
+        m.put("assigneeUserIds", j.getAssigneeUserIds().stream().map(UUID::toString).sorted().toList());
         m.put("tagIds", j.getTagIds().stream().map(UUID::toString).sorted().toList());
         return m;
     }
@@ -325,11 +517,23 @@ public class JobService implements JobDirectory, Jobs {
     private record Team(UUID manager, Set<UUID> members) {
     }
 
-    public record JobData(UUID projectId, String title, String description, LocalDate startDate,
-            LocalDate estimatedEndDate, BigDecimal budget, UUID teamManagerUserId, List<UUID> teamMemberUserIds,
-            UUID boardTemplateId, List<UUID> mediaFileIds, List<UUID> documentFileIds, Set<UUID> tagIds) {
+    private record Site(UUID contactId, UUID locationId) {
     }
 
-    public record JobFilter(UUID projectId, UUID tagId, LocalDate startFrom, LocalDate startTo, String q) {
+    public record JobData(UUID projectId, String title, String description, LocalDate startDate,
+            LocalDate estimatedEndDate, BigDecimal budget, UUID teamManagerUserId, List<UUID> teamMemberUserIds,
+            UUID boardTemplateId, List<UUID> mediaFileIds, List<UUID> documentFileIds, Set<UUID> tagIds,
+            UUID contactId, UUID locationId, String type, String priority, String reportedIssue, String internalNotes,
+            Set<UUID> assigneeUserIds) {
+    }
+
+    public record JobFilter(UUID projectId, UUID tagId, LocalDate startFrom, LocalDate startTo, String q,
+            UUID contactId, UUID locationId, String type, String status, String priority, UUID assigneeUserId,
+            Boolean standalone) {
+
+        JobFilter withAssignee(UUID userId) {
+            return new JobFilter(projectId, tagId, startFrom, startTo, q, contactId, locationId, type, status, priority,
+                    userId, standalone);
+        }
     }
 }

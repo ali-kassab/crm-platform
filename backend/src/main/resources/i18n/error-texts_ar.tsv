@@ -49,9 +49,9 @@ The request body is malformed	صيغة البيانات المرسلة غير ص
 The request body must be a JSON object	يجب أن تكون البيانات المرسلة كائن JSON
 The start and stop procedures must be different	يجب أن يختلف إجراء البدء عن إجراء الإيقاف
 This category is used by statuses or tags	هذا التصنيف مستخدم في حالات أو وسوم
-This contact still has active projects	لا يزال لهذا العميل مشروعات قائمة
+This contact still has active projects or jobs	لا يزال لهذا العميل مشروعات أو أوامر عمل قائمة
 This email is already in use	هذا البريد الإلكتروني مستخدم بالفعل
-This location still has active projects	لا تزال لهذا الموقع مشروعات قائمة
+This location still has active projects or jobs	لا تزال لهذا الموقع مشروعات أو أوامر عمل قائمة
 This person is already a member of the workspace	هذا الشخص عضو في مساحة العمل بالفعل
 This person is already on the project team	هذا الشخص ضمن فريق المشروع بالفعل
 This procedure already starts from another tag or status	هذا الإجراء مرتبط بالفعل بوسم أو حالة أخرى
@@ -108,3 +108,16 @@ kind must be INDIVIDUAL or COMPANY	نوع العميل يجب أن يكون فر
 A first name is required for an individual customer	الاسم الأول مطلوب للعميل الفرد
 A company name is required for a company customer	اسم الشركة مطلوب لعميل الشركة
 Add a phone number or an email	أضف رقم هاتف أو بريدًا إلكترونيًا
+A job can have at most 20 assigned technicians	يمكن تكليف 20 فنيًا كحد أقصى بأمر العمل
+A job needs a project or a customer	يلزم ربط أمر العمل بمشروع أو بعميل
+A project job keeps the project's customer	أمر عمل المشروع يبقى مرتبطًا بعميل المشروع
+Choose the customer's site for this job	اختر موقع العميل لأمر العمل
+Project teams only apply to project jobs; assign technicians instead	فرق المشروع خاصة بأوامر عمل المشروعات؛ كلّف فنيين بدلًا من ذلك
+The site does not belong to this customer	هذا الموقع لا يتبع هذا العميل
+This job is closed; reopen it to schedule a visit	أمر العمل مغلق؛ أعد فتحه لجدولة زيارة
+Unknown visit status	حالة الزيارة غير معروفة
+outcome must be RESOLVED, FOLLOW_UP_REQUIRED, NOT_RESOLVED or CUSTOMER_UNAVAILABLE	نتيجة الزيارة يجب أن تكون: تم الحل، تحتاج متابعة، لم تُحل، أو العميل غير متاح
+priority must be LOW, NORMAL, HIGH or URGENT	الأولوية يجب أن تكون منخفضة أو عادية أو عالية أو عاجلة
+scheduledEnd must be after scheduledStart	يجب أن يكون موعد انتهاء الزيارة بعد موعد بدايتها
+status must be NEW, SCHEDULED, IN_PROGRESS, ON_HOLD, COMPLETED or CANCELLED	الحالة يجب أن تكون جديدة أو مجدولة أو قيد التنفيذ أو معلقة أو مكتملة أو ملغاة
+type must be INSTALLATION, PREVENTIVE_MAINTENANCE, CORRECTIVE_REPAIR or INSPECTION	نوع أمر العمل يجب أن يكون تركيبًا أو صيانة وقائية أو إصلاحًا أو معاينة

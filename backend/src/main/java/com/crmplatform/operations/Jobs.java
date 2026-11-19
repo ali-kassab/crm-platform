@@ -15,10 +15,17 @@ public interface Jobs {
     /** Active jobs of the given projects, newest start first. */
     List<JobOverview> ofProjects(Collection<UUID> projectIds);
 
-    record JobSummary(UUID id, UUID projectId, String title, BigDecimal budget) {
+    /** All active jobs (project and standalone) of a customer, newest first. */
+    List<JobOverview> ofContact(UUID contactId);
+
+    /** Σ budgets of the customer's standalone (project-less) jobs; part of the customer's contract. */
+    BigDecimal standaloneBudgetTotalOfContact(UUID contactId);
+
+    /** {@code projectId} is null for a standalone service job. */
+    record JobSummary(UUID id, UUID projectId, String title, BigDecimal budget, UUID contactId, UUID locationId) {
     }
 
     record JobOverview(UUID id, UUID projectId, String title, LocalDate startDate, LocalDate estimatedEndDate,
-            BigDecimal budget) {
+            BigDecimal budget, String type, String status, String priority, UUID locationId) {
     }
 }

@@ -1,6 +1,8 @@
 package com.crmplatform.operations.jobs.application;
 
+import com.crmplatform.crm.CrmReferences.ProjectUsage;
 import com.crmplatform.crm.LabelDeleted;
+import com.crmplatform.operations.visits.application.VisitService;
 import com.crmplatform.milestones.MilestoneOwner;
 import com.crmplatform.operations.jobs.domain.JobRepository;
 import com.crmplatform.operations.warranties.application.WarrantyService;
@@ -35,6 +37,46 @@ class OperationsIntegration {
                 return jobs.existsById(id);
             }
         };
+    }
+
+    /** Customers and sites with active jobs (including standalone ones) cannot be deleted. */
+    @Bean
+    ProjectUsage jobUsage(JobRepository jobs) {
+        return new ProjectUsage() {
+            @Override
+            public boolean contactHasProjects(UUID contactId) {
+                return jobs.existsByContactId(contactId);
+            }
+
+            @Override
+            public boolean locationHasProjects(UUID locationId) {
+                return jobs.existsByLocationId(locationId);
+            }
+        };
+    }
+
+    /** Hourly: SCHEDULED visits whose window passed without a start become MISSED (idempotent). */
+    @Component
+    static class MissedVisits {
+
+        private static final Logger log = LoggerFactory.getLogger(MissedVisits.class);
+
+        private final VisitService visits;
+        private final TenantWork tenantWork;
+
+        MissedVisits(VisitService visits, TenantWork tenantWork) {
+            this.visits = visits;
+            this.tenantWork = tenantWork;
+        }
+
+        @Scheduled(cron = "${app.operations.missed-visits-cron:0 10 * * * *}")
+        @SchedulerLock(name = "missed-visits", lockAtMostFor = "PT10M")
+        void run() {
+            int missed = tenantWork.callAsSystem(visits::markMissed);
+            if (missed > 0) {
+                log.info("Marked {} visits as missed", missed);
+            }
+        }
     }
 
     @Component

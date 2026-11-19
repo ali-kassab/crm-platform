@@ -49,7 +49,9 @@ public class AccountingService implements Accounting {
     @Transactional(readOnly = true)
     public Summary contact(UUID contactId) {
         contacts.find(contactId).orElseThrow(() -> ApiException.notFound("Contact"));
-        return summarize(projects.budgetTotalOfContact(contactId), transactions.totalsByContact(contactId));
+        // contract = Σ project budgets + Σ budgets of the customer's standalone service jobs
+        return summarize(projects.budgetTotalOfContact(contactId).add(jobs.standaloneBudgetTotalOfContact(contactId)),
+                transactions.totalsByContact(contactId));
     }
 
     @Override

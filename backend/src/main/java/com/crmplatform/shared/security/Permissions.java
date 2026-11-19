@@ -21,6 +21,8 @@ public final class Permissions {
     public static final String OPS_READ = "ops:read";
     public static final String OPS_WRITE = "ops:write";
     public static final String OPS_DELETE = "ops:delete";
+    /** Read and work on only the jobs and visits assigned to the caller (technicians). */
+    public static final String OPS_ASSIGNED = "ops:assigned";
     public static final String FINANCE_READ = "finance:read";
     public static final String FINANCE_WRITE = "finance:write";
     public static final String AUTOMATION_READ = "automation:read";

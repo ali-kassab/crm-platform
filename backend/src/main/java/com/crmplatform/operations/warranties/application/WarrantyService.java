@@ -60,6 +60,17 @@ public class WarrantyService implements Warranties {
 
     @Override
     @Transactional(readOnly = true)
+    public List<WarrantyOverview> ofProjectsOrJobs(java.util.Collection<UUID> projectIds, java.util.Collection<UUID> jobIds) {
+        Set<UUID> projects = projectIds == null || projectIds.isEmpty() ? Set.of(com.crmplatform.shared.tenant.TenantContext.NONE) : new HashSet<>(projectIds);
+        Set<UUID> jobsIds = jobIds == null || jobIds.isEmpty() ? Set.of(com.crmplatform.shared.tenant.TenantContext.NONE) : new HashSet<>(jobIds);
+        return warranties.findByProjectsOrJobs(projects, jobsIds).stream()
+                .map(w -> new WarrantyOverview(w.getId(), w.getProjectId(), w.getJobId(), w.getTitle(), w.getProvider(),
+                        w.getStatus().name(), w.getStartDate(), w.getEndDate()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<WarrantyOverview> ofProjects(java.util.Collection<UUID> projectIds) {
         if (projectIds == null || projectIds.isEmpty()) {
             return List.of();

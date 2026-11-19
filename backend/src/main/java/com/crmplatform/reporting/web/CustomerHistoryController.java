@@ -67,10 +67,11 @@ public class CustomerHistoryController {
         }
     }
 
-    public record JobItem(UUID id, UUID projectId, String title, LocalDate startDate, LocalDate estimatedEndDate,
-            String budget) {
+    public record JobItem(UUID id, UUID projectId, String title, String type, String status, String priority,
+            LocalDate startDate, LocalDate estimatedEndDate, String budget) {
         static JobItem of(Jobs.JobOverview j) {
-            return new JobItem(j.id(), j.projectId(), j.title(), j.startDate(), j.estimatedEndDate(), money(j.budget()));
+            return new JobItem(j.id(), j.projectId(), j.title(), j.type(), j.status(), j.priority(), j.startDate(),
+                    j.estimatedEndDate(), money(j.budget()));
         }
     }
 

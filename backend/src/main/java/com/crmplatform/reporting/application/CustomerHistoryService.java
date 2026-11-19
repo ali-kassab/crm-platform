@@ -41,7 +41,9 @@ public class CustomerHistoryService {
         Contacts.ContactSummary contact = contacts.find(contactId).orElseThrow(() -> ApiException.notFound("Contact"));
         List<Projects.ProjectSummary> projectList = projects.ofContact(contactId);
         List<UUID> projectIds = projectList.stream().map(Projects.ProjectSummary::id).toList();
-        return new History(contact, projectList, jobs.ofProjects(projectIds), warranties.ofProjects(projectIds),
+        List<Jobs.JobOverview> jobList = jobs.ofContact(contactId); // project and standalone jobs
+        return new History(contact, projectList, jobList,
+                warranties.ofProjectsOrJobs(projectIds, jobList.stream().map(Jobs.JobOverview::id).toList()),
                 includeFinance ? accounting.ofContact(contactId) : null,
                 includeFinance ? accounting.recentOfContact(contactId, RECENT_TRANSACTIONS) : null);
     }

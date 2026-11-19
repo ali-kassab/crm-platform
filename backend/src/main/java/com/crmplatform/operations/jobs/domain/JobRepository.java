@@ -19,4 +19,13 @@ public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificatio
 
     @Query("select j from Job j join j.tagIds t where t = :tagId")
     List<Job> findByTag(UUID tagId);
+
+    List<Job> findByContactIdOrderByCreatedAtDesc(UUID contactId);
+
+    @Query("select coalesce(sum(j.budget), 0) from Job j where j.contactId = :contactId and j.projectId is null")
+    java.math.BigDecimal standaloneBudgetTotalOfContact(UUID contactId);
+
+    boolean existsByContactId(UUID contactId);
+
+    boolean existsByLocationId(UUID locationId);
 }
