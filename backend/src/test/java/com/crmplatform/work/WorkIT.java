@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.crmplatform.support.Api;
 import com.crmplatform.support.Api.Session;
 import com.crmplatform.support.IntegrationTest;
+import com.crmplatform.support.Invites;
 import com.crmplatform.support.RecordingEmailSender;
 import com.jayway.jsonpath.JsonPath;
 import java.time.LocalDate;
@@ -26,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -575,19 +574,8 @@ class WorkIT {
         return JsonPath.read(body(mvc.perform(get("/api/v1/projects/" + project).with(s.auth()))), "$.boardId");
     }
 
-    /** Invites a new user with {@code role} into the owner's workspace and signs them in. */
     private Session invite(Session owner, String role) throws Exception {
-        String email = Api.uniqueEmail();
-        mvc.perform(json(post("/api/v1/workspace/invitations"), "{\"email\":\"%s\",\"role\":\"%s\"}".formatted(email, role))
-                .with(owner.auth())).andExpect(status().isCreated());
-        String html = emails.lastTo(email).orElseThrow().html();
-        Matcher m = Pattern.compile("accept-invite\\?token=([A-Za-z0-9_-]+)").matcher(html);
-        assertThat(m.find()).isTrue();
-        String json = body(mvc.perform(json(post("/api/v1/auth/invitations/accept"),
-                "{\"token\":\"%s\",\"firstName\":\"Mia\",\"lastName\":\"Member\",\"password\":\"%s\"}"
-                        .formatted(m.group(1), Api.PASSWORD))).andExpect(status().isOk()));
-        return new Session(JsonPath.read(json, "$.accessToken"), null, UUID.fromString(JsonPath.read(json, "$.user.id")),
-                UUID.fromString(JsonPath.read(json, "$.workspace.id")), email);
+        return Invites.invite(mvc, emails, owner, role);
     }
 
     private static void assertContiguous(String boardJson, int expectedTotal) {

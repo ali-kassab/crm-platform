@@ -18,13 +18,12 @@ import com.crmplatform.shared.tenant.TenantContext;
 import com.crmplatform.support.Api;
 import com.crmplatform.support.Api.Session;
 import com.crmplatform.support.IntegrationTest;
+import com.crmplatform.support.Invites;
 import com.crmplatform.support.RecordingEmailSender;
 import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -291,18 +290,7 @@ class OperationsIT {
     }
 
     private Session invite(Session owner) throws Exception {
-        String email = Api.uniqueEmail();
-        mvc.perform(json(post("/api/v1/workspace/invitations"), "{\"email\":\"%s\",\"role\":\"MEMBER\"}".formatted(email))
-                .with(owner.auth())).andExpect(status().isCreated());
-        Matcher m = Pattern.compile("accept-invite\\?token=([A-Za-z0-9_-]+)")
-                .matcher(emails.lastTo(email).orElseThrow().html());
-        assertThat(m.find()).isTrue();
-        String json = mvc.perform(json(post("/api/v1/auth/invitations/accept"),
-                        "{\"token\":\"%s\",\"firstName\":\"Mia\",\"lastName\":\"Member\",\"password\":\"%s\"}"
-                                .formatted(m.group(1), Api.PASSWORD)))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return new Session(JsonPath.read(json, "$.accessToken"), null, UUID.fromString(JsonPath.read(json, "$.user.id")),
-                UUID.fromString(JsonPath.read(json, "$.workspace.id")), email);
+        return Invites.invite(mvc, emails, owner, "MEMBER");
     }
 
     private static String id(ResultActions result) throws Exception {
