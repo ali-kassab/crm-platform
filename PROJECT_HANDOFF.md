@@ -131,7 +131,7 @@
 - Tests: `finance/FinanceAlignmentIT` (1, hand-computed figures).
 
 ## 5. Current phase & exact next steps — R9 Frontend foundation
-Not started. `PRODUCT_AUDIT.md` R9 row: new `frontend/` — React + Vite + TypeScript 5.9 + Tailwind + shadcn/ui only (never hand-built components), Arabic-first RTL shell, auth, i18n (ar default, en), layout, core CRUD; Playwright ar/en + RTL/LTR snapshots, bundle budget. Portable Node 24 + pnpm at `D:Workspace	ools` (system Node 18 is too old).
+Not started. `PRODUCT_AUDIT.md` R9 row: new `frontend/` — React + Vite + TypeScript 5.9 + Tailwind + shadcn/ui only (never hand-built components), Arabic-first RTL shell, auth, i18n (ar default, en), layout, core CRUD; Playwright ar/en + RTL/LTR snapshots, bundle budget. Portable Node 24 + pnpm at `D:\Workspace\tools` (system Node 18 is too old).
 
 ## 6. Tests (actual results)
 - 2026-11-19, `./mvnw test` @ `f8c850a` (R8): **124 tests, 0 failures, 0 errors, 0 skipped**.
