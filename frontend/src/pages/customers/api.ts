@@ -54,3 +54,58 @@ export function useCreateCustomer() {
     onSuccess: () => void client.invalidateQueries({ queryKey: ['customers'] }),
   })
 }
+
+export const SITE_TYPES = ['COMMERCIAL', 'OFFICE', 'RESIDENTIAL', 'RETAIL', 'INDUSTRIAL', 'WAREHOUSE'] as const
+export type SiteType = (typeof SITE_TYPES)[number]
+
+export interface Site {
+  id: string
+  contactId: string
+  type: SiteType
+  name: string
+  address: { line1?: string | null; city?: string | null } | null
+  accessInstructions: string | null
+}
+
+export interface NewSite {
+  name: string
+  type: SiteType
+  city?: string
+  line1?: string
+  accessInstructions?: string
+}
+
+export function useCustomer(id: string | undefined) {
+  return useQuery({
+    queryKey: ['customer', id],
+    queryFn: () => api<Customer>(`/contacts/${id}`),
+    enabled: !!id,
+  })
+}
+
+/** Same query key as the work-order site picker, so a new site shows up there at once. */
+export function useSites(contactId: string | undefined) {
+  return useQuery({
+    queryKey: ['sites', contactId],
+    queryFn: () => api<Page<Site>>(`/locations?contactId=${contactId}&size=100`),
+    enabled: !!contactId,
+  })
+}
+
+export function useCreateSite(contactId: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (s: NewSite) =>
+      api<Site>('/locations', {
+        method: 'POST',
+        body: {
+          contactId,
+          type: s.type,
+          name: s.name,
+          address: s.city || s.line1 ? { city: s.city || null, line1: s.line1 || null } : undefined,
+          accessInstructions: s.accessInstructions || undefined,
+        },
+      }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['sites', contactId] }),
+  })
+}

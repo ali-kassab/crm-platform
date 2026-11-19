@@ -9,6 +9,8 @@ export interface FakeApi {
   jobs: Record<string, unknown>[]
   visits: Record<string, unknown>[]
   paymentRequests: Record<string, unknown>[]
+  /** sites per customer id; a customer missing here has the default site s1 */
+  sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
 
 export const session = {
@@ -74,6 +76,11 @@ async function install(page: Page, api: FakeApi) {
       const content = api.customers.filter((c) => c.fullName.includes(q) || c.phone.includes(q))
       return json(route, 200, { content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
     }
+    const one = path.match(/^\/contacts\/([^/]+)$/)
+    if (one && request.method() === 'GET') {
+      const c = api.customers.find((x) => x.id === one[1])
+      return c ? json(route, 200, { ...c, email: null, mobile: null }) : json(route, 404, { code: 'NOT_FOUND' })
+    }
     if (path === '/contacts' && request.method() === 'POST') {
       const b = body as { kind: 'COMPANY' | 'INDIVIDUAL'; company?: string; name?: { first: string }; phone: string }
       const created = {
@@ -86,7 +93,7 @@ async function install(page: Page, api: FakeApi) {
       api.customers.unshift(created)
       return json(route, 201, created)
     }
-    const handled = await r10(route, api, path, request.method(), body)
+    const handled = await r10(route, api, path, request.method(), body, url.searchParams)
     if (handled) return
     return json(route, 404, { code: 'NOT_FOUND' })
   })
@@ -103,6 +110,7 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       jobs: [],
       visits: [],
       paymentRequests: [],
+      sites: {},
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -143,13 +151,23 @@ function newJob(id: string, b: Record<string, unknown>) {
   }
 }
 
-async function r10(route: Route, api: FakeApi, path: string, method: string, body: unknown): Promise<boolean> {
+async function r10(route: Route, api: FakeApi, path: string, method: string, body: unknown, search: URLSearchParams): Promise<boolean> {
   const b = (body ?? {}) as Record<string, unknown>
   const page = <T,>(content: T[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
   let m: RegExpMatchArray | null
 
+  if (path === '/locations' && method === 'POST') {
+    const contactId = String(b.contactId)
+    const address = b.address as { city?: string; line1?: string } | undefined
+    const created = { id: `s${Date.now()}`, contactId, type: String(b.type), name: String(b.name), address: address ?? null, accessInstructions: (b.accessInstructions as string) ?? null }
+    api.sites[contactId] = [...(api.sites[contactId] ?? []), created]
+    await json(route, 201, created)
+    return true
+  }
   if (path.startsWith('/locations')) {
-    await json(route, 200, page([{ id: 's1', name: site.name }]))
+    const contactId = search.get('contactId') ?? ''
+    const fallback = [{ id: 's1', contactId, type: 'COMMERCIAL', name: site.name, address: { city: site.city, line1: site.addressLine1 }, accessInstructions: null }]
+    await json(route, 200, page(api.sites[contactId] ?? fallback))
     return true
   }
   if (path.startsWith('/jobs') && method === 'GET' && !path.includes('/', 1)) {

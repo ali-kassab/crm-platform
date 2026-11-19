@@ -75,6 +75,28 @@
     "emptyTitle": "No customers yet",
     "emptyHint": "Add your first customer to start recording work orders"
   },
+  "sites": {
+    "title": "Sites",
+    "add": "Add site",
+    "addHint": "The branch, building or home the technician goes to",
+    "name": "Site name",
+    "type": "Site type",
+    "city": "City",
+    "address": "Address",
+    "access": "Access instructions",
+    "created": "Site added",
+    "emptyTitle": "This customer has no sites",
+    "emptyHint": "Add a site to open work orders for this customer",
+    "noneForCustomer": "This customer has no sites yet.",
+    "types": {
+      "COMMERCIAL": "Commercial",
+      "OFFICE": "Office",
+      "RESIDENTIAL": "Residential",
+      "RETAIL": "Shop",
+      "INDUSTRIAL": "Industrial",
+      "WAREHOUSE": "Warehouse"
+    }
+  },
   "subscription": {
     "status": {
       "TRIAL": "Trial",

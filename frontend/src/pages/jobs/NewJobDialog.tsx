@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { applyServerErrors } from '@/lib/forms'
+import { NewSiteDialog } from '@/pages/customers/NewSiteDialog'
 import { JOB_TYPES, PRIORITIES, useCreateJob, useCustomerOptions, useSiteOptions } from './api'
 
 const FIELDS = ['contactId', 'locationId', 'title', 'type', 'priority', 'reportedIssue', 'budget'] as const
@@ -135,6 +136,16 @@ export function NewJobDialog({ disabled }: { disabled?: boolean }) {
               (sites.data?.content ?? []).map((s) => ({ value: s.id, label: s.name })),
               t('jobs.pickSite'),
             )}
+            {contactId && sites.data && sites.data.content.length === 0 ? (
+              <div className="-mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>{t('sites.noneForCustomer')}</span>
+                <NewSiteDialog
+                  contactId={contactId}
+                  size="sm"
+                  onCreated={(site) => form.setValue('locationId', site.id, { shouldValidate: true })}
+                />
+              </div>
+            ) : null}
             <Controller
               name="title"
               control={form.control}
