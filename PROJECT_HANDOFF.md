@@ -19,8 +19,9 @@
 |---|---|
 | Backend modules shared, identity, files, milestones, crm, work, operations, finance | ✅ implemented + tested (pre-pivot) |
 | R0 Security & foundations | ✅ complete (2026-11-19) |
-| R1 Localization & workspace settings | ⏭ next (not started) |
-| R2–R13 | ⚪ not started |
+| R1 Localization & workspace settings (backend) | ✅ complete (2026-11-19, `2f8fab6`) |
+| R2 Customers | ⏭ next (not started) |
+| R3–R13 | ⚪ not started |
 | Frontend, NestJS realtime, subscriptions | ⚪ not started |
 
 ## 4. Completed — R0 Security & foundations
@@ -50,17 +51,28 @@
    - `TaskService` comment counts via `TaskCommentRepository.countByTaskId`.
    - `performance/PerformanceGuardsIT` (2).
 
-## 5. Current phase & exact next steps — R1 Localization & workspace settings (backend)
+## 4b. Completed — R1 Localization & workspace settings (backend) — commit `2f8fab6`
+- Flyway `V10__workspace_settings_and_language.sql`: `workspaces.default_language` (default `ar`), `currency` (default `EGP`), `sector` (`FIT_OUT` / `SECURITY_SYSTEMS` / `MAINTENANCE`, nullable); defaults `locale` `ar-EG`, `time_zone` `Africa/Cairo`; `users.preferred_language` (nullable). Existing rows keep their values.
+- `identity/domain/Workspace` (`Sector`, `configure`, `DEFAULT_*`), `User.preferredLanguage` + `effectiveLanguage(workspace)`.
+- APIs: `PATCH /api/v1/workspace` is now a **partial** update (name, defaultLanguage, locale, currency [ISO 4217], timeZone [IANA], sector; `workspace:manage`) via `WorkspaceService.updateSettings`; `PUT /api/v1/me/language` `{language: "ar"|"en"|null}`; registration accepts optional `language` (`en` → locale `en-EG`) and `sector`. `AuthResponse.language`, `WorkspaceSummary` (+defaultLanguage, currency, sector), `UserSummary.preferredLanguage`.
+- Access tokens carry `lng` (effective language) → `AuthenticatedUser.language`.
+- `shared/i18n`: `Languages` (ar default, en), `RequestLanguage` (bean `localeResolver`: Accept-Language > token language > ar), `ErrorTexts` (Arabic by exact English message from `resources/i18n/error-texts_ar.tsv`, then `error.<CODE>` in `resources/i18n/messages_ar.properties`, then generic; English keeps the original message). `GlobalExceptionHandler` + `identity/security/ProblemWriter` localize title/detail/field messages; `code` unchanged. `ApiException.notFound` adds a `resource` property (used for "X غير موجود").
+- `spring.messages.basename: i18n/messages` (UTF-8). `shared/mail/EmailTemplates.render(template, language, vars)` + `subject(...)`; Arabic RTL templates `templates/email/*_ar.html`; invitation uses the invitee's language (existing account) else the workspace default; password reset uses the user's language.
+- Tests: `shared/i18n/LocalizationIT` (6) and `shared/i18n/ErrorTextsCoverageTest` (2; fails if any literal error message lacks Arabic text or any error code lacks an Arabic fallback).
+- **Rule for new code:** every new `ApiException` message needs a line in `error-texts_ar.tsv` and every new code an `error.<CODE>` key — the coverage test enforces it.
+- Known gaps: messages built at runtime (e.g. `field + " is required"`) show the per-code Arabic fallback; Arabic workspace names produce an ASCII slug like `workspace-…`; Arabic letter normalisation in search (أ/ا/إ, ى/ي, ة/ه) is not handled yet.
+
+## 5. Current phase & exact next steps — R2 Customers
 Not started. Planned order:
-1. Flyway `V10`: `workspaces` + `default_language` (default `ar`), `currency` (default `EGP`), `sector` (nullable: `FIT_OUT`, `SECURITY_SYSTEMS`, `MAINTENANCE`); new-workspace defaults `locale` → `ar-EG`, `time_zone` → `Africa/Cairo`; `users.preferred_language` (nullable → falls back to the workspace).
-2. Workspace settings API (`PATCH /api/v1/workspace` extended, `workspace:manage`) and `PATCH /api/v1/me` language; registration accepts optional language/sector.
-3. Backend i18n: `MessageSource` (`messages.properties` en, `messages_ar.properties` ar) keyed by the existing stable error codes; locale = explicit `Accept-Language` > user preference > workspace default > `ar`; `GlobalExceptionHandler` localizes `title`/`detail` and validation messages, keeps `code` unchanged.
-4. Arabic e-mail templates (invitation, password reset) chosen by the recipient's language.
-5. Tests: the same error in ar/en; Arabic names/addresses round-trip; Arabic search (Arabic letter normalisation أ/ا/إ, ى/ي, ة/ه not handled yet — decide in R2).
-Then R2 customers → R3 work orders / visits / technician role (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
+1. Flyway `V11`: contacts `kind` (`INDIVIDUAL` / `COMPANY`, default `INDIVIDUAL`); `email` nullable, unique only when present; require at least one of phone/mobile/email; company customers may have no last name (name rules per kind).
+2. Arabic-aware search: normalise أ/إ/آ→ا, ى→ي, ة→ه and strip tashkeel on both the query and the searched columns (generated/normalised columns or a SQL function + index), for contacts, locations, projects, jobs.
+3. Customer history endpoint `GET /api/v1/contacts/{id}/history` (projects, jobs, warranties, transactions summary, notes — paginated or capped).
+4. Keep LEAD/PROSPECT; PARTNER stays in the API (hide in UI later).
+5. Tests: phone-only customer, company customer, Arabic search variants, history, isolation.
+Then R3 work orders / visits / technician role (roadmap: `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` §15).
 
 ## 6. Tests (actual results)
-- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `b4f2299`: **94 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
+- 2026-11-19, `./mvnw test` on `feature/saas-foundation` @ `2f8fab6`: **102 tests, 0 failures, 0 errors, 0 skipped** (Testcontainers: postgres:17.12-alpine, redis:8.2.11-alpine, adobe/s3mock:5.2.3). Docker Desktop must be running; on a stale-socket crash run `D:\Workspace\tools\fix-docker-sockets.ps1`.
 
 ## 7. Known issues / open security items
 - S4 no subscription enforcement (R7). S5 no technician scoping (R3). S6 any workspace member can read any workspace file by id (review in R4). S7 rate limiting only on auth, uploads and admin login. S8 the HS256 secret would have to be shared with NestJS (evaluate RS256 in R11).
@@ -86,7 +98,9 @@ Then R2 customers → R3 work orders / visits / technician role (roadmap: `D:\Wo
 | `bc33f2a` | feat(audit): persist audit events append-only with per-workspace reads |
 | `365a68f` | feat(identity): bootstrap the first platform admin securely from the environment |
 | `b4f2299` | perf: gzip responses and remove per-row queries from project lookups |
-| (next commit) | docs: update handoff — R0 complete |
+| `0d575bf` | docs: update handoff - R0 security and foundations complete |
+| `2f8fab6` | feat(i18n): Arabic-first workspace settings, user language and localized errors |
+| (next commit) | docs: update handoff - R1 complete |
 
 ## 11. Uncommitted / unpushed
 - None after the handoff commit. `main` is untouched at `163d49c`.
