@@ -25,7 +25,7 @@ public final class WorkEvents {
             Set<UUID> userIds) {
     }
 
-    /** A committed board change, relayed to subscribers over STOMP (REALTIME_SPECIFICATION). */
+    /** A board change; relayed after commit as an id-only hint by the realtime module (ADR-0015). */
     public record BoardChanged(UUID workspaceId, UUID boardId, long boardVersion, String type, UUID actorUserId,
             Map<String, Object> payload) {
     }

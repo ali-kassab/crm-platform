@@ -1,5 +1,6 @@
 package com.crmplatform.notifications.application;
 
+import com.crmplatform.notifications.NotificationEvents.NotificationsCreated;
 import com.crmplatform.notifications.domain.Notification;
 import com.crmplatform.notifications.domain.NotificationRepository;
 import com.crmplatform.shared.error.ApiException;
@@ -9,7 +10,10 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,10 +28,12 @@ public class NotificationService {
 
     private final NotificationRepository notifications;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    public NotificationService(NotificationRepository notifications, Clock clock) {
+    public NotificationService(NotificationRepository notifications, Clock clock, ApplicationEventPublisher events) {
         this.notifications = notifications;
         this.clock = clock;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -59,9 +65,12 @@ public class NotificationService {
     @Transactional
     public void notify(Collection<UUID> recipients, Notification.Type type, String entityType, UUID entityId,
             UUID actorUserId, Map<String, Object> payload) {
-        recipients.stream().filter(Objects::nonNull).filter(r -> !r.equals(actorUserId)).distinct()
-                .map(r -> new Notification(r, type, entityType, entityId, actorUserId, payload))
-                .forEach(notifications::save);
+        Set<UUID> to = recipients.stream().filter(Objects::nonNull).filter(r -> !r.equals(actorUserId))
+                .collect(Collectors.toSet());
+        to.forEach(r -> notifications.save(new Notification(r, type, entityType, entityId, actorUserId, payload)));
+        if (!to.isEmpty()) { // realtime hint after commit (ADR-0015)
+            events.publishEvent(new NotificationsCreated(TenantContext.requireWorkspaceId(), to));
+        }
     }
 
     private static UUID currentUser() {

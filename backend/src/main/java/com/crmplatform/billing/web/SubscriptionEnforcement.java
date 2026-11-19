@@ -26,7 +26,7 @@ public class SubscriptionEnforcement implements WebMvcConfigurer {
 
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
     private static final List<String> ALWAYS_ALLOWED = List.of("/api/v1/subscription", "/api/v1/auth/",
-            "/api/v1/me", "/api/v1/notifications", "/api/v1/admin/");
+            "/api/v1/me", "/api/v1/notifications", "/api/v1/admin/", "/api/v1/realtime/");
 
     private final SubscriptionService subscriptions;
 
