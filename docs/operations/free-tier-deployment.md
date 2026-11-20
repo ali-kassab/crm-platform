@@ -39,15 +39,24 @@ free Postgres expires after 30 days; Render free Key Value loses data on restart
   4.5 MB only for its Functions) — test a photo > 4.5 MB after deploying.
 - Neon: use the **direct** host (not `-pooler`), `DB_URL=jdbc:postgresql://<host>/<db>?sslmode=require`.
   Hikari keeps no idle connections and sends no keep-alives so Neon can suspend; the health check
-  (`/actuator/health/liveness`) touches neither Neon nor Redis.
+  (`/actuator/health/liveness`) touches neither Neon nor Redis. Direct, not pooled: Flyway migrates at
+  startup on a session connection (Neon's pooler is PgBouncer in transaction mode) and Hikari already pools.
+  Neon's Connect dialog adds `&channel_binding=require`; the JDBC URL only needs `sslmode=require`.
+- Neon Postgres version: the project runs **Postgres 18** (local Docker and CI use 17). Verified
+  2026-11-20 on `postgres:18-alpine` (18.7): all 17 Flyway migrations apply, Hibernate `validate`
+  passes, no warnings. Migrations need no extensions and no superuser; the default owner role is enough.
+- Local copy of the staging values: the git-ignored `.env.neon` at the repo root (`DB_URL`,
+  `DB_USERNAME`, `DB_PASSWORD` + the Hikari settings above), separate from the local-Docker `.env`.
 - Upstash: `REDIS_HOST`=endpoint, `REDIS_PASSWORD`=password, TLS on via `SPRING_DATA_REDIS_SSL_ENABLED`.
 - B2: `S3_ENDPOINT` = `S3_PUBLIC_ENDPOINT` = `https://s3.<region>.backblazeb2.com`, `S3_REGION` = `<region>`
   (e.g. `eu-central-003`), private bucket, application key limited to that bucket. AWS SDK checksums
   only when required (`AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED`).
 
 ## Setup order (owner actions marked ⚑ — never paste secrets into chat or commit them)
-1. ⚑ **Neon**: create a Free project in AWS Frankfurt (`eu-central-1`), Postgres 17, database `crm`.
-   Note host (direct), database, user, password.
+1. ⚑ **Neon** ✅ done 2026-11-20: Free project `crm-platform`, AWS Frankfurt (`eu-central-1`),
+   Postgres 18, branch `production`, database `neondb`, role `neondb_owner` (Neon's defaults; no
+   extra database created). Optional Neon services (Auth, Data API, Functions, AI Gateway) stay off.
+   Connection values (direct host) are in the local `.env.neon`.
 2. ⚑ **Upstash**: create a Free Redis database in `eu-central-1`. Note endpoint and password.
 3. ⚑ **Backblaze B2** (choose the EU region at sign-up): create a **private** bucket and an
    application key with read/write access to that bucket only. Note bucket, keyID, applicationKey,
