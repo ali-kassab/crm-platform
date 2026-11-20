@@ -447,5 +447,13 @@
     "decidedBy": "{{name}} — {{when}}",
     "requestedAt": "Requested {{when}}",
     "empty": "No approvals recorded"
+  },
+  "calendar": {
+    "title": "Week calendar",
+    "previous": "Previous week",
+    "next": "Next week",
+    "thisWeek": "This week",
+    "today": "today",
+    "free": "No visits"
   }
 }

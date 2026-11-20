@@ -1,7 +1,9 @@
-import { CalendarClock, MapPin } from 'lucide-react'
+import { CalendarClock, CalendarDays, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { useAuth } from '@/auth/auth-context'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,11 +19,23 @@ export function VisitsPage() {
   const { t } = useTranslation()
   const { data, isPending } = useMyVisits()
   const { data: subscription } = useSubscription()
+  const { can } = useAuth()
   const open = data?.content.filter((v) => v.status !== 'COMPLETED' && v.status !== 'CANCELLED' && v.status !== 'RESCHEDULED')
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t('visits.mine')}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold">{t('visits.mine')}</h1>
+        <div className="flex-1" />
+        {can('ops:read') ? (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/visits/calendar">
+              <CalendarDays />
+              {t('calendar.title')}
+            </Link>
+          </Button>
+        ) : null}
+      </div>
       {isPending ? (
         <Skeleton className="h-28 w-full" />
       ) : !open || open.length === 0 ? (
