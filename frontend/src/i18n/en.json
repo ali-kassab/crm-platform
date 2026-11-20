@@ -116,7 +116,9 @@
   "errors": {
     "generic": "Something went wrong",
     "network": "Could not reach the server",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "screenFailed": "This page couldn’t be shown",
+    "screenFailedHint": "Try again, or go back to the list and open it again."
   },
   "jobs": {
     "title": "Work orders",

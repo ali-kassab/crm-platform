@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router'
+import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
 import { AppShell } from '@/components/layout/AppShell'
+import { PageErrorBoundary } from '@/components/layout/PageErrorBoundary'
 import { Spinner } from '@/components/ui/spinner'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { HomePage } from '@/pages/HomePage'
@@ -50,6 +51,17 @@ function GuestOnly() {
   return session ? <Navigate to={target} replace /> : <Outlet />
 }
 
+/** A malformed work-order payload must not blank the whole app: contain it to this screen. */
+function JobDetailRoute() {
+  const { t } = useTranslation()
+  const { id = '' } = useParams()
+  return (
+    <PageErrorBoundary backTo="/jobs" backLabel={t('jobs.title')} retryQueryKey={['job', id]}>
+      <JobDetailPage />
+    </PageErrorBoundary>
+  )
+}
+
 function NotFound() {
   const { t } = useTranslation()
   return <p className="p-6 text-muted-foreground">{t('errors.notFound')}</p>
@@ -70,7 +82,7 @@ export default function App() {
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="jobs" element={<JobsPage />} />
-          <Route path="jobs/:id" element={<JobDetailPage />} />
+          <Route path="jobs/:id" element={<JobDetailRoute />} />
           <Route path="visits" element={<VisitsPage />} />
           <Route path="visits/calendar" element={<WeekCalendarPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
