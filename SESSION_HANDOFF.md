@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20 (checkpoint): R13 IN PROGRESS — part 1 (ops/infra) and part 2a (sites, notifications, visit record) done and pushed up to `9b2e97d`; next: maintenance plans + equipment screens — see §6c. The owner authorized continuous execution through the roadmap on 2026-11-20._
+_Updated 2026-11-20 (safe shutdown): **R13 IN PROGRESS**. Part 1 (ops/infra) and part 2 (frontend leftovers: sites, notifications, visit record, maintenance + equipment, approvals, week calendar) are done, verified and pushed up to `1300a8c` (+ the final docs commit). Remaining R13 work is in §7. The owner authorized continuous execution on 2026-11-20, then asked for a safe stop here._
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -46,13 +46,12 @@ Every new session MUST follow this for new work; `PROJECT_HANDOFF.md` §0c is th
 
 If a requirement is not covered by these, ask the owner instead of guessing.
 
-## 4. Git state (2026-11-20)
-- Branch: **`feature/saas-foundation`**. Last commits: … → `e1ad62b` docs (reuse-first policy) → `c27961a` feat(reporting) R12 → docs commit "docs: update handoff - R12 reports and Arabic PDF complete" (HEAD). All pushed to `origin/feature/saas-foundation` (verify with `git status -sb`).
+## 4. Git state (2026-11-20, safe shutdown)
+- Branch: **`feature/saas-foundation`**, in sync with `origin/feature/saas-foundation` after the final docs commit (verify with `git status -sb`). R13 commits this session: `39c38bc`, `1fab3fa`, `ef25092` (docs), `94b7ca0`, `edcce25`, `9b2e97d`, `b385fdc` (docs), `6bfa41c`, `9260925`, `1300a8c`, then the final handoff docs commit (HEAD).
 - Remote: `origin` = `https://github.com/ali-kassab/crm-platform.git`.
-- `origin/main` = **`7ae560a`** (PR #3, merged by the owner; contains R0–R10, **not R11 or R12**). Local `main` is stale at `163d49c`. **Do not touch `main` in any way**; opening/merging a PR for R11 is the owner's decision.
+- `origin/main` = **`50f9437`** (the owner merged **PR #4**, containing everything up to `fac6486` = R11). R12 and R13 are only on the feature branch. Local `main` is stale. **Do not touch `main` in any way**; PRs are the owner's decision.
 - Git identity (local config): `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution lines.
-- Working tree: clean apart from git-ignored files (`node_modules/`, `dist/`, `backend/target/`, Playwright reports).
-- Remote verified by the successful push of `0c4f936` and the docs commit on 2026-11-20.
+- Working tree: clean apart from git-ignored files (`node_modules/`, `dist/`, `backend/target/`, `frontend/test-results/`).
 
 ## 5. Completed roadmap phases and evidence
 | Phase | Feature commit | Last verified result |
@@ -70,7 +69,7 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 | R10 Frontend workflows (core) | `14bf98c` | e2e 22 passed / 2 skipped |
 | R11 Realtime (NestJS + Redis pub/sub + one-time tickets) | `0c4f936` | see below |
 | R12 Reports & Arabic PDF | `c27961a` | 131 backend tests, e2e 36 passed / 2 skipped |
-| R13 Performance & readiness | — | not started |
+| R13 Performance & readiness | `39c38bc` … `1300a8c` | **in progress** (see §6c): backend 134 tests, e2e 60 passed / 2 skipped, live flow passed |
 
 **Tests actually run for R12 (2026-11-20, committed as `c27961a`):**
 - `backend`: `./mvnw test` with the JVM on UTC → **131 tests, 0 failures, 0 errors, 0 skipped** (incl. `ReportsIT` 2/2 — real Arabic PDF verified: embedded Plex font, photos + signature embedded, Arabic text in logical order, no internal notes/costs, access 404/401 rules, dashboard tenant isolation and permissions; `VisitReportPdfTest` 2/2).
@@ -96,25 +95,42 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 - Frontend: lazy dashboard panel on the home page (reports:read only), "Download PDF report" button on visits (job detail + technician's visits).
 - Not done: charts (KPI tiles only), live run against the real backend, visit-report/photo editing UI (R10 leftovers → R13).
 
-## 6c. R13 progress (checkpoint)
-Done and pushed:
-- `39c38bc` fix(api): `?sort=field,desc` was rejected (400 INVALID_SORT) on all 22 list endpoints — Spring splits it into `["field","desc"]`; `Pagination` now applies a bare direction to the previous field. Found by the first LIVE run (mocks hid it). OTLP metrics push off unless `OTLP_METRICS_ENABLED=true`. Test JVM pinned to UTC in `pom.xml` (§7 flake fixed). Backend **134 tests green**.
-- `1fab3fa` build(ops): Dockerfiles (backend/realtime/frontend+nginx), compose `--profile app`, `docker-compose.prod.yml`, CI `.github/workflows/ci.yml` (PRs, main, manual; actionlint clean; **never run on GitHub yet**), Linux screenshot baselines, `ops/backup/{backup,restore}.sh`, `frontend/e2e-live` + `pnpm test:live`, `ops/perf/baseline.js`, `docs/operations/{README,performance-baseline}.md`.
-- Verified on an isolated throwaway compose project `crm-r13-smoke` (own volumes/ports, env in the session scratchpad; the owner's `crm-platform` volumes untouched): images healthy; live browser smoke green; backup→restore identical counts; k6 20 VUs: 0 errors, all p95 ≤ 105 ms.
-- Throwaway stack `crm-r13-smoke` may still be running/left with its volumes: stop with `docker compose -p crm-r13-smoke down` (removing its volumes needs the owner's OK by policy).
+## 6c. R13 progress — done, verified and pushed
+**Part 1: ops / production readiness** (configuration only, nothing deployed):
+- `39c38bc` fix(api): `?sort=field,desc` was rejected (400 INVALID_SORT) on all 22 list endpoints. Spring binds it to `List<String>` as `["field","desc"]`; `shared/web/Pagination` now applies a bare asc/desc to the previous field (`PaginationTest` 3, `CustomersIT`). Found by the first LIVE run (mocks hid it). OTLP metrics push is off unless `OTLP_METRICS_ENABLED=true` (`application.yml`, `.env.example`). Test JVM pinned to UTC in the `backend/pom.xml` `argLine`, which fixes the midnight date-boundary flake (suite green at 01:09 Cairo).
+- `1fab3fa` build(ops): `backend/Dockerfile` (Temurin 17 JRE noble, layered jar, non-root, liveness healthcheck), `realtime-service/Dockerfile`, `frontend/Dockerfile` + `frontend/nginx/` (SPA, `/api` + `/realtime` websocket proxy, caching, security headers + CSP); compose `--profile app` services backend/realtime/frontend (web on `WEB_PORT`, default 8088); `docker-compose.prod.yml`; `.github/workflows/ci.yml` (PRs, pushes to main, manual; actionlint clean; **never run on GitHub**); Linux screenshot baselines `*-linux.png`; `ops/backup/{backup,restore}.sh` (restore only into a NEW db / empty volume); `frontend/e2e-live` + `pnpm test:live`; `ops/perf/baseline.js` (k6); runbook `docs/operations/README.md`, `docs/operations/performance-baseline.md`.
 
-R13 part 2 (frontend leftovers from `PROJECT_HANDOFF.md` 4k) — done and pushed:
-- `94b7ca0` customer page `/customers/:id` with sites + "add site" (also inline in the new-work-order dialog). This was a **blocking gap found live**: no UI could create a site, so no work order could be created in a fresh workspace.
-- `edcce25` notifications: header bell with unread count (all 6 Arabic plural forms) + `/notifications` (tabs, paging, mark read / all read, links to work order/subscription).
-- `9b2e97d` visit record sheet (report sections + customer confirmation name, photos by purpose with thumbnails, materials; prices only with `finance:read`).
-- Checks after `9b2e97d`: lint 0 errors; build **268.9 kB gzip**; `pnpm test:e2e` **50 passed, 2 skipped**; `pnpm test:live` 1 passed — full real flow (register → customer → site → work order → visit → report + real photo upload/thumbnail + material → complete → Arabic PDF, realtime socket via nginx).
-- Live test needs a fresh registration per run; registration is limited to 5/hour/IP (on the throwaway stack the `rl:register:*` Redis keys were cleared between runs).
+**Part 2: R10 frontend leftovers** (lazy routes/chunks, shadcn components only, **no new npm dependency**):
+- `94b7ca0` `/customers/:id` with sites and an add-site dialog (also inline in the new-work-order dialog). This was a **blocking gap found live**: no UI could create a site, so no work order could be created in a fresh workspace.
+- `edcce25` header bell with unread count + `/notifications` (all/unread, paging, mark read, mark all read; texts built client-side from type + payload, ar/en, Arabic plural forms).
+- `9b2e97d` "Visit record" sheet on every visit: report sections + customer confirmation name, photos by purpose with thumbnails, materials (prices only with `finance:read`).
+- `6bfa41c` `/maintenance` (overdue visits, plans by status, new plan, pause/resume; nav entry enabled) and an equipment section on the customer page; realtime hints refresh `['maintenance']`/`['equipment']`; **fix:** the phone menu sheet now closes after choosing a screen (`AppShell` `MenuLink`).
+- `9260925` customer approvals card on the work order (request now / decide later, or record an on-site decision).
+- `1300a8c` `/visits/calendar` week agenda (Saturday to Friday) for `ops:read`. No calendar library (reuse-first: FullCalendar too heavy, the shadcn calendar is a date picker).
 
-Next (in order): maintenance plans + equipment screens (enable the disabled "maintenance" nav entry), job approvals UI, calendar view, sector onboarding; then R13 close-out (full backend suite, handoff docs). Platform-admin UI stays deferred to the final stage (owner decision). Known small issue: `JobDetailPage` has no error boundary — a job payload without `site` would crash the screen (the real API always sends it).
+**Verification actually run (2026-11-20):**
+- Backend `./mvnw test`: **134 tests, 0 failures, 0 errors, 0 skipped** (after `39c38bc`; no backend change since).
+- Frontend at `1300a8c`: `pnpm lint` 0 errors; `pnpm build` OK, **280.0 kB gzip** (limit 350); `pnpm test:e2e` **60 passed, 2 skipped** (Windows). The suite (46 tests at that point) also passed inside the Linux CI image `mcr.microsoft.com/playwright:v1.65.1-noble`.
+- `pnpm test:live` (real browser → nginx → Java → Postgres/Redis/RustFS/NestJS on the throwaway stack): **1 passed** at `9260925` (the calendar commit after it doesn't touch that flow). It covers register → customer → Arabic search → site → equipment → maintenance plan create/pause → work order → customer approval → visit start → report + real photo (WebP thumbnail loaded from storage under the CSP) + material → complete → real Arabic PDF download, with the realtime socket connected and the ticket only in the handshake.
+- Backup → restore round trip (identical row counts; overwrite refused); k6 baseline 20 VUs/60 s: 22,491 requests, 0 errors, every p95 ≤ 105 ms.
+- `realtime-service` `pnpm test` not re-run (no source change this session; its image build was verified).
+
+**Environment notes:**
+- Throwaway compose project **`crm-r13-smoke`** is still running with its own volumes (host ports 15432/16379/19000/19001/11025/18025/18088). Its throwaway secrets were in the session scratchpad, not in the repo. Stop it with `docker compose -p crm-r13-smoke down` (its volumes stay; deleting them needs the owner's OK by policy). The owner's `crm-platform` volumes were never touched.
+- The live test registers a new workspace each run; registration is limited to 5/hour/IP.
+
+**Known issues / not done:**
+- CI has never run on GitHub (triggers: PR, push to main, manual), so it is UNVERIFIED there.
+- `JobDetailPage` has no error boundary (a job payload without `site` would crash it; the real API always sends it).
+- No signature capture: report and approval forms record the name only.
+- The calendar shows no job title (the visit API has none); equipment has no detail/service-history screen yet.
+- Screenshot baselines unchanged (the new bell icon is within the 1 % tolerance).
 
 ## 7. Next steps, in execution order
-1. Open the active repo and verify the state matches §4 (commands in §10). If it differs, the repository wins — update the handoffs before doing anything else.
-2. **Wait for the owner's explicit go-ahead.** The next phase is **R13 — Performance & production readiness**: performance baselines/load test, Dockerfiles (backend, frontend, realtime-service) + docker-compose entry for realtime-service, CI (Linux Playwright baselines), backups, deployment config (no apply/deploy), test-JVM time-zone fix, plus R10 leftovers (`PROJECT_HANDOFF.md` 4k) and a notifications list/badge UI. Follow §2b and §2c.
+1. Verify state (§10 commands). If it differs, the repository wins: update the handoffs first.
+2. Follow §2b (skills) and §2c (reuse-first) before any work.
+3. Finish **R13**, remaining work in order: sector onboarding wizard (R10 leftover); optionally an equipment detail/service-history screen; then R13 close-out: full backend suite, realtime-service tests, frontend lint/build/e2e/live, update `PROJECT_HANDOFF.md` (§3 status R13 ✅, a 4n section) and this file, commit, push.
+4. Platform-admin UI stays deferred to the final stage (owner decision). Owner decisions still open: real plan prices; the local dev DB password mismatch (the throwaway `crm-r13-smoke` stack is a non-destructive way to run live without fixing it).
 
 ## 8. Open decisions and operations needing the owner
 Open decisions (ask; do not decide alone):
@@ -143,7 +159,7 @@ Always requires the owner's explicit approval: database/volume resets or data de
 cd /d/Workspace/crm-platform
 git branch --show-current          # expect: feature/saas-foundation
 git status --short                 # expect: nothing
-git log --oneline -2               # expect: the R12 docs commit, then c27961a
+git log --oneline -2               # expect: the R13 safe-shutdown docs commit, then 1300a8c
 git fetch origin && git status -sb # expect: in sync with origin/feature/saas-foundation
 ```
 Toolchain: Docker Desktop must be running for backend tests (Testcontainers). If Docker crashes on stale sockets, run `D:\Workspace\tools\fix-docker-sockets.ps1`. Node 24 + pnpm:

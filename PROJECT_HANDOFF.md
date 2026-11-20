@@ -2,7 +2,7 @@
 
 > Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
 >
-> Last updated: 2026-11-20 (R12 reports & Arabic PDF completed and committed; R13 not started).
+> Last updated: 2026-11-20 (R13 in progress: ops/infra and most R10 frontend leftovers done and pushed up to `1300a8c`; details and next steps in `SESSION_HANDOFF.md` §6c/§7).
 
 ## 0. Active repository — read before anything else
 - **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
@@ -68,7 +68,7 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 ## 2. Repository
 - Path: `D:\Workspace\crm-platform` · remote `origin` = `https://github.com/ali-kassab/crm-platform.git` (private, owned by the user).
 - Working branch: **`feature/saas-foundation`** (created from `main` @ `163d49c`).
-- **`main` status (verified 2026-11-19 via `git fetch`):** the owner merged **PR #3** (`feature/saas-foundation` → `main`) on GitHub → `origin/main` = `7ae560a` ("Merge pull request #3"), which contains every commit up to `dc393ca`. The **local** `main` ref is stale at `163d49c` (31 commits behind `origin/main`). Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
+- **`main` status (verified 2026-11-20 via `git fetch`):** the owner merged **PR #3** (R0–R10, `7ae560a`) and later **PR #4** → `origin/main` = `50f9437`, which contains every commit up to `fac6486` (R11). R12 and R13 are only on the feature branch. The **local** `main` ref is stale. Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
 - Author/committer: `ali-kassab <alikassab155@gmail.com>` (local git config, verified). **No Claude co-author trailer or Claude/Anthropic attribution** in commits or PR text.
 - Push: verified commits → `origin feature/saas-foundation` automatically. Never `main`, never force-push, never rewrite history, never delete branches, never open a PR (opening and merging PRs is the owner's decision).
 
@@ -89,7 +89,7 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 | R10 Frontend workflows | ✅ core done (2026-11-19, `14bf98c`) — see 4k for what is left |
 | R11 NestJS realtime | ✅ complete (2026-11-20, `0c4f936`) — see 4l; live end-to-end run still blocked (§7) |
 | R12 Reports & Arabic PDF | ✅ complete (2026-11-20, `c27961a`) — see 4m |
-| R13 Performance & production readiness (+ R10 leftovers) | ⚪ not started |
+| R13 Performance & production readiness (+ R10 leftovers) | 🟡 in progress (2026-11-20, up to `1300a8c`) — Dockerfiles, compose app stack, CI, backups, load baseline, live e2e and most R10 leftovers done; see `SESSION_HANDOFF.md` §6c |
 
 Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 and R12 are only on the feature branch).
 
@@ -225,7 +225,7 @@ Audit R12 scope: "dashboards, visit report PDF in Arabic; real Arabic PDF verifi
 - **Not done / limits:** no live run against the real backend (local DB password, §7); charts were not added (KPI tiles only — a chart would need `recharts` via the shadcn chart component, decide in a later phase under the reuse-first policy); no visit-report editing UI or photo upload UI (R10 leftovers, R13); PDF rendering is synchronous on the request thread (bounded by 12 photos and the rate limit).
 
 ## 5. Current phase & next steps
-R12 is complete and pushed. **Next phase: R13 — Performance & production readiness** (performance baselines/load test, CI incl. Linux Playwright baselines, Dockerfiles for backend/frontend/realtime-service + compose entry, backups, deployment config without apply/deploy, the test-JVM time-zone fix (§7), plus the R10 leftovers in 4k). Do not start it without the owner's instruction.
+R13 is in progress (owner authorized continuous execution on 2026-11-20). Done: ops/production readiness (Dockerfiles, compose `--profile app`, `docker-compose.prod.yml`, CI, backups, k6 baseline, runbook `docs/operations/`), the test-JVM time-zone fix, the API sort fix, and the R10 leftovers sites, notifications, visit record, maintenance + equipment, approvals and week calendar. Remaining and exact next steps: `SESSION_HANDOFF.md` §7.
 
 **Exact next steps for a new session (in order):**
 1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
@@ -255,7 +255,7 @@ R12 is complete and pushed. **Next phase: R13 — Performance & production readi
 - **Never run against the real backend end to end.** Local Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fix requires the owner: reset the local dev DB volume (destroys local dev data) or align `.env`. Not done.
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
-- Scheduler dates (maintenance, warranties, subscriptions) use the server clock (UTC), not the workspace time zone. **Test flake from this:** some ITs compute dates with `LocalDate.now()` in the JVM zone (Cairo, +02:00) while the server uses UTC, so between 00:00 and 02:00 local time `BillingIT` and `OperationsIT` fail (seen 2026-11-20 00:11; both pass with `-Duser.timezone=UTC`). Fix in R13: pin the test JVM to UTC (surefire `argLine`) or inject the clock in those tests.
+- Scheduler dates (maintenance, warranties, subscriptions) use the server clock (UTC), not the workspace time zone. **Test flake from this:** some ITs compute dates with `LocalDate.now()` in the JVM zone (Cairo, +02:00) while the server uses UTC, so between 00:00 and 02:00 local time `BillingIT` and `OperationsIT` fail (seen 2026-11-20 00:11; both pass with `-Duser.timezone=UTC`). **Fixed in R13 (`39c38bc`):** the test JVM is pinned to UTC in the `backend/pom.xml` `argLine`, so plain `./mvnw test` is enough now.
 - No notification retention/cleanup; no e-mail delivery for billing/maintenance notices (in-app only).
 - Playwright screenshot baselines are Windows-only (`*-win32.png`); Linux CI needs its own baselines.
 - Seeded plan prices are placeholders (§4h).
