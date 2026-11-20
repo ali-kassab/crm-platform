@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20 (later session): **Roadmap R0–R13 complete, platform-admin UI done** (`0d85543`), and the last documented in-scope polish item — an error boundary on the work-order screen — is implemented and pushed (`5ff273e`, §6e); **its live smoke run is pending, blocked by the app's own sign-up rate limit (§7 item 3)**. **No further approved scope exists: the next step is the owner's decision (§7–§8).**_
+_Updated 2026-11-20 (later session): **Roadmap R0–R13 complete, platform-admin UI done** (`0d85543`), and the last documented in-scope polish item — an error boundary on the work-order screen — is implemented, pushed and fully verified incl. the live smoke run (`5ff273e`, §6e, §7 item 3). **Remaining backend gaps need the owner's decision (§7 item 4).** **No further approved scope exists: the next step is the owner's decision (§7–§8).**_
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -71,7 +71,7 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 | R12 Reports & Arabic PDF | `c27961a` | 131 backend tests, e2e 36 passed / 2 skipped |
 | R13 Performance & readiness | `39c38bc` … `602c22c` | ✅ backend 134/0/0/0, realtime 6/6, e2e 70 passed / 2 skipped, live 1 passed (§6c) |
 | Final stage: platform-admin UI | `0d85543` | ✅ lint 0 errors, build 308.4 kB, e2e 74 passed / 2 skipped, live admin 1 passed (§6d) |
-| Polish: work-order error boundary | `5ff273e` | lint 0 errors, tsc clean, build 308.9 kB, e2e 78 passed / 2 skipped; ⏳ live smoke pending (§7 item 3) |
+| Polish: work-order error boundary | `5ff273e` | ✅ backend 134/0/0/0, realtime 6/6, lint 0 errors, tsc clean, build 308.9 kB, e2e 78 passed / 2 skipped, live 2 passed (§6e) |
 
 **Tests actually run for R12 (2026-11-20, committed as `c27961a`):**
 - `backend`: `./mvnw test` with the JVM on UTC → **131 tests, 0 failures, 0 errors, 0 skipped** (incl. `ReportsIT` 2/2 — real Arabic PDF verified: embedded Plex font, photos + signature embedded, Arabic text in logical order, no internal notes/costs, access 404/401 rules, dashboard tenant isolation and permissions; `VisitReportPdfTest` 2/2).
@@ -150,18 +150,22 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 - i18n `errors.screenFailed`, `errors.screenFailedHint` (ar/en).
 - Test: `frontend/e2e/error-boundary.spec.ts` (2 × desktop/mobile): a job payload without `assignees` shows the contained alert while the shell stays; retry refetches `/jobs/j9` and renders the fixed job; the back link clears the error.
 - Verification (2026-11-20): `pnpm lint` exit 0, 0 errors (pre-existing warnings only, none in changed files); `pnpm exec tsc -b --noEmit` clean; `pnpm build` **308.9 kB gzip** (limit 350); `pnpm test:e2e` **78 passed, 2 skipped**. Backend/realtime unchanged (134/0/0/0, 6/6 at the R13 close-out). Skills read and applied: `frontend-design` (plain, directive error copy; existing design tokens), `vercel-react-best-practices` (no new bundle weight, no effects), `webapp-testing` (method only, TypeScript Playwright).
-- Live smoke stack: web image rebuilt with `5ff273e`. **Live smoke result pending (blocked by the sign-up rate limit) — see §7 item 3.** Not fully verified until it passes.
+- Live smoke stack: web image rebuilt with `5ff273e`; `pnpm test:live` **2 passed** at 11:44 UTC (§7 item 3). Same session, same tree: backend `./mvnw test` **134 run, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **6/6**.
 
 ## 7. Next steps, in execution order
 1. Verify state (§10 commands). If it differs, the repository wins: update the handoffs first.
 2. Follow §2b (skills) and §2c (reuse-first) before any work.
-3. **Live smoke test — BLOCKED (temporary), result PENDING.** Stack `crm-r13-smoke`, web image rebuilt at `5ff273e`. Admin live test **1 passed** (11:17 UTC). The main test (`e2e-live/smoke.spec.ts`) failed at sign-up with 429 `RATE_LIMITED` («طلبات كثيرة جدًا»).
+3. ✅ **Live smoke test — PASSED at `5ff273e`** (was temporarily blocked; history below). Run once after the key expired (key gone 11:44:03 UTC, run 11:44:08–11:44:41 UTC): `pnpm test:live` → **2 passed** (`e2e-live/smoke.spec.ts` full field flow 29.2 s; `e2e-live/admin.spec.ts` 12.3 s). Block history: stack `crm-r13-smoke`, web image rebuilt at `5ff273e`; admin live test passed at 11:17 UTC; the main test failed at sign-up with 429 `RATE_LIMITED` («طلبات كثيرة جدًا»).
    - Source: our own backend, `AuthService.register` → `RateLimiter.check("register:" + ip, 5, 1 h)` (`backend/src/main/java/com/crmplatform/identity/application/AuthService.java:94`, `shared/ratelimit/RateLimiter.java`: fixed window, Redis `INCR`, expiry set on the first hit only; rejected hits still count but don't extend the window). Not an external provider, not Claude/Anthropic.
    - Every smoke run registers a new workspace, and all host traffic reaches the backend from the Docker gateway IP, so all runs from this machine share one bucket.
    - Confirmed read-only in Redis at 11:26:37 UTC: key `rl:register:<gateway ip>` count 7, TTL 1043 s → **expires ≈ 11:44:00 UTC** (window opened ≈ 10:44 UTC from the previous session's runs).
-   - Plan: one run only, after the key is gone (background check of the key, no retries). Rate limiter untouched. Result: LIVE_RESULT_PENDING.
-   - Command: `cd frontend && LIVE_BASE_URL=http://localhost:18088 pnpm test:live` (plus `LIVE_ADMIN_EMAIL` / `LIVE_ADMIN_PASSWORD` from the smoke env file). Until it passes, `5ff273e` is **not** live-verified.
-4. The approved roadmap (R0–R13 + platform-admin UI + documented polish) is complete. **Ask the owner what comes next; do not invent new product scope.**
+   - One run only, after the key was gone (read-only check of the key, no retries). Rate limiter untouched. That run used 1 of the 5 sign-ups in the new window.
+   - Command: `cd frontend && LIVE_BASE_URL=http://localhost:18088 pnpm test:live` (plus `LIVE_ADMIN_EMAIL` / `LIVE_ADMIN_PASSWORD` from the smoke env file). Before re-running, check the counter read-only: `rl:register:*` in the stack's Redis (count > 5 → wait for its TTL).
+4. The approved roadmap (R0–R13 + platform-admin UI + documented polish) is implemented. Checked against `PRODUCT_AUDIT.md` §15/§5 on 2026-11-20, two backend items are **not** implemented and need the owner's decision before any work (new scope / content choices):
+   - **Sector seed data** (R10 "seeders", audit §8 #14): no per-sector tags, board or milestone templates are seeded (the wizard covers sector, regional defaults, first steps, work-order type).
+   - **Project status/lifecycle + progress** (audit §5 item 6): listed as an improvement but in no roadmap phase; `work/projects/domain/Project` has no status/progress (next migration would be `V18`).
+   - Also unverifiable: R10 acceptance "scenario tests 1–9, 12–13" refers to the Master Directive, which is not saved anywhere.
+   **Ask the owner what comes next; do not invent new product scope.**
 5. Owner decisions still open (§8): real plan prices (now editable in `/admin/plans`); the local dev DB password mismatch; running CI on GitHub (needs a PR or a push to main — the owner's call); whether to keep or stop the `crm-r13-smoke` stack.
 
 ## 8. Open decisions and operations needing the owner

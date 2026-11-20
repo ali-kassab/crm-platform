@@ -240,7 +240,7 @@ Audit R13 scope: "baselines, load test, Dockerfiles, CI, backups, deployment con
 - Tests: `e2e/admin.spec.ts`, `e2e-live/admin.spec.ts` (env-gated). Details: `SESSION_HANDOFF.md` §6d.
 
 ## 5. Current phase & next steps
-Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Exact next steps: `SESSION_HANDOFF.md` §7.
+Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Known backend gaps against `PRODUCT_AUDIT.md`, waiting for an owner decision: sector seed data (R10 "seeders", §8 #14) and project status/lifecycle + progress (§5 item 6, never scheduled in a phase). Exact next steps: `SESSION_HANDOFF.md` §7.
 
 **Exact next steps for a new session (in order):**
 1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
