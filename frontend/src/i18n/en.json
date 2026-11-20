@@ -417,6 +417,20 @@
       "FAULTY": "Faulty",
       "REPLACED": "Replaced",
       "REMOVED": "Removed"
+    },
+    "status": "Status",
+    "statusSaved": "Device status updated",
+    "notes": "Notes",
+    "history": "Service history",
+    "historyEmpty": "This device is not linked to any work order yet. Link it from a work order page to see it here.",
+    "completedOn": "Completed {{date}}",
+    "warranties": "Warranties",
+    "warrantiesEmpty": "No warranties recorded for this device",
+    "warrantyEnds": "Ends {{date}}",
+    "warrantyStatuses": {
+      "ACTIVE": "Active",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
     }
   },
   "approvals": {
@@ -516,5 +530,13 @@
     "start": "Start setup",
     "edit": "Change setup",
     "currentSector": "Current field: {{sector}}"
+  },
+  "jobEquipment": {
+    "title": "Devices on this work order",
+    "empty": "No devices chosen for this work order",
+    "choose": "Choose devices",
+    "chooseHint": "Pick the devices at this site that the work order serves; they then show in each device’s service history.",
+    "noneAtSite": "No devices are registered at this site. Register them on the customer page.",
+    "saved": "Work order devices saved"
   }
 }

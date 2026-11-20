@@ -17,6 +17,8 @@ export interface FakeApi {
   overdue: Record<string, unknown>[]
   equipment: Record<string, unknown>[]
   approvals: Record<string, Record<string, unknown>[]>
+  /** device ids linked to each work order (PUT /jobs/{id}/equipment) */
+  jobEquipment: Record<string, string[]>
   /** workspace settings behind GET/PATCH /workspace; the session's workspace mirrors them */
   workspace: { name: string; defaultLanguage: string; locale: string; currency: string; timeZone: string; sector: string | null }
   /** sites per customer id; a customer missing here has the default site s1 */
@@ -144,6 +146,7 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       overdue: [],
       equipment: [],
       approvals: {},
+      jobEquipment: {},
       workspace: { name: session.workspace.name, defaultLanguage: 'ar', locale: 'ar-EG', currency: 'EGP', timeZone: 'Africa/Cairo', sector: session.workspace.sector },
     }
     // seed the language once per test; later reloads keep whatever the user picked
@@ -370,7 +373,30 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
     return true
   }
   if (path === '/equipment') {
-    await json(route, 200, page(api.equipment.filter((e) => e.contactId === search.get('contactId'))))
+    const contactId = search.get('contactId')
+    const locationId = search.get('locationId')
+    await json(route, 200, page(api.equipment.filter((e) => (!contactId || e.contactId === contactId) && (!locationId || e.locationId === locationId))))
+    return true
+  }
+  if ((m = path.match(/^\/equipment\/([^/]+)$/))) {
+    const device = api.equipment.find((e) => e.id === m![1])
+    if (!device) {
+      await json(route, 404, { code: 'NOT_FOUND' })
+      return true
+    }
+    if (method === 'PATCH') Object.assign(device, b)
+    const serviceHistory = Object.entries(api.jobEquipment)
+      .filter(([, ids]) => ids.includes(device.id as string))
+      .map(([jobId]) => api.jobs.find((j) => j.id === jobId))
+      .filter(Boolean)
+      .map((j) => ({ jobId: j!.id, title: j!.title, type: j!.type, status: j!.status, startDate: null, completedAt: null }))
+    await json(route, 200, { notes: null, warranties: [], ...device, serviceHistory })
+    return true
+  }
+  if ((m = path.match(/^\/jobs\/([^/]+)\/equipment$/))) {
+    if (method === 'PUT') api.jobEquipment[m[1]] = (b.equipmentIds as string[]) ?? []
+    const ids = api.jobEquipment[m[1]] ?? []
+    await json(route, 200, api.equipment.filter((e) => ids.includes(e.id as string)))
     return true
   }
   // visit record (R4 API): report, photos, materials

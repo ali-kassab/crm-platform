@@ -25,6 +25,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { applyServerErrors } from '@/lib/forms'
 import { formatDate } from '@/lib/format'
 import type { Site } from './api'
+import { EquipmentDetailsSheet } from './EquipmentDetailsSheet'
 import { EQUIPMENT_CATEGORIES, useCreateEquipment, useEquipment, type EquipmentCategory } from './equipment-api'
 
 const FIELDS = ['locationId', 'category', 'name', 'manufacturer', 'model', 'serialNumber', 'installedOn'] as const
@@ -204,7 +205,7 @@ export function EquipmentSection({ contactId, sites, canWrite, showAdd }: { cont
           {equipment.data.content.map((e) => (
             <li key={e.id} className="flex flex-col gap-1 px-4 py-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{e.name}</span>
+                <EquipmentDetailsSheet equipment={e} siteName={siteName.get(e.locationId)} canWrite={canWrite} />
                 <Badge variant="secondary">{t(`equipment.categories.${e.category}`)}</Badge>
                 {e.status !== 'ACTIVE' ? <Badge variant="destructive">{t(`equipment.statuses.${e.status}`)}</Badge> : null}
               </div>

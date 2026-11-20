@@ -27,6 +27,7 @@ import { formatDateTime, formatMoney, fromLocalInput, toLocalInput } from '@/lib
 import { useSubscription } from '@/lib/subscription'
 import { VisitActions } from '@/pages/visits/VisitActions'
 import { ApprovalsCard } from './ApprovalsCard'
+import { JobEquipmentCard } from './JobEquipmentCard'
 import { VisitReportButton } from '@/pages/visits/VisitReportButton'
 import { VisitWorkButton } from '@/pages/visits/VisitWorkButton'
 import { JOB_STATUSES, useChangeJobStatus, useJob, useJobVisits, useScheduleVisit, type JobStatus } from './api'
@@ -140,6 +141,8 @@ export function JobDetailPage() {
           canEdit={(can('ops:write') || can('ops:assigned')) && !readOnly}
           showActions={can('ops:write') || can('ops:assigned')}
         />
+
+        <JobEquipmentCard jobId={id} siteId={j.site?.id} canEdit={can('ops:read') && can('ops:write') && !readOnly} />
       </div>
     </div>
   )

@@ -87,6 +87,22 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   await jobDialog.getByLabel('عنوان أمر العمل').fill('التكييف لا يبرد')
   await jobDialog.getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByRole('heading', { name: 'التكييف لا يبرد' })).toBeVisible()
+  const jobUrl = page.url()
+
+  // the device at this site is linked to the work order and shows it in its service history
+  await page.getByRole('button', { name: 'تحديد الأجهزة' }).click()
+  const pickDialog = page.getByRole('dialog')
+  await pickDialog.getByLabel(/كاميرا المدخل/).check()
+  await pickDialog.getByRole('button', { name: 'حفظ' }).click()
+  await expect(page.getByText('تم حفظ أجهزة أمر العمل')).toBeVisible()
+  await expect(pickDialog).toBeHidden()
+  await expect(page.getByText(`SN-${stamp}`)).toBeVisible()
+  await page.goto('/customers')
+  await page.getByRole('link', { name: 'مستشفى النيل' }).click()
+  await page.getByRole('button', { name: 'كاميرا المدخل' }).click()
+  await expect(page.getByRole('dialog').getByRole('link', { name: 'التكييف لا يبرد' })).toBeVisible()
+  await page.goto(jobUrl)
+  await expect(page.getByRole('heading', { name: 'التكييف لا يبرد' })).toBeVisible()
 
   // customer approval: quotation requested, then approved by the customer
   await page.getByRole('button', { name: 'تسجيل موافقة' }).click()
