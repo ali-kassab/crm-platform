@@ -2,7 +2,7 @@
 
 > Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
 >
-> Last updated: 2026-11-20 (**R13 complete** — roadmap R0–R13 done; last feature commit `602c22c`. Next: the deferred platform-admin UI (final stage); see `SESSION_HANDOFF.md` §7).
+> Last updated: 2026-11-20 (**R13 complete and the deferred platform-admin UI done** — last feature commit `0d85543`; next steps in `SESSION_HANDOFF.md` §7).
 
 ## 0. Active repository — read before anything else
 - **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
@@ -90,6 +90,7 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 | R11 NestJS realtime | ✅ complete (2026-11-20, `0c4f936`) — see 4l; live end-to-end run still blocked (§7) |
 | R12 Reports & Arabic PDF | ✅ complete (2026-11-20, `c27961a`) — see 4m |
 | R13 Performance & production readiness (+ R10 leftovers) | ✅ complete (2026-11-20, `39c38bc` … `602c22c`) — see 4n |
+| Final stage: platform-admin UI | ✅ complete (2026-11-20, `0d85543`) — see 4o |
 
 Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 and R12 are only on the feature branch).
 
@@ -233,13 +234,18 @@ Audit R13 scope: "baselines, load test, Dockerfiles, CI, backups, deployment con
 - **Tests:** backend 134/0/0/0; realtime-service 6/6; frontend lint 0 errors, build 290.3 kB gzip, e2e 70 passed / 2 skipped, `pnpm test:live` 1 passed on the throwaway `crm-r13-smoke` stack (register → setup wizard → customer → site → device → maintenance plan → work order → device link + service history → approval → visit → report + photo → materials → complete → Arabic PDF, realtime socket connected).
 - **Not done / limits:** CI never ran on GitHub (triggers: PR, push to main, manual); no deployment; sector seeding of tags/board or milestone templates was not added (no screen uses them; the wizard covers sector choice, regional defaults, first steps and the work-order type suggestion); no signature capture; `JobDetailPage` has no error boundary; platform-admin UI deferred to the final stage.
 
+## 4o. Completed — Platform-admin UI (final stage) — commit `0d85543`
+- `frontend/src/admin/` — lazy `/admin/*` area on top of the 4h admin APIs: sign-in, payment-request review (receipt, approve, reject with reason), workspaces (list, detail, extend / suspend / reactivate / change plan), plans, payment methods, the admin's own email and password. No backend change, no new dependency.
+- **Permanent rule:** the admin session never shares anything with the workspace session — separate in-memory token (`src/admin/session.ts`), `credentials: 'omit'` (no refresh cookie), no refresh, query keys under `['admin', …]` dropped on sign-out; a reload ends it (access-token-only by design, 4 R0 item 3).
+- Tests: `e2e/admin.spec.ts`, `e2e-live/admin.spec.ts` (env-gated). Details: `SESSION_HANDOFF.md` §6d.
+
 ## 5. Current phase & next steps
-Roadmap R0–R13 is complete (2026-11-20). The remaining approved item is the **platform-admin UI** (plans, payment methods, subscription-request review, workspaces) that the owner deferred to the final stage; its backend APIs exist (4h). Exact next steps: `SESSION_HANDOFF.md` §7.
+Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Exact next steps: `SESSION_HANDOFF.md` §7.
 
 **Exact next steps for a new session (in order):**
 1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
 2. Follow §0b (skills) and §0c (reuse-first).
-3. Platform-admin UI (final stage) per `SESSION_HANDOFF.md` §7; after it: tests → commit → push → update both handoff files.
+3. Follow `SESSION_HANDOFF.md` §7 (live smoke re-run, then ask the owner for the next scope).
 
 ## 6. Tests (actual results)
 - 2026-11-20, R13 close-out at `602c22c`: backend `./mvnw test` **134 tests, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **6/6**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK **290.3 kB gzip**, `pnpm test:e2e` **70 passed, 2 skipped**, `pnpm test:live` **1 passed** against the throwaway `crm-r13-smoke` stack.
@@ -327,7 +333,9 @@ Roadmap R0–R13 is complete (2026-11-20). The remaining approved item is the **
 | `39c38bc` … `1300a8c` | R13 ops/infra and R10 leftovers (see 4n; docs commits `ef25092`, `b385fdc`, `c14091c` in between) |
 | `eb84b4b` | feat(frontend): sector onboarding wizard for new workspaces |
 | `602c22c` | feat(frontend): device card with service history, devices on the work order |
-| (next) | docs: update handoff - R13 complete (**HEAD**) |
+| `5f47e92` | docs: update handoff - R13 performance and production readiness complete |
+| `0d85543` | feat(frontend): platform-admin area for manual payments, workspaces, plans |
+| (next) | docs: handoff safe shutdown - platform-admin UI done (**HEAD**) |
 
 ## 11. Working tree (2026-11-20)
 - Branch `feature/saas-foundation`; after the R13 docs commit everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `50f9437` (PR #4; contains up to `fac6486` = R11, not R12/R13); local `main` is stale — leave it alone.
