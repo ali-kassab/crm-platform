@@ -57,7 +57,10 @@ free Postgres expires after 30 days; Render free Key Value loses data on restart
    Postgres 18, branch `production`, database `neondb`, role `neondb_owner` (Neon's defaults; no
    extra database created). Optional Neon services (Auth, Data API, Functions, AI Gateway) stay off.
    Connection values (direct host) are in the local `.env.neon`.
-2. ⚑ **Upstash**: create a Free Redis database in `eu-central-1`. Note endpoint and password.
+2. ⚑ **Upstash** ✅ done 2026-11-20: Free Redis database `crm-staging-redis`, AWS Frankfurt
+   (`eu-central-1`), TLS, eviction off (all keys have TTLs; avoids dropping token-denylist entries).
+   User `default` + password. Values (`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`) are in the local
+   git-ignored `.env.upstash`; TLS PING/SET/GET/INCR/EXPIRE verified, plaintext refused.
 3. ⚑ **Backblaze B2** (choose the EU region at sign-up): create a **private** bucket and an
    application key with read/write access to that bucket only. Note bucket, keyID, applicationKey,
    S3 endpoint.
