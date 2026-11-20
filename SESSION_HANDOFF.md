@@ -1,6 +1,6 @@
 # SESSION HANDOFF — continuation guide for a NEW Claude Code session
 
-_Updated 2026-11-20 (safe shutdown): **Roadmap R0–R13 complete, and the deferred platform-admin UI is done** (`0d85543`). This session: onboarding wizard (`eb84b4b`), devices (`602c22c`), R13 close-out (`5f47e92`), platform-admin UI (`0d85543`), then this docs commit. Nothing is half-done. Only open check: re-run the live smoke test after the sign-up rate limit window (§7). The owner asked for a safe stop here; do not start new work until told._
+_Updated 2026-11-20 (later session): **Roadmap R0–R13 complete, platform-admin UI done** (`0d85543`), and the last documented in-scope polish item — an error boundary on the work-order screen — is implemented and pushed (`5ff273e`, §6e); **its live smoke run is pending, blocked by the app's own sign-up rate limit (§7 item 3)**. **No further approved scope exists: the next step is the owner's decision (§7–§8).**_
 
 ## 1. Active repository (read first)
 - **Active repository: `D:\Workspace\crm-platform`** — the ONLY place for development, Git operations and tests.
@@ -47,7 +47,7 @@ Every new session MUST follow this for new work; `PROJECT_HANDOFF.md` §0c is th
 If a requirement is not covered by these, ask the owner instead of guessing.
 
 ## 4. Git state (2026-11-20, safe shutdown)
-- Branch: **`feature/saas-foundation`**, in sync with `origin/feature/saas-foundation` after the shutdown docs commit (verify with `git status -sb`). This session: `eb84b4b`, `602c22c`, `5f47e92` (docs), `0d85543` (admin UI), then the shutdown docs commit (HEAD). Earlier R13 commits: `39c38bc`, `1fab3fa`, `ef25092`, `94b7ca0`, `edcce25`, `9b2e97d`, `b385fdc`, `6bfa41c`, `9260925`, `1300a8c`, `c14091c`.
+- Branch: **`feature/saas-foundation`**, in sync with `origin/feature/saas-foundation` (verify with `git status -sb`). Latest: `5ff273e` (error boundary), then this docs commit (HEAD). Previous session: `eb84b4b`, `602c22c`, `5f47e92` (docs), `0d85543` (admin UI), `2f00113` (shutdown docs). Earlier R13 commits: `39c38bc`, `1fab3fa`, `ef25092`, `94b7ca0`, `edcce25`, `9b2e97d`, `b385fdc`, `6bfa41c`, `9260925`, `1300a8c`, `c14091c`.
 - Remote: `origin` = `https://github.com/ali-kassab/crm-platform.git`.
 - `origin/main` = **`50f9437`** (the owner merged **PR #4**, containing everything up to `fac6486` = R11). R12 and R13 are only on the feature branch. Local `main` is stale. **Do not touch `main` in any way**; PRs are the owner's decision.
 - Git identity (local config): `ali-kassab <alikassab155@gmail.com>`; no Claude co-author/attribution lines.
@@ -71,6 +71,7 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 | R12 Reports & Arabic PDF | `c27961a` | 131 backend tests, e2e 36 passed / 2 skipped |
 | R13 Performance & readiness | `39c38bc` … `602c22c` | ✅ backend 134/0/0/0, realtime 6/6, e2e 70 passed / 2 skipped, live 1 passed (§6c) |
 | Final stage: platform-admin UI | `0d85543` | ✅ lint 0 errors, build 308.4 kB, e2e 74 passed / 2 skipped, live admin 1 passed (§6d) |
+| Polish: work-order error boundary | `5ff273e` | lint 0 errors, tsc clean, build 308.9 kB, e2e 78 passed / 2 skipped; ⏳ live smoke pending (§7 item 3) |
 
 **Tests actually run for R12 (2026-11-20, committed as `c27961a`):**
 - `backend`: `./mvnw test` with the JVM on UTC → **131 tests, 0 failures, 0 errors, 0 skipped** (incl. `ReportsIT` 2/2 — real Arabic PDF verified: embedded Plex font, photos + signature embedded, Arabic text in logical order, no internal notes/costs, access 404/401 rules, dashboard tenant isolation and permissions; `VisitReportPdfTest` 2/2).
@@ -129,7 +130,7 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 
 **Known issues / not done:**
 - CI has never run on GitHub (triggers: PR, push to main, manual), so it is UNVERIFIED there.
-- `JobDetailPage` has no error boundary (a job payload without `site` would crash it; the real API always sends it).
+- ~~`JobDetailPage` has no error boundary~~ — done in `5ff273e` (§6e).
 - No signature capture: report and approval forms record the name only.
 - The calendar shows no job title (the visit API has none).
 - Sector seeding of tags / board / milestone templates was not added: no screen uses them yet (the wizard covers sector choice, regional defaults, first steps and the work-order type suggestion).
@@ -143,11 +144,24 @@ If a requirement is not covered by these, ask the owner instead of guessing.
 - Verification at `0d85543`: `pnpm lint` 0 errors (pre-existing warnings only); `pnpm build` OK **308.4 kB gzip** (limit 350; admin chunks lazy, largest 2.8 kB); `pnpm test:e2e` **74 passed, 2 skipped**; live admin **1 passed**. Backend/realtime unchanged since the R13 close-out (134/0/0/0, 6/6).
 - **Not re-verified:** the live smoke test after `0d85543`: its run stopped at sign-up with "too many requests" (registration limit 5/hour/IP, used up by this session's live runs). It passed at `602c22c`; `0d85543` only adds the separate `/admin/*` route in `App.tsx` besides new files.
 
+## 6e. Work-order error boundary — commit `5ff273e`, verified and pushed
+- `frontend/src/components/layout/PageErrorBoundary.tsx` (new): minimal React class boundary (`getDerivedStateFromError`; React has no hook API, so no dependency such as `react-error-boundary` was added) + shadcn `Alert`/`Button`. Fallback: "couldn't show this page", **Try again** (calls `queryClient.resetQueries(retryQueryKey)` so a bad cached payload is refetched, then re-renders) and a link back to the list. Keyed on `pathname` → resets on navigation. Logs the error + component stack to the console only.
+- `frontend/src/App.tsx`: `/jobs/:id` renders `JobDetailRoute` = `PageErrorBoundary` (back to `/jobs`, retry key `['job', id]`) around `JobDetailPage`. No other route changed (forward-only reuse policy); reuse the component for other screens only when a task needs it.
+- i18n `errors.screenFailed`, `errors.screenFailedHint` (ar/en).
+- Test: `frontend/e2e/error-boundary.spec.ts` (2 × desktop/mobile): a job payload without `assignees` shows the contained alert while the shell stays; retry refetches `/jobs/j9` and renders the fixed job; the back link clears the error.
+- Verification (2026-11-20): `pnpm lint` exit 0, 0 errors (pre-existing warnings only, none in changed files); `pnpm exec tsc -b --noEmit` clean; `pnpm build` **308.9 kB gzip** (limit 350); `pnpm test:e2e` **78 passed, 2 skipped**. Backend/realtime unchanged (134/0/0/0, 6/6 at the R13 close-out). Skills read and applied: `frontend-design` (plain, directive error copy; existing design tokens), `vercel-react-best-practices` (no new bundle weight, no effects), `webapp-testing` (method only, TypeScript Playwright).
+- Live smoke stack: web image rebuilt with `5ff273e`. **Live smoke result pending (blocked by the sign-up rate limit) — see §7 item 3.** Not fully verified until it passes.
+
 ## 7. Next steps, in execution order
 1. Verify state (§10 commands). If it differs, the repository wins: update the handoffs first.
 2. Follow §2b (skills) and §2c (reuse-first) before any work.
-3. Re-run the live smoke test (more than an hour after 2026-11-20 ~11:10 UTC): rebuild nothing, `cd frontend && LIVE_BASE_URL=http://localhost:18088 pnpm test:live` (plus `LIVE_ADMIN_EMAIL` / `LIVE_ADMIN_PASSWORD` from the smoke env file for the admin test). If the smoke env file is gone, the stack needs new throwaway secrets.
-4. The approved roadmap (R0–R13 + platform-admin UI) is complete. Ask the owner what comes next; do not invent new product scope. Optional polish inside approved scope only: an error boundary on `JobDetailPage`.
+3. **Live smoke test — BLOCKED (temporary), result PENDING.** Stack `crm-r13-smoke`, web image rebuilt at `5ff273e`. Admin live test **1 passed** (11:17 UTC). The main test (`e2e-live/smoke.spec.ts`) failed at sign-up with 429 `RATE_LIMITED` («طلبات كثيرة جدًا»).
+   - Source: our own backend, `AuthService.register` → `RateLimiter.check("register:" + ip, 5, 1 h)` (`backend/src/main/java/com/crmplatform/identity/application/AuthService.java:94`, `shared/ratelimit/RateLimiter.java`: fixed window, Redis `INCR`, expiry set on the first hit only; rejected hits still count but don't extend the window). Not an external provider, not Claude/Anthropic.
+   - Every smoke run registers a new workspace, and all host traffic reaches the backend from the Docker gateway IP, so all runs from this machine share one bucket.
+   - Confirmed read-only in Redis at 11:26:37 UTC: key `rl:register:<gateway ip>` count 7, TTL 1043 s → **expires ≈ 11:44:00 UTC** (window opened ≈ 10:44 UTC from the previous session's runs).
+   - Plan: one run only, after the key is gone (background check of the key, no retries). Rate limiter untouched. Result: LIVE_RESULT_PENDING.
+   - Command: `cd frontend && LIVE_BASE_URL=http://localhost:18088 pnpm test:live` (plus `LIVE_ADMIN_EMAIL` / `LIVE_ADMIN_PASSWORD` from the smoke env file). Until it passes, `5ff273e` is **not** live-verified.
+4. The approved roadmap (R0–R13 + platform-admin UI + documented polish) is complete. **Ask the owner what comes next; do not invent new product scope.**
 5. Owner decisions still open (§8): real plan prices (now editable in `/admin/plans`); the local dev DB password mismatch; running CI on GitHub (needs a PR or a push to main — the owner's call); whether to keep or stop the `crm-r13-smoke` stack.
 
 ## 8. Open decisions and operations needing the owner
@@ -177,7 +191,7 @@ Always requires the owner's explicit approval: database/volume resets or data de
 cd /d/Workspace/crm-platform
 git branch --show-current          # expect: feature/saas-foundation
 git status --short                 # expect: nothing
-git log --oneline -2               # expect: the safe-shutdown docs commit, then 0d85543
+git log --oneline -2               # expect: the latest docs commit, then 5ff273e
 git fetch origin && git status -sb # expect: in sync with origin/feature/saas-foundation
 ```
 Toolchain: Docker Desktop must be running for backend tests (Testcontainers). If Docker crashes on stale sockets, run `D:\Workspace\tools\fix-docker-sockets.ps1`. Node 24 + pnpm:

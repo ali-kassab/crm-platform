@@ -2,7 +2,7 @@
 
 > Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
 >
-> Last updated: 2026-11-20 (**R13 complete and the deferred platform-admin UI done** — last feature commit `0d85543`; next steps in `SESSION_HANDOFF.md` §7).
+> Last updated: 2026-11-20 (**R13 complete and the deferred platform-admin UI done**; last commit `5ff273e` = work-order error boundary; next steps in `SESSION_HANDOFF.md` §7).
 
 ## 0. Active repository — read before anything else
 - **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
@@ -232,7 +232,7 @@ Audit R13 scope: "baselines, load test, Dockerfiles, CI, backups, deployment con
 - **R10 leftovers (frontend, shadcn only, no new npm dependency):** customer page with sites (`94b7ca0`), notifications bell + `/notifications` (`edcce25`), visit record sheet (`9b2e97d`), `/maintenance` + equipment section (`6bfa41c`), customer approvals card (`9260925`), `/visits/calendar` week agenda (`1300a8c`), **sector onboarding wizard** `/setup` (`eb84b4b`: sector → name/default language/currency/time zone via `PATCH /workspace` → sector-specific first-steps checklist; new owners land there after sign-up; home prompt while no sector; Settings link; the sector suggests the new work-order type; shadcn `radio-group` added), **device card + devices on the work order** (`602c22c`: sheet with details, status, service history and warranties from `GET /equipment/{id}`; work-order "Devices" card linking site devices via `PUT /jobs/{id}/equipment`).
 - **Frontend conventions added:** `AuthState.updateWorkspace(partial)` merges saved workspace settings into the in-memory session; `GuestOnly` sends a just-registered user to `/setup` (its redirect wins over the page's own `navigate`); sector defaults live in `src/pages/setup/sectors.ts` (suggestions only, never feature switches).
 - **Tests:** backend 134/0/0/0; realtime-service 6/6; frontend lint 0 errors, build 290.3 kB gzip, e2e 70 passed / 2 skipped, `pnpm test:live` 1 passed on the throwaway `crm-r13-smoke` stack (register → setup wizard → customer → site → device → maintenance plan → work order → device link + service history → approval → visit → report + photo → materials → complete → Arabic PDF, realtime socket connected).
-- **Not done / limits:** CI never ran on GitHub (triggers: PR, push to main, manual); no deployment; sector seeding of tags/board or milestone templates was not added (no screen uses them; the wizard covers sector choice, regional defaults, first steps and the work-order type suggestion); no signature capture; `JobDetailPage` has no error boundary; platform-admin UI deferred to the final stage.
+- **Not done / limits:** CI never ran on GitHub (triggers: PR, push to main, manual); no deployment; sector seeding of tags/board or milestone templates was not added (no screen uses them; the wizard covers sector choice, regional defaults, first steps and the work-order type suggestion); no signature capture; platform-admin UI deferred to the final stage (done, 4o). `JobDetailPage` error boundary added later in `5ff273e` (`components/layout/PageErrorBoundary`, reusable per route).
 
 ## 4o. Completed — Platform-admin UI (final stage) — commit `0d85543`
 - `frontend/src/admin/` — lazy `/admin/*` area on top of the 4h admin APIs: sign-in, payment-request review (receipt, approve, reject with reason), workspaces (list, detail, extend / suspend / reactivate / change plan), plans, payment methods, the admin's own email and password. No backend change, no new dependency.
@@ -335,7 +335,9 @@ Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). N
 | `602c22c` | feat(frontend): device card with service history, devices on the work order |
 | `5f47e92` | docs: update handoff - R13 performance and production readiness complete |
 | `0d85543` | feat(frontend): platform-admin area for manual payments, workspaces, plans |
-| (next) | docs: handoff safe shutdown - platform-admin UI done (**HEAD**) |
+| `2f00113` | docs: handoff safe shutdown - platform-admin UI done |
+| `5ff273e` | fix(frontend): contain render failures on the work-order screen |
+| (next) | docs: update handoff - work-order error boundary (**HEAD**) |
 
 ## 11. Working tree (2026-11-20)
 - Branch `feature/saas-foundation`; after the R13 docs commit everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `50f9437` (PR #4; contains up to `fac6486` = R11, not R12/R13); local `main` is stale — leave it alone.
