@@ -26,6 +26,10 @@ import { ApiError } from '@/lib/api'
 import { formatDateTime, formatMoney, fromLocalInput, toLocalInput } from '@/lib/format'
 import { useSubscription } from '@/lib/subscription'
 import { VisitActions } from '@/pages/visits/VisitActions'
+import { ApprovalsCard } from './ApprovalsCard'
+import { JobEquipmentCard } from './JobEquipmentCard'
+import { VisitReportButton } from '@/pages/visits/VisitReportButton'
+import { VisitWorkButton } from '@/pages/visits/VisitWorkButton'
 import { JOB_STATUSES, useChangeJobStatus, useJob, useJobVisits, useScheduleVisit, type JobStatus } from './api'
 import { PriorityBadge, StatusBadge } from './JobBadges'
 
@@ -124,11 +128,21 @@ export function JobDetailPage() {
                     {v.outcome && ` · ${t(`visits.outcomes.${v.outcome}`)}`}
                   </p>
                 </div>
+                <VisitWorkButton visit={v} readOnly={readOnly} />
+                <VisitReportButton visit={v} />
                 <VisitActions visit={v} disabled={readOnly} />
               </div>
             ))}
           </CardContent>
         </Card>
+
+        <ApprovalsCard
+          jobId={id}
+          canEdit={(can('ops:write') || can('ops:assigned')) && !readOnly}
+          showActions={can('ops:write') || can('ops:assigned')}
+        />
+
+        <JobEquipmentCard jobId={id} siteId={j.site?.id} canEdit={can('ops:read') && can('ops:write') && !readOnly} />
       </div>
     </div>
   )

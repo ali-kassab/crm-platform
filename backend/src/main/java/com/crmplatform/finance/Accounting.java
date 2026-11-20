@@ -14,6 +14,12 @@ public interface Accounting {
     /** The customer's most recent non-voided transactions (newest commitment date first). */
     List<TransactionOverview> recentOfContact(UUID contactId, int limit);
 
+    /** Workspace money for the dashboard: received/paid committed in [from, to) and today's total outstanding. */
+    PeriodSummary periodSummary(LocalDate from, LocalDate to);
+
+    record PeriodSummary(BigDecimal received, BigDecimal paid, BigDecimal outstanding) {
+    }
+
     record Totals(BigDecimal contract, BigDecimal received, BigDecimal actualCost, BigDecimal materialsCost,
             BigDecimal remaining,
             BigDecimal profitLoss, long transactionCount, boolean overpaid) {

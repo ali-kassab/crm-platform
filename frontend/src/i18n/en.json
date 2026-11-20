@@ -75,6 +75,28 @@
     "emptyTitle": "No customers yet",
     "emptyHint": "Add your first customer to start recording work orders"
   },
+  "sites": {
+    "title": "Sites",
+    "add": "Add site",
+    "addHint": "The branch, building or home the technician goes to",
+    "name": "Site name",
+    "type": "Site type",
+    "city": "City",
+    "address": "Address",
+    "access": "Access instructions",
+    "created": "Site added",
+    "emptyTitle": "This customer has no sites",
+    "emptyHint": "Add a site to open work orders for this customer",
+    "noneForCustomer": "This customer has no sites yet.",
+    "types": {
+      "COMMERCIAL": "Commercial",
+      "OFFICE": "Office",
+      "RESIDENTIAL": "Residential",
+      "RETAIL": "Shop",
+      "INDUSTRIAL": "Industrial",
+      "WAREHOUSE": "Warehouse"
+    }
+  },
   "subscription": {
     "status": {
       "TRIAL": "Trial",
@@ -94,7 +116,9 @@
   "errors": {
     "generic": "Something went wrong",
     "network": "Could not reach the server",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "screenFailed": "This page couldn’t be shown",
+    "screenFailedHint": "Try again, or go back to the list and open it again."
   },
   "jobs": {
     "title": "Work orders",
@@ -171,7 +195,8 @@
       "FOLLOW_UP_REQUIRED": "Follow-up required",
       "NOT_RESOLVED": "Not resolved",
       "CUSTOMER_UNAVAILABLE": "Customer unavailable"
-    }
+    },
+    "downloadReport": "Download PDF report"
   },
   "finance": {
     "title": "Finance",
@@ -214,6 +239,460 @@
       "APPROVED": "Approved",
       "REJECTED": "Rejected",
       "CANCELLED": "Cancelled"
+    }
+  },
+  "dashboard": {
+    "title": "Overview",
+    "periods": {
+      "WEEK": "Last 7 days",
+      "MONTH": "This month",
+      "QUARTER": "This quarter",
+      "YEAR": "This year",
+      "ALL": "All time"
+    },
+    "jobs": "Work orders",
+    "openJobs": "Open work orders",
+    "slaBreached": "Past response time",
+    "jobsCreated": "New in period",
+    "jobsCompleted": "Completed in period",
+    "visits": "Visits",
+    "visitsToday": "Visits today",
+    "visitsOverdue": "Overdue visits",
+    "visitsCompleted": "Completed in period",
+    "visitsMissed": "Missed in period",
+    "maintenance": "Maintenance and warranties",
+    "maintenanceOverdue": "Overdue maintenance",
+    "warrantiesExpiring": "Warranties ending in 30 days",
+    "finance": "Money",
+    "received": "Received in period",
+    "paid": "Paid in period",
+    "outstanding": "Owed by customers"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread_one": "Notifications: 1 unread",
+    "bellUnread_other": "Notifications: {{count}} unread",
+    "markAllRead": "Mark all as read",
+    "all": "All",
+    "unreadOnly": "Unread",
+    "none": "No notifications",
+    "noneUnread": "No unread notifications",
+    "noneHint": "Work assignments, visit times, maintenance and subscription alerts appear here",
+    "more": "Show more",
+    "unknown": "New notification",
+    "types": {
+      "TASK_ASSIGNED": "You were assigned a task: {{taskTitle}}",
+      "PROJECT_MEMBER_ADDED": "You were added to the project {{projectName}}",
+      "PROJECT_MEMBER_REMOVED": "You were removed from the project {{projectName}}",
+      "PROJECT_MANAGER_ASSIGNED": "You are now the manager of {{projectName}}",
+      "PROJECT_DELETED": "The project {{projectName}} was deleted",
+      "JOB_ASSIGNED": "You were assigned the work order: {{jobTitle}}",
+      "VISIT_SCHEDULED": "New visit for {{jobTitle}} on {{when}}",
+      "VISIT_RESCHEDULED": "Visit for {{jobTitle}} moved to {{when}}",
+      "WARRANTY_EXPIRING": "Warranty \"{{title}}\" ends on {{date}}",
+      "MAINTENANCE_OVERDUE": "Preventive maintenance overdue: {{planTitle}} (due {{date}})",
+      "MAINTENANCE_PLAN_ENDING": "Maintenance plan {{planTitle}} ends on {{date}}",
+      "SUBSCRIPTION_ENDING": "Your subscription ends on {{date}}",
+      "SUBSCRIPTION_GRACE": "Your subscription ended; grace period until {{date}}",
+      "SUBSCRIPTION_EXPIRED": "Your subscription ended and the account is read-only",
+      "SUBSCRIPTION_SUSPENDED": "The platform suspended your subscription",
+      "SUBSCRIPTION_ACTIVATED": "Your subscription is active",
+      "SUBSCRIPTION_REQUEST_APPROVED": "Renewal approved; subscription valid until {{date}}",
+      "SUBSCRIPTION_REQUEST_REJECTED": "Renewal rejected: {{reason}}"
+    }
+  },
+  "work": {
+    "open": "Visit record",
+    "title": "Visit record",
+    "tabs": {
+      "report": "Technical report",
+      "photos": "Photos",
+      "materials": "Materials"
+    },
+    "sections": {
+      "reportedProblem": "Problem as reported by the customer",
+      "findings": "What the technician found",
+      "diagnosis": "Diagnosis",
+      "workPerformed": "Work performed",
+      "recommendations": "Recommendations",
+      "notes": "Notes for the customer"
+    },
+    "customerName": "Name of the customer who confirmed the work",
+    "customerNameHint": "Entering a name records the customer's confirmation of the visit",
+    "confirmedAt": "Customer confirmed on {{when}}",
+    "saveReport": "Save report",
+    "reportSaved": "Report saved",
+    "photoPurpose": "Photo type",
+    "addPhotos": "Add photos",
+    "photosAdded_one": "1 photo added",
+    "photosAdded_other": "{{count}} photos added",
+    "noPhotos": "No photos yet",
+    "noPhotosHint": "Photograph the site before, during and after the work; photos appear in the PDF report",
+    "purposes": {
+      "BEFORE": "Before",
+      "DURING": "During",
+      "AFTER": "After",
+      "INSPECTION": "Inspection"
+    },
+    "noMaterials": "No materials recorded for this visit",
+    "materialName": "Material or part",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "unitCost": "Unit price",
+    "addMaterial": "Add material",
+    "removeMaterial": "Remove {{name}}",
+    "quantityInvalid": "Enter a quantity above zero",
+    "costInvalid": "Enter a valid price"
+  },
+  "maintenance": {
+    "title": "Preventive maintenance",
+    "add": "New maintenance plan",
+    "addHint": "A maintenance contract for a customer site; a work order opens automatically before each due date",
+    "created": "Maintenance plan added",
+    "planTitle": "Plan name",
+    "frequency": "Frequency",
+    "frequencies": {
+      "MONTHLY": "Monthly",
+      "QUARTERLY": "Every 3 months",
+      "SEMI_ANNUAL": "Every 6 months",
+      "ANNUAL": "Yearly",
+      "CUSTOM": "Every N days"
+    },
+    "intervalDays": "Every how many days",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "endDateHint": "Leave empty for an open-ended plan",
+    "responseHours": "Breakdown response time (hours)",
+    "responseHint": "Applies to breakdown work orders at this site",
+    "includedVisits": "Included visits",
+    "includedHint": "Leave empty for no limit",
+    "nextDue": "Next due",
+    "statuses": {
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "ENDED": "Ended"
+    },
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused": "Plan paused",
+    "resumed": "Plan resumed",
+    "emptyTitle": "No maintenance plans",
+    "emptyHint": "Add a plan and maintenance work orders are created on schedule",
+    "dueOn": "due {{date}}",
+    "everyDays_one": "Every day",
+    "everyDays_other": "Every {{count}} days",
+    "overdueTitle_one": "1 maintenance visit overdue",
+    "overdueTitle_other": "{{count}} maintenance visits overdue",
+    "intervalInvalid": "1 to 730 days",
+    "responseInvalid": "1 to 720 hours",
+    "visitsInvalid": "1 to 1000",
+    "endBeforeStart": "End date is before the start date"
+  },
+  "equipment": {
+    "title": "Equipment",
+    "add": "Add equipment",
+    "created": "Equipment added",
+    "category": "Type",
+    "name": "Name",
+    "manufacturer": "Manufacturer",
+    "model": "Model",
+    "serial": "Serial number",
+    "installedOn": "Installed on",
+    "installedOnDate": "installed {{date}}",
+    "emptyTitle": "No equipment recorded",
+    "emptyHint": "Record cameras, recorders, AC units and more to track their service and warranty history",
+    "needSite": "Add a site first, then record its equipment",
+    "categories": {
+      "CCTV_CAMERA": "CCTV camera",
+      "RECORDER": "Recorder",
+      "ACCESS_CONTROL": "Access control",
+      "ALARM": "Alarm",
+      "FIRE_SYSTEM": "Fire system",
+      "NETWORK": "Network",
+      "HVAC_UNIT": "HVAC unit",
+      "ELECTRICAL": "Electrical",
+      "PLUMBING": "Plumbing",
+      "OTHER": "Other"
+    },
+    "statuses": {
+      "ACTIVE": "Working",
+      "FAULTY": "Faulty",
+      "REPLACED": "Replaced",
+      "REMOVED": "Removed"
+    },
+    "status": "Status",
+    "statusSaved": "Device status updated",
+    "notes": "Notes",
+    "history": "Service history",
+    "historyEmpty": "This device is not linked to any work order yet. Link it from a work order page to see it here.",
+    "completedOn": "Completed {{date}}",
+    "warranties": "Warranties",
+    "warrantiesEmpty": "No warranties recorded for this device",
+    "warrantyEnds": "Ends {{date}}",
+    "warrantyStatuses": {
+      "ACTIVE": "Active",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "approvals": {
+    "title": "Customer approvals",
+    "record": "Record approval",
+    "recordHint": "Record a customer approval request for a quotation, starting or accepting the work, or their decision on site",
+    "kind": "Approval for",
+    "kinds": {
+      "QUOTATION": "Quotation",
+      "WORK": "Starting the work",
+      "COMPLETION": "Accepting the work"
+    },
+    "outcome": "Customer decision",
+    "statuses": {
+      "PENDING": "Awaiting decision",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "approverName": "Name of the person who decided",
+    "notes": "Notes",
+    "recorded": "Approval recorded",
+    "approve": "Approve",
+    "reject": "Reject",
+    "decided": {
+      "APPROVED": "Approval recorded",
+      "REJECTED": "Rejection recorded"
+    },
+    "decidedBy": "{{name}} — {{when}}",
+    "requestedAt": "Requested {{when}}",
+    "empty": "No approvals recorded"
+  },
+  "calendar": {
+    "title": "Week calendar",
+    "previous": "Previous week",
+    "next": "Next week",
+    "thisWeek": "This week",
+    "today": "today",
+    "free": "No visits"
+  },
+  "setup": {
+    "title": "Workspace setup",
+    "subtitle": "Three short steps to fit the app to the way you work. You can change them later in Settings.",
+    "progress": "Setup steps",
+    "stages": {
+      "sector": "Your field",
+      "details": "Workspace details",
+      "firstSteps": "First steps"
+    },
+    "sectorQuestion": "Which field do you work in?",
+    "chooseSector": "Choose your field",
+    "sectorHints": {
+      "FIT_OUT": "Fit-out and contracting projects: work orders, site visits and handover follow-up.",
+      "SECURITY_SYSTEMS": "CCTV, alarm and access control installs: devices and warranties for every site.",
+      "MAINTENANCE": "Maintenance and field service: preventive maintenance contracts, fault reports and technician visits."
+    },
+    "defaultLanguage": "Workspace default language",
+    "defaultLanguageHint": "Used for reports and messages to members who have not picked a language.",
+    "currency": "Currency",
+    "currencyInvalid": "Enter a three-letter currency code such as EGP",
+    "timeZone": "Time zone",
+    "timeZoneInvalid": "Enter a valid time zone such as Africa/Cairo",
+    "saveAndContinue": "Save and continue",
+    "saved": "Workspace settings saved",
+    "firstStepsTitle": "First steps in {{sector}}",
+    "firstStepsHint": "Work through these in order. A check mark appears next to each step you have done.",
+    "done": "Done",
+    "steps": {
+      "customer": {
+        "title": "Add your first customer",
+        "hint": "A person or a company, then at least one site.",
+        "action": "Customers"
+      },
+      "equipment": {
+        "title": "Register the customer’s devices",
+        "hint": "On the customer page: cameras and devices at each site, with serial numbers.",
+        "action": "Customers"
+      },
+      "plan": {
+        "title": "Create a preventive maintenance plan",
+        "hint": "Set how often and when it starts; work orders are then created automatically.",
+        "action": "Maintenance"
+      },
+      "job": {
+        "title": "Create your first work order",
+        "hint": "Pick the customer, site, type of work and priority.",
+        "action": "Work orders"
+      },
+      "visit": {
+        "title": "Schedule the first visit",
+        "hint": "On the work order page: pick the time and the technicians.",
+        "action": "Work orders"
+      }
+    },
+    "finish": "Go to home",
+    "promptTitle": "Finish setting up your workspace",
+    "promptHint": "Choose your field and check the language, currency and time zone.",
+    "start": "Start setup",
+    "edit": "Change setup",
+    "currentSector": "Current field: {{sector}}"
+  },
+  "jobEquipment": {
+    "title": "Devices on this work order",
+    "empty": "No devices chosen for this work order",
+    "choose": "Choose devices",
+    "chooseHint": "Pick the devices at this site that the work order serves; they then show in each device’s service history.",
+    "noneAtSite": "No devices are registered at this site. Register them on the customer page.",
+    "saved": "Work order devices saved"
+  },
+  "admin": {
+    "title": "Platform admin",
+    "loginTitle": "Platform admin sign-in",
+    "loginSubtitle": "A short session for managing subscriptions, plans and payment methods",
+    "sessionEnded": "Your admin session ended. Sign in again.",
+    "edit": "Edit",
+    "statusChange": "{{from}} to {{to}}",
+    "nav": {
+      "requests": "Payment requests",
+      "workspaces": "Workspaces",
+      "plans": "Plans",
+      "methods": "Payment methods",
+      "account": "My account"
+    },
+    "requests": {
+      "title": "Payment requests",
+      "empty": "No requests",
+      "plan": "Plan",
+      "amount": "Amount",
+      "note": "Note",
+      "reviewNote": "Review note",
+      "receipt": "View receipt",
+      "noReceipt": "No receipt",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Request approved and subscription activated",
+      "rejected": "Request rejected",
+      "approveTitle": "Approve payment request",
+      "approveHint": "Check that the money has arrived first. The subscription is activated or renewed right away.",
+      "rejectTitle": "Reject payment request",
+      "rejectHint": "The workspace owner sees the reason on their subscription page.",
+      "reason": "Reason for rejecting",
+      "reasonRequired": "Write the reason for rejecting"
+    },
+    "workspaces": {
+      "title": "Workspaces",
+      "workspace": "Workspace",
+      "search": "Search by name",
+      "status": "Subscription status",
+      "allStatuses": "All statuses",
+      "empty": "No matching workspaces",
+      "deleted": "Deleted",
+      "readOnly": "Read-only",
+      "members_one": "{{count}} member",
+      "members_other": "{{count}} members",
+      "periodEnds": "Period ends {{date}}",
+      "graceEnds": "grace ends {{date}}",
+      "created": "Created {{date}}",
+      "subscription": "Subscription",
+      "requests": "Payment requests",
+      "history": "Subscription history"
+    },
+    "actions": {
+      "days": "Days",
+      "daysInvalid": "Between 1 and 366 days",
+      "reason": "Reason (required)",
+      "EXTEND": {
+        "label": "Extend",
+        "hint": "Adds days to the end of the current period and lifts read-only mode if needed.",
+        "done": "Subscription extended"
+      },
+      "SUSPEND": {
+        "label": "Suspend",
+        "hint": "The workspace becomes read-only right away. No data is deleted.",
+        "done": "Subscription suspended"
+      },
+      "REACTIVATE": {
+        "label": "Reactivate",
+        "hint": "Lifts the suspension; the status then follows the period end date.",
+        "done": "Subscription reactivated"
+      },
+      "CHANGE_PLAN": {
+        "label": "Change plan",
+        "hint": "The new plan's limits apply right away; the end date stays the same.",
+        "done": "Plan changed"
+      }
+    },
+    "events": {
+      "TRIAL_STARTED": "Trial started",
+      "REQUEST_SUBMITTED": "Payment request submitted",
+      "REQUEST_CANCELLED": "Payment request cancelled",
+      "PAYMENT_APPROVED": "Payment approved",
+      "PAYMENT_REJECTED": "Payment rejected",
+      "STATUS_CHANGED": "Status changed",
+      "EXTEND": "Extended",
+      "SUSPEND": "Suspended",
+      "REACTIVATE": "Reactivated",
+      "CHANGE_PLAN": "Plan changed"
+    },
+    "actors": {
+      "SYSTEM": "Automatic",
+      "ADMIN": "Platform admin",
+      "TENANT": "Workspace owner"
+    },
+    "plans": {
+      "title": "Plans",
+      "hint": "Customers see these prices and limits when they renew.",
+      "add": "New plan",
+      "edit": "Edit plan",
+      "saved": "Plan saved",
+      "inactive": "Inactive",
+      "active": "Active and offered to customers",
+      "code": "Code",
+      "codeInvalid": "2 to 30 Latin letters, digits or _",
+      "nameAr": "Name in Arabic",
+      "nameEn": "Name in English",
+      "descriptionAr": "Description in Arabic",
+      "descriptionEn": "Description in English",
+      "priceMonthly": "Monthly price",
+      "priceYearly": "Yearly price",
+      "limitsHint": "Leave a limit empty for unlimited.",
+      "maxUsers": "Users",
+      "maxActiveProjects": "Active projects",
+      "maxJobsPerMonth": "Work orders per month",
+      "maxStorageMb": "Storage (MB)",
+      "sortOrder": "Order"
+    },
+    "methods": {
+      "title": "Payment methods",
+      "hint": "Customers see these on their subscription page with the account number and instructions.",
+      "add": "New payment method",
+      "edit": "Edit payment method",
+      "saved": "Payment method saved",
+      "empty": "No payment methods yet",
+      "kind": "Type",
+      "kinds": {
+        "VODAFONE_CASH": "Vodafone Cash",
+        "INSTAPAY": "InstaPay",
+        "BANK_TRANSFER": "Bank transfer",
+        "OTHER": "Other"
+      },
+      "labelAr": "Name in Arabic",
+      "labelEn": "Name in English",
+      "account": "Wallet or account number",
+      "instructionsAr": "Instructions in Arabic",
+      "instructionsEn": "Instructions in English",
+      "sortOrder": "Order",
+      "active": "Active and offered to customers"
+    },
+    "account": {
+      "email": "Sign-in email",
+      "newEmail": "New email",
+      "currentPassword": "Current password",
+      "changeEmail": "Change email",
+      "emailChanged": "Email changed",
+      "password": "Password",
+      "newPassword": "New password",
+      "confirm": "Confirm new password",
+      "passwordRule": "At least 14 characters with letters and digits",
+      "mismatch": "The passwords do not match",
+      "changePassword": "Change password",
+      "passwordChanged": "Password changed"
     }
   }
 }

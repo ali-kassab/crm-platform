@@ -29,10 +29,15 @@
         <shedlock.version>7.11.0</shedlock.version>
         <libphonenumber.version>9.0.43</libphonenumber.version>
         <owasp-sanitizer.version>20261110.1</owasp-sanitizer.version>
+        <!-- D15 Arabic PDF (R12): maintained OpenHTMLtoPDF fork, LGPL-2.1, used unmodified (owner-accepted
+             2026-11-20); PDFBox 3 (Apache-2.0) and ICU4J (Unicode licence, BiDi + Arabic shaping) come with it. -->
+        <openhtmltopdf.version>1.1.112</openhtmltopdf.version>
         <!-- Some Windows setups cannot create AF_UNIX sockets under %TEMP% (used by NIO selectors);
              keep them inside the build directory. Harmless elsewhere. -->
         <uds.tmpdir>-Djdk.net.unixdomain.tmpdir=${project.build.directory}</uds.tmpdir>
-        <argLine>${uds.tmpdir}</argLine>
+        <!-- Tests run on UTC like the server clock (schedulers use UTC dates); otherwise ITs that compute
+             dates with LocalDate.now() fail between local midnight and 02:00 in Cairo (R13 fix). -->
+        <argLine>${uds.tmpdir} -Duser.timezone=UTC</argLine>
     </properties>
 
     <dependencyManagement>
@@ -155,6 +160,16 @@
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
             <version>${owasp-sanitizer.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-pdfbox</artifactId>
+            <version>${openhtmltopdf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-rtl-support</artifactId>
+            <version>${openhtmltopdf.version}</version>
         </dependency>
 
         <!-- Modularity & operations -->

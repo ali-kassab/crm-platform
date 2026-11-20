@@ -99,6 +99,18 @@ class S3FileStorage implements FileStorage {
     }
 
     @Override
+    public byte[] get(String key) {
+        try {
+            return client.getObjectAsBytes(GetObjectRequest.builder().bucket(props.bucket()).key(key).build())
+                    .asByteArray();
+        } catch (RuntimeException e) {
+            log.error("Storage download failed: {}", e.getMessage());
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "STORAGE_UNAVAILABLE",
+                    "File storage is temporarily unavailable");
+        }
+    }
+
+    @Override
     public String presignGet(String key, Duration ttl, String attachmentName) {
         GetObjectRequest.Builder get = GetObjectRequest.builder().bucket(props.bucket()).key(key);
         if (attachmentName != null) {

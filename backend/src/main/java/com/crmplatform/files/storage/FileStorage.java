@@ -9,6 +9,9 @@ public interface FileStorage {
 
     void delete(String key);
 
+    /** The stored bytes, for server-side use (e.g. embedding a photo in a PDF). */
+    byte[] get(String key);
+
     /** Short-lived download URL; {@code attachmentName} forces a download with that file name. */
     String presignGet(String key, Duration ttl, String attachmentName);
 }

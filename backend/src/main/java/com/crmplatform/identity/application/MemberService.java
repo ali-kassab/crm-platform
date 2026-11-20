@@ -7,6 +7,8 @@ import com.crmplatform.identity.domain.MembershipRepository;
 import com.crmplatform.identity.domain.Role;
 import com.crmplatform.identity.domain.User;
 import com.crmplatform.identity.domain.UserRepository;
+import com.crmplatform.identity.domain.Workspace;
+import com.crmplatform.identity.domain.WorkspaceRepository;
 import com.crmplatform.shared.error.ApiException;
 import com.crmplatform.shared.tenant.TenantContext;
 import java.util.Collection;
@@ -29,14 +31,24 @@ public class MemberService implements WorkspaceMembers {
     private final MembershipLookup lookup;
     private final RefreshTokenService refreshTokens;
     private final ApplicationEventPublisher events;
+    private final WorkspaceRepository workspaces;
 
     public MemberService(MembershipRepository memberships, UserRepository users, MembershipLookup lookup,
-            RefreshTokenService refreshTokens, ApplicationEventPublisher events) {
+            RefreshTokenService refreshTokens, ApplicationEventPublisher events, WorkspaceRepository workspaces) {
         this.memberships = memberships;
         this.users = users;
         this.lookup = lookup;
         this.refreshTokens = refreshTokens;
         this.events = events;
+        this.workspaces = workspaces;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WorkspaceProfile currentWorkspace() {
+        Workspace w = workspaces.findById(TenantContext.requireWorkspaceId())
+                .orElseThrow(() -> ApiException.notFound("Workspace"));
+        return new WorkspaceProfile(w.getId(), w.getName(), w.getDefaultLanguage(), w.getCurrency(), w.getTimeZone());
     }
 
     @Transactional(readOnly = true)

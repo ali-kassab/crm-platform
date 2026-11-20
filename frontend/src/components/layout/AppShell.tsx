@@ -11,6 +11,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
+import type { ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
@@ -31,7 +32,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar'
+import { NotificationBell } from '@/pages/notifications/NotificationBell'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { SubscriptionBanner } from './SubscriptionBanner'
 
@@ -42,6 +45,21 @@ interface NavItem {
   permission?: string
   /** Screens arrive in R10; until then the entry is shown disabled. */
   ready?: boolean
+}
+
+/** On phones the menu is a sheet: close it once a screen is chosen. */
+function MenuLink({ onClick, ...props }: ComponentProps<typeof NavLink>) {
+  const { isMobile, setOpenMobile } = useSidebar()
+  // receives the menu button styles from SidebarMenuButton asChild, so pass every prop through
+  return (
+    <NavLink
+      {...props}
+      onClick={(e) => {
+        onClick?.(e)
+        if (isMobile) setOpenMobile(false)
+      }}
+    />
+  )
 }
 
 export function AppShell() {
@@ -56,7 +74,7 @@ export function AppShell() {
     { to: '/customers', label: t('nav.customers'), icon: Users, permission: 'crm:read', ready: true },
     { to: '/jobs', label: t('nav.jobs'), icon: ClipboardList, ready: true },
     { to: '/visits', label: t('nav.visits'), icon: CalendarClock, ready: true },
-    { to: '/maintenance', label: t('nav.maintenance'), icon: Wrench, permission: 'ops:read' },
+    { to: '/maintenance', label: t('nav.maintenance'), icon: Wrench, permission: 'ops:read', ready: true },
     { to: '/finance', label: t('nav.finance'), icon: Wallet, permission: 'finance:read', ready: true },
   ]
   const account: NavItem[] = [
@@ -76,10 +94,10 @@ export function AppShell() {
               tooltip={item.label}
               isActive={item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)}
             >
-              <NavLink to={item.to}>
+              <MenuLink to={item.to}>
                 <item.icon />
                 <span>{item.label}</span>
-              </NavLink>
+              </MenuLink>
             </SidebarMenuButton>
           ) : (
             <SidebarMenuButton tooltip={item.label} disabled>
@@ -130,6 +148,7 @@ export function AppShell() {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
           <div className="flex-1" />
+          <NotificationBell enabled={!!session} />
           <LanguageSwitcher />
           <Avatar className="size-8" title={session?.user.email}>
             <AvatarFallback>{initials}</AvatarFallback>

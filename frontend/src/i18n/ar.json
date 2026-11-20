@@ -75,6 +75,28 @@
     "emptyTitle": "لا يوجد عملاء بعد",
     "emptyHint": "أضف أول عميل لتبدأ في تسجيل أوامر العمل"
   },
+  "sites": {
+    "title": "المواقع",
+    "add": "إضافة موقع",
+    "addHint": "الفرع أو المبنى أو المنزل الذي يذهب إليه الفني",
+    "name": "اسم الموقع",
+    "type": "نوع الموقع",
+    "city": "المدينة",
+    "address": "العنوان",
+    "access": "تعليمات الوصول",
+    "created": "تمت إضافة الموقع",
+    "emptyTitle": "لا توجد مواقع لهذا العميل",
+    "emptyHint": "أضف موقعاً لتتمكن من فتح أوامر عمل لهذا العميل",
+    "noneForCustomer": "لا توجد مواقع لهذا العميل بعد.",
+    "types": {
+      "COMMERCIAL": "تجاري",
+      "OFFICE": "مكتب",
+      "RESIDENTIAL": "سكني",
+      "RETAIL": "محل",
+      "INDUSTRIAL": "صناعي",
+      "WAREHOUSE": "مخزن"
+    }
+  },
   "subscription": {
     "status": {
       "TRIAL": "فترة تجريبية",
@@ -94,7 +116,9 @@
   "errors": {
     "generic": "حدث خطأ غير متوقع",
     "network": "تعذّر الاتصال بالخادم",
-    "notFound": "الصفحة غير موجودة"
+    "notFound": "الصفحة غير موجودة",
+    "screenFailed": "تعذّر عرض هذه الصفحة",
+    "screenFailedHint": "أعد المحاولة، أو ارجع إلى القائمة وافتحها من جديد."
   },
   "jobs": {
     "title": "أوامر العمل",
@@ -171,7 +195,8 @@
       "FOLLOW_UP_REQUIRED": "تحتاج متابعة",
       "NOT_RESOLVED": "لم يتم الحل",
       "CUSTOMER_UNAVAILABLE": "العميل غير متاح"
-    }
+    },
+    "downloadReport": "تحميل التقرير PDF"
   },
   "finance": {
     "title": "الحسابات",
@@ -214,6 +239,480 @@
       "APPROVED": "مقبول",
       "REJECTED": "مرفوض",
       "CANCELLED": "ملغي"
+    }
+  },
+  "dashboard": {
+    "title": "نظرة عامة",
+    "periods": {
+      "WEEK": "آخر 7 أيام",
+      "MONTH": "هذا الشهر",
+      "QUARTER": "هذا الربع",
+      "YEAR": "هذه السنة",
+      "ALL": "الكل"
+    },
+    "jobs": "أوامر العمل",
+    "openJobs": "أوامر عمل مفتوحة",
+    "slaBreached": "تجاوزت وقت الاستجابة",
+    "jobsCreated": "أوامر جديدة في الفترة",
+    "jobsCompleted": "أوامر مكتملة في الفترة",
+    "visits": "الزيارات",
+    "visitsToday": "زيارات اليوم",
+    "visitsOverdue": "زيارات متأخرة",
+    "visitsCompleted": "زيارات منتهية في الفترة",
+    "visitsMissed": "زيارات فائتة في الفترة",
+    "maintenance": "الصيانة والضمان",
+    "maintenanceOverdue": "صيانة دورية متأخرة",
+    "warrantiesExpiring": "ضمانات تنتهي خلال 30 يومًا",
+    "finance": "الحسابات",
+    "received": "المحصّل في الفترة",
+    "paid": "المدفوع في الفترة",
+    "outstanding": "مستحق على العملاء"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bellUnread_zero": "الإشعارات",
+    "bellUnread_one": "الإشعارات: إشعار واحد غير مقروء",
+    "bellUnread_two": "الإشعارات: إشعاران غير مقروءين",
+    "bellUnread_few": "الإشعارات: {{count}} إشعارات غير مقروءة",
+    "bellUnread_many": "الإشعارات: {{count}} إشعاراً غير مقروء",
+    "bellUnread_other": "الإشعارات: {{count}} إشعار غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "all": "الكل",
+    "unreadOnly": "غير المقروءة",
+    "none": "لا توجد إشعارات",
+    "noneUnread": "لا توجد إشعارات غير مقروءة",
+    "noneHint": "ستظهر هنا إسنادات العمل ومواعيد الزيارات وتنبيهات الصيانة والاشتراك",
+    "more": "عرض المزيد",
+    "unknown": "إشعار جديد",
+    "types": {
+      "TASK_ASSIGNED": "أُسندت إليك مهمة: {{taskTitle}}",
+      "PROJECT_MEMBER_ADDED": "أُضفت إلى المشروع {{projectName}}",
+      "PROJECT_MEMBER_REMOVED": "أُزلت من المشروع {{projectName}}",
+      "PROJECT_MANAGER_ASSIGNED": "أصبحت مدير المشروع {{projectName}}",
+      "PROJECT_DELETED": "حُذف المشروع {{projectName}}",
+      "JOB_ASSIGNED": "أُسند إليك أمر العمل: {{jobTitle}}",
+      "VISIT_SCHEDULED": "زيارة جديدة لأمر العمل {{jobTitle}} في {{when}}",
+      "VISIT_RESCHEDULED": "تغيّر موعد زيارة {{jobTitle}} إلى {{when}}",
+      "WARRANTY_EXPIRING": "ينتهي الضمان «{{title}}» في {{date}}",
+      "MAINTENANCE_OVERDUE": "صيانة دورية متأخرة: {{planTitle}} (موعدها {{date}})",
+      "MAINTENANCE_PLAN_ENDING": "تنتهي خطة الصيانة {{planTitle}} في {{date}}",
+      "SUBSCRIPTION_ENDING": "ينتهي اشتراكك في {{date}}",
+      "SUBSCRIPTION_GRACE": "انتهى اشتراكك، ولديك مهلة حتى {{date}}",
+      "SUBSCRIPTION_EXPIRED": "انتهى اشتراكك وأصبح الحساب للقراءة فقط",
+      "SUBSCRIPTION_SUSPENDED": "أوقفت إدارة المنصة اشتراكك",
+      "SUBSCRIPTION_ACTIVATED": "تم تفعيل اشتراكك",
+      "SUBSCRIPTION_REQUEST_APPROVED": "تمت الموافقة على طلب التجديد، والاشتراك ساري حتى {{date}}",
+      "SUBSCRIPTION_REQUEST_REJECTED": "رُفض طلب التجديد: {{reason}}"
+    }
+  },
+  "work": {
+    "open": "سجل الزيارة",
+    "title": "سجل الزيارة",
+    "tabs": {
+      "report": "التقرير الفني",
+      "photos": "الصور",
+      "materials": "المواد"
+    },
+    "sections": {
+      "reportedProblem": "المشكلة كما أبلغ عنها العميل",
+      "findings": "ما وجده الفني",
+      "diagnosis": "التشخيص",
+      "workPerformed": "الأعمال المنفذة",
+      "recommendations": "التوصيات",
+      "notes": "ملاحظات للعميل"
+    },
+    "customerName": "اسم العميل الذي أكّد العمل",
+    "customerNameHint": "كتابة الاسم تسجّل تأكيد العميل لما تم في الزيارة",
+    "confirmedAt": "أكّد العميل في {{when}}",
+    "saveReport": "حفظ التقرير",
+    "reportSaved": "تم حفظ التقرير",
+    "photoPurpose": "نوع الصورة",
+    "addPhotos": "إضافة صور",
+    "photosAdded_zero": "لم تُضف صور",
+    "photosAdded_one": "تمت إضافة صورة",
+    "photosAdded_two": "تمت إضافة صورتين",
+    "photosAdded_few": "تمت إضافة {{count}} صور",
+    "photosAdded_many": "تمت إضافة {{count}} صورة",
+    "photosAdded_other": "تمت إضافة {{count}} صورة",
+    "noPhotos": "لا توجد صور بعد",
+    "noPhotosHint": "صوّر الموقع قبل العمل وأثناءه وبعده؛ تظهر الصور في تقرير PDF",
+    "purposes": {
+      "BEFORE": "قبل",
+      "DURING": "أثناء",
+      "AFTER": "بعد",
+      "INSPECTION": "معاينة"
+    },
+    "noMaterials": "لم تُسجّل مواد لهذه الزيارة",
+    "materialName": "المادة أو القطعة",
+    "quantity": "الكمية",
+    "unit": "الوحدة",
+    "unitCost": "سعر الوحدة",
+    "addMaterial": "إضافة مادة",
+    "removeMaterial": "حذف {{name}}",
+    "quantityInvalid": "أدخل كمية أكبر من صفر",
+    "costInvalid": "أدخل سعراً صحيحاً"
+  },
+  "maintenance": {
+    "title": "الصيانة الدورية",
+    "add": "خطة صيانة جديدة",
+    "addHint": "عقد صيانة دورية لموقع العميل؛ يُفتح أمر عمل تلقائياً قبل كل موعد",
+    "created": "تمت إضافة خطة الصيانة",
+    "planTitle": "اسم الخطة",
+    "frequency": "التكرار",
+    "frequencies": {
+      "MONTHLY": "شهرياً",
+      "QUARTERLY": "كل 3 أشهر",
+      "SEMI_ANNUAL": "كل 6 أشهر",
+      "ANNUAL": "سنوياً",
+      "CUSTOM": "عدد أيام محدد"
+    },
+    "intervalDays": "كل كم يوم",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ النهاية",
+    "endDateHint": "اتركه فارغاً لخطة مفتوحة",
+    "responseHours": "زمن الاستجابة للأعطال (ساعات)",
+    "responseHint": "يُطبّق على أوامر الأعطال في هذا الموقع",
+    "includedVisits": "عدد الزيارات المشمولة",
+    "includedHint": "اتركه فارغاً بلا حد",
+    "nextDue": "الموعد القادم",
+    "statuses": {
+      "ACTIVE": "سارية",
+      "PAUSED": "موقوفة مؤقتاً",
+      "ENDED": "منتهية"
+    },
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "paused": "تم إيقاف الخطة مؤقتاً",
+    "resumed": "تم استئناف الخطة",
+    "emptyTitle": "لا توجد خطط صيانة",
+    "emptyHint": "أضف خطة لتنشأ أوامر الصيانة في مواعيدها تلقائياً",
+    "dueOn": "موعدها {{date}}",
+    "everyDays_zero": "كل {{count}} يوم",
+    "everyDays_one": "كل يوم",
+    "everyDays_two": "كل يومين",
+    "everyDays_few": "كل {{count}} أيام",
+    "everyDays_many": "كل {{count}} يوماً",
+    "everyDays_other": "كل {{count}} يوم",
+    "overdueTitle_zero": "لا توجد صيانة متأخرة",
+    "overdueTitle_one": "زيارة صيانة متأخرة",
+    "overdueTitle_two": "زيارتا صيانة متأخرتان",
+    "overdueTitle_few": "{{count}} زيارات صيانة متأخرة",
+    "overdueTitle_many": "{{count}} زيارة صيانة متأخرة",
+    "overdueTitle_other": "{{count}} زيارة صيانة متأخرة",
+    "intervalInvalid": "من 1 إلى 730 يوماً",
+    "responseInvalid": "من 1 إلى 720 ساعة",
+    "visitsInvalid": "من 1 إلى 1000",
+    "endBeforeStart": "تاريخ النهاية قبل البداية"
+  },
+  "equipment": {
+    "title": "الأجهزة والمعدات",
+    "add": "إضافة جهاز",
+    "created": "تمت إضافة الجهاز",
+    "category": "النوع",
+    "name": "اسم الجهاز",
+    "manufacturer": "الشركة المصنعة",
+    "model": "الموديل",
+    "serial": "الرقم التسلسلي",
+    "installedOn": "تاريخ التركيب",
+    "installedOnDate": "رُكّب في {{date}}",
+    "emptyTitle": "لا توجد أجهزة مسجلة",
+    "emptyHint": "سجّل الكاميرات وأجهزة التسجيل والتكييف وغيرها لتتبع تاريخ صيانتها وضمانها",
+    "needSite": "أضف موقعاً أولاً ثم سجّل أجهزته",
+    "categories": {
+      "CCTV_CAMERA": "كاميرا مراقبة",
+      "RECORDER": "جهاز تسجيل",
+      "ACCESS_CONTROL": "تحكم في الدخول",
+      "ALARM": "إنذار",
+      "FIRE_SYSTEM": "نظام حريق",
+      "NETWORK": "شبكات",
+      "HVAC_UNIT": "تكييف",
+      "ELECTRICAL": "كهرباء",
+      "PLUMBING": "سباكة",
+      "OTHER": "أخرى"
+    },
+    "statuses": {
+      "ACTIVE": "يعمل",
+      "FAULTY": "معطل",
+      "REPLACED": "تم استبداله",
+      "REMOVED": "تمت إزالته"
+    },
+    "status": "الحالة",
+    "statusSaved": "تم تحديث حالة الجهاز",
+    "notes": "ملاحظات",
+    "history": "سجل الخدمة",
+    "historyEmpty": "لم يُربط هذا الجهاز بأي أمر عمل بعد. اربطه من صفحة أمر العمل ليظهر هنا.",
+    "completedOn": "اكتمل في {{date}}",
+    "warranties": "الضمانات",
+    "warrantiesEmpty": "لا توجد ضمانات مسجلة لهذا الجهاز",
+    "warrantyEnds": "ينتهي في {{date}}",
+    "warrantyStatuses": {
+      "ACTIVE": "ساري",
+      "EXPIRED": "منتهي",
+      "CANCELLED": "ملغي"
+    }
+  },
+  "approvals": {
+    "title": "موافقات العميل",
+    "record": "تسجيل موافقة",
+    "recordHint": "سجّل طلب موافقة العميل على عرض السعر أو بدء العمل أو استلامه، أو قراره مباشرة في الموقع",
+    "kind": "نوع الموافقة",
+    "kinds": {
+      "QUOTATION": "عرض السعر",
+      "WORK": "بدء العمل",
+      "COMPLETION": "استلام العمل"
+    },
+    "outcome": "قرار العميل",
+    "statuses": {
+      "PENDING": "بانتظار القرار",
+      "APPROVED": "موافَق عليها",
+      "REJECTED": "مرفوضة"
+    },
+    "approverName": "اسم من اتخذ القرار",
+    "notes": "ملاحظات",
+    "recorded": "تم تسجيل الموافقة",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "decided": {
+      "APPROVED": "تم تسجيل الموافقة",
+      "REJECTED": "تم تسجيل الرفض"
+    },
+    "decidedBy": "{{name}} — {{when}}",
+    "requestedAt": "طُلبت في {{when}}",
+    "empty": "لا توجد موافقات مسجلة"
+  },
+  "calendar": {
+    "title": "تقويم الأسبوع",
+    "previous": "الأسبوع السابق",
+    "next": "الأسبوع التالي",
+    "thisWeek": "هذا الأسبوع",
+    "today": "اليوم",
+    "free": "لا زيارات"
+  },
+  "setup": {
+    "title": "إعداد مساحة العمل",
+    "subtitle": "ثلاث خطوات قصيرة لتجهيز النظام حسب طبيعة عملك. يمكنك تعديلها لاحقاً من الإعدادات.",
+    "progress": "خطوات الإعداد",
+    "stages": {
+      "sector": "مجال العمل",
+      "details": "بيانات المساحة",
+      "firstSteps": "أول خطوات"
+    },
+    "sectorQuestion": "ما المجال الذي تعمل فيه؟",
+    "chooseSector": "اختر مجال العمل",
+    "sectorHints": {
+      "FIT_OUT": "مشروعات تشطيب ومقاولات: أوامر تنفيذ وزيارات موقع ومتابعة التسليم.",
+      "SECURITY_SYSTEMS": "تركيب كاميرات وأنظمة إنذار وتحكم في الدخول: تسجيل الأجهزة والضمانات لكل موقع.",
+      "MAINTENANCE": "صيانة وخدمات ميدانية: عقود صيانة دورية وبلاغات أعطال وزيارات فنيين."
+    },
+    "defaultLanguage": "اللغة الافتراضية للمساحة",
+    "defaultLanguageHint": "تُستخدم في التقارير والرسائل للأعضاء الذين لم يختاروا لغة.",
+    "currency": "العملة",
+    "currencyInvalid": "أدخل رمز عملة من ثلاثة أحرف مثل EGP",
+    "timeZone": "المنطقة الزمنية",
+    "timeZoneInvalid": "أدخل منطقة زمنية صحيحة مثل Africa/Cairo",
+    "saveAndContinue": "حفظ ومتابعة",
+    "saved": "تم حفظ إعدادات المساحة",
+    "firstStepsTitle": "أول خطوات في {{sector}}",
+    "firstStepsHint": "ابدأ بهذه الخطوات بالترتيب. تظهر علامة بجوار كل خطوة تمت.",
+    "done": "تمت",
+    "steps": {
+      "customer": {
+        "title": "أضف أول عميل",
+        "hint": "فرد أو شركة، ثم أضف موقعاً واحداً على الأقل.",
+        "action": "العملاء"
+      },
+      "equipment": {
+        "title": "سجّل أجهزة العميل",
+        "hint": "من صفحة العميل: الكاميرات والأجهزة في كل موقع مع الرقم التسلسلي.",
+        "action": "العملاء"
+      },
+      "plan": {
+        "title": "أنشئ خطة صيانة دورية",
+        "hint": "حدد التكرار وموعد البداية ليُنشئ النظام أوامر العمل تلقائياً.",
+        "action": "الصيانة الدورية"
+      },
+      "job": {
+        "title": "أنشئ أول أمر عمل",
+        "hint": "اختر العميل والموقع ونوع العمل والأولوية.",
+        "action": "أوامر العمل"
+      },
+      "visit": {
+        "title": "حدّد موعد أول زيارة",
+        "hint": "من صفحة أمر العمل: حدد الموعد والفنيين.",
+        "action": "أوامر العمل"
+      }
+    },
+    "finish": "الذهاب إلى الرئيسية",
+    "promptTitle": "أكمل إعداد مساحة العمل",
+    "promptHint": "اختر مجال عملك وراجع اللغة والعملة والمنطقة الزمنية.",
+    "start": "ابدأ الإعداد",
+    "edit": "تعديل الإعداد",
+    "currentSector": "مجال العمل الحالي: {{sector}}"
+  },
+  "jobEquipment": {
+    "title": "الأجهزة في أمر العمل",
+    "empty": "لم تُحدد أجهزة لهذا الأمر",
+    "choose": "تحديد الأجهزة",
+    "chooseHint": "اختر أجهزة الموقع التي يخدمها أمر العمل لتظهر في سجل خدمة كل جهاز.",
+    "noneAtSite": "لا توجد أجهزة مسجلة في هذا الموقع. سجّلها من صفحة العميل.",
+    "saved": "تم حفظ أجهزة أمر العمل"
+  },
+  "admin": {
+    "title": "إدارة المنصة",
+    "loginTitle": "دخول مدير المنصة",
+    "loginSubtitle": "جلسة قصيرة لإدارة الاشتراكات والخطط ووسائل الدفع",
+    "sessionEnded": "انتهت جلسة الإدارة. سجّل الدخول مرة أخرى.",
+    "edit": "تعديل",
+    "statusChange": "من {{from}} إلى {{to}}",
+    "nav": {
+      "requests": "طلبات الدفع",
+      "workspaces": "مساحات العمل",
+      "plans": "الخطط",
+      "methods": "وسائل الدفع",
+      "account": "حسابي"
+    },
+    "requests": {
+      "title": "طلبات الدفع",
+      "empty": "لا توجد طلبات",
+      "plan": "الخطة",
+      "amount": "المبلغ",
+      "note": "ملاحظة",
+      "reviewNote": "ملاحظة المراجعة",
+      "receipt": "عرض الإيصال",
+      "noReceipt": "بدون إيصال",
+      "approve": "قبول",
+      "reject": "رفض",
+      "approved": "تم قبول الطلب وتفعيل الاشتراك",
+      "rejected": "تم رفض الطلب",
+      "approveTitle": "قبول طلب الدفع",
+      "approveHint": "تأكد من وصول المبلغ قبل القبول. يُفعَّل الاشتراك أو يُجدَّد فوراً.",
+      "rejectTitle": "رفض طلب الدفع",
+      "rejectHint": "يظهر السبب لصاحب مساحة العمل في صفحة الاشتراك.",
+      "reason": "سبب الرفض",
+      "reasonRequired": "اكتب سبب الرفض"
+    },
+    "workspaces": {
+      "title": "مساحات العمل",
+      "workspace": "مساحة العمل",
+      "search": "ابحث بالاسم",
+      "status": "حالة الاشتراك",
+      "allStatuses": "كل الحالات",
+      "empty": "لا توجد مساحات عمل مطابقة",
+      "deleted": "محذوفة",
+      "readOnly": "للقراءة فقط",
+      "members_zero": "لا أعضاء",
+      "members_one": "عضو واحد",
+      "members_two": "عضوان",
+      "members_few": "{{count}} أعضاء",
+      "members_many": "{{count}} عضواً",
+      "members_other": "{{count}} عضو",
+      "periodEnds": "تنتهي الفترة في {{date}}",
+      "graceEnds": "تنتهي المهلة في {{date}}",
+      "created": "أُنشئت في {{date}}",
+      "subscription": "الاشتراك",
+      "requests": "طلبات الدفع",
+      "history": "سجل الاشتراك"
+    },
+    "actions": {
+      "days": "عدد الأيام",
+      "daysInvalid": "من 1 إلى 366 يوماً",
+      "reason": "السبب (مطلوب)",
+      "EXTEND": {
+        "label": "تمديد",
+        "hint": "يضيف أياماً إلى نهاية الفترة الحالية ويرفع القيود إن وُجدت.",
+        "done": "تم تمديد الاشتراك"
+      },
+      "SUSPEND": {
+        "label": "إيقاف",
+        "hint": "تصبح المساحة للقراءة فقط فوراً. لا تُحذف أي بيانات.",
+        "done": "تم إيقاف الاشتراك"
+      },
+      "REACTIVATE": {
+        "label": "إعادة التفعيل",
+        "hint": "يرفع الإيقاف ويعيد الاشتراك إلى حالته حسب تاريخ نهايته.",
+        "done": "تمت إعادة التفعيل"
+      },
+      "CHANGE_PLAN": {
+        "label": "تغيير الخطة",
+        "hint": "تطبق حدود الخطة الجديدة فوراً دون تغيير تاريخ النهاية.",
+        "done": "تم تغيير الخطة"
+      }
+    },
+    "events": {
+      "TRIAL_STARTED": "بدء الفترة التجريبية",
+      "REQUEST_SUBMITTED": "طلب دفع جديد",
+      "REQUEST_CANCELLED": "إلغاء طلب دفع",
+      "PAYMENT_APPROVED": "قبول الدفع",
+      "PAYMENT_REJECTED": "رفض الدفع",
+      "STATUS_CHANGED": "تغيّر الحالة",
+      "EXTEND": "تمديد",
+      "SUSPEND": "إيقاف",
+      "REACTIVATE": "إعادة تفعيل",
+      "CHANGE_PLAN": "تغيير الخطة"
+    },
+    "actors": {
+      "SYSTEM": "تلقائي",
+      "ADMIN": "مدير المنصة",
+      "TENANT": "صاحب المساحة"
+    },
+    "plans": {
+      "title": "الخطط",
+      "hint": "الأسعار والحدود هنا هي ما يراه العملاء عند التجديد.",
+      "add": "خطة جديدة",
+      "edit": "تعديل الخطة",
+      "saved": "تم حفظ الخطة",
+      "inactive": "غير مفعّلة",
+      "active": "مفعّلة ومتاحة للعملاء",
+      "code": "الرمز",
+      "codeInvalid": "من 2 إلى 30 حرفاً لاتينياً أو رقماً أو _",
+      "nameAr": "الاسم بالعربية",
+      "nameEn": "الاسم بالإنجليزية",
+      "descriptionAr": "الوصف بالعربية",
+      "descriptionEn": "الوصف بالإنجليزية",
+      "priceMonthly": "السعر الشهري",
+      "priceYearly": "السعر السنوي",
+      "limitsHint": "اترك الحد فارغاً ليكون غير محدود.",
+      "maxUsers": "المستخدمون",
+      "maxActiveProjects": "المشروعات النشطة",
+      "maxJobsPerMonth": "أوامر العمل شهرياً",
+      "maxStorageMb": "التخزين (ميجابايت)",
+      "sortOrder": "الترتيب"
+    },
+    "methods": {
+      "title": "وسائل الدفع",
+      "hint": "تظهر للعملاء في صفحة الاشتراك مع رقم الحساب والتعليمات.",
+      "add": "وسيلة دفع جديدة",
+      "edit": "تعديل وسيلة الدفع",
+      "saved": "تم حفظ وسيلة الدفع",
+      "empty": "لا توجد وسائل دفع بعد",
+      "kind": "النوع",
+      "kinds": {
+        "VODAFONE_CASH": "فودافون كاش",
+        "INSTAPAY": "إنستاباي",
+        "BANK_TRANSFER": "تحويل بنكي",
+        "OTHER": "أخرى"
+      },
+      "labelAr": "الاسم بالعربية",
+      "labelEn": "الاسم بالإنجليزية",
+      "account": "رقم المحفظة أو الحساب",
+      "instructionsAr": "التعليمات بالعربية",
+      "instructionsEn": "التعليمات بالإنجليزية",
+      "sortOrder": "الترتيب",
+      "active": "مفعّلة ومتاحة للعملاء"
+    },
+    "account": {
+      "email": "البريد الإلكتروني للدخول",
+      "newEmail": "البريد الإلكتروني الجديد",
+      "currentPassword": "كلمة المرور الحالية",
+      "changeEmail": "تغيير البريد",
+      "emailChanged": "تم تغيير البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirm": "تأكيد كلمة المرور الجديدة",
+      "passwordRule": "14 حرفاً على الأقل وتحتوي على حروف وأرقام",
+      "mismatch": "كلمتا المرور غير متطابقتين",
+      "changePassword": "تغيير كلمة المرور",
+      "passwordChanged": "تم تغيير كلمة المرور"
     }
   }
 }

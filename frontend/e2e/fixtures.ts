@@ -9,6 +9,20 @@ export interface FakeApi {
   jobs: Record<string, unknown>[]
   visits: Record<string, unknown>[]
   paymentRequests: Record<string, unknown>[]
+  notifications: { id: string; type: string; entityType: string | null; entityId: string | null; payload: Record<string, unknown>; read: boolean; createdAt: string }[]
+  visitReports: Record<string, Record<string, unknown>>
+  visitFiles: Record<string, Record<string, unknown>[]>
+  materials: Record<string, Record<string, unknown>[]>
+  plans: Record<string, unknown>[]
+  overdue: Record<string, unknown>[]
+  equipment: Record<string, unknown>[]
+  approvals: Record<string, Record<string, unknown>[]>
+  /** device ids linked to each work order (PUT /jobs/{id}/equipment) */
+  jobEquipment: Record<string, string[]>
+  /** workspace settings behind GET/PATCH /workspace; the session's workspace mirrors them */
+  workspace: { name: string; defaultLanguage: string; locale: string; currency: string; timeZone: string; sector: string | null }
+  /** sites per customer id; a customer missing here has the default site s1 */
+  sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
 
 export const session = {
@@ -19,6 +33,11 @@ export const session = {
   role: 'OWNER',
   permissions: ['crm:read', 'crm:write', 'ops:read', 'ops:write', 'finance:read', 'workspace:manage'],
   language: 'ar',
+}
+
+function sessionOf(api: FakeApi) {
+  const w = api.workspace
+  return { ...session, workspace: { ...session.workspace, name: w.name, defaultLanguage: w.defaultLanguage, currency: w.currency, sector: w.sector } }
 }
 
 function json(route: Route, status: number, body: unknown) {
@@ -40,7 +59,7 @@ async function install(page: Page, api: FakeApi) {
     const arabic = (request.headers()['accept-language'] ?? 'ar').startsWith('ar')
 
     if (path === '/auth/refresh') {
-      return api.signedIn ? json(route, 200, session) : json(route, 401, { code: 'UNAUTHENTICATED' })
+      return api.signedIn ? json(route, 200, sessionOf(api)) : json(route, 401, { code: 'UNAUTHENTICATED' })
     }
     if (path === '/auth/login') {
       const b = body as { email: string; password: string }
@@ -51,11 +70,21 @@ async function install(page: Page, api: FakeApi) {
         })
       }
       api.signedIn = true
-      return json(route, 200, session)
+      return json(route, 200, sessionOf(api))
+    }
+    if (path === '/auth/register') {
+      const b = body as { workspaceName: string; sector?: string }
+      Object.assign(api.workspace, { name: b.workspaceName, sector: b.sector ?? null })
+      api.signedIn = true
+      return json(route, 201, sessionOf(api))
     }
     if (path === '/auth/logout') {
       api.signedIn = false
       return route.fulfill({ status: 204 })
+    }
+    if (path === '/workspace') {
+      if (request.method() === 'PATCH') Object.assign(api.workspace, body)
+      return json(route, 200, { id: 'w1', slug: 'w1', ...api.workspace })
     }
     if (path === '/subscription') {
       return json(route, 200, {
@@ -74,6 +103,11 @@ async function install(page: Page, api: FakeApi) {
       const content = api.customers.filter((c) => c.fullName.includes(q) || c.phone.includes(q))
       return json(route, 200, { content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
     }
+    const one = path.match(/^\/contacts\/([^/]+)$/)
+    if (one && request.method() === 'GET') {
+      const c = api.customers.find((x) => x.id === one[1])
+      return c ? json(route, 200, { ...c, email: null, mobile: null }) : json(route, 404, { code: 'NOT_FOUND' })
+    }
     if (path === '/contacts' && request.method() === 'POST') {
       const b = body as { kind: 'COMPANY' | 'INDIVIDUAL'; company?: string; name?: { first: string }; phone: string }
       const created = {
@@ -86,7 +120,7 @@ async function install(page: Page, api: FakeApi) {
       api.customers.unshift(created)
       return json(route, 201, created)
     }
-    const handled = await r10(route, api, path, request.method(), body)
+    const handled = await r10(route, api, path, request.method(), body, url.searchParams)
     if (handled) return
     return json(route, 404, { code: 'NOT_FOUND' })
   })
@@ -103,6 +137,17 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       jobs: [],
       visits: [],
       paymentRequests: [],
+      sites: {},
+      notifications: [],
+      visitReports: {},
+      visitFiles: {},
+      materials: {},
+      plans: [],
+      overdue: [],
+      equipment: [],
+      approvals: {},
+      jobEquipment: {},
+      workspace: { name: session.workspace.name, defaultLanguage: 'ar', locale: 'ar-EG', currency: 'EGP', timeZone: 'Africa/Cairo', sector: session.workspace.sector },
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -143,13 +188,44 @@ function newJob(id: string, b: Record<string, unknown>) {
   }
 }
 
-async function r10(route: Route, api: FakeApi, path: string, method: string, body: unknown): Promise<boolean> {
+async function r10(route: Route, api: FakeApi, path: string, method: string, body: unknown, search: URLSearchParams): Promise<boolean> {
   const b = (body ?? {}) as Record<string, unknown>
   const page = <T,>(content: T[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
   let m: RegExpMatchArray | null
 
+  if (path === '/notifications/unread-count') {
+    await json(route, 200, { unread: api.notifications.filter((n) => !n.read).length })
+    return true
+  }
+  if (path === '/notifications' && method === 'GET') {
+    const unread = search.get('unread') === 'true'
+    await json(route, 200, page(api.notifications.filter((n) => !unread || !n.read)))
+    return true
+  }
+  if (path === '/notifications/read-all' && method === 'POST') {
+    const updated = api.notifications.filter((n) => !n.read).length
+    api.notifications.forEach((n) => (n.read = true))
+    await json(route, 200, { updated })
+    return true
+  }
+  if ((m = path.match(/^\/notifications\/([^/]+)\/read$/))) {
+    const n = api.notifications.find((x) => x.id === m![1])
+    if (n) n.read = true
+    await json(route, n ? 200 : 404, n ?? { code: 'NOT_FOUND' })
+    return true
+  }
+  if (path === '/locations' && method === 'POST') {
+    const contactId = String(b.contactId)
+    const address = b.address as { city?: string; line1?: string } | undefined
+    const created = { id: `s${Date.now()}`, contactId, type: String(b.type), name: String(b.name), address: address ?? null, accessInstructions: (b.accessInstructions as string) ?? null }
+    api.sites[contactId] = [...(api.sites[contactId] ?? []), created]
+    await json(route, 201, created)
+    return true
+  }
   if (path.startsWith('/locations')) {
-    await json(route, 200, page([{ id: 's1', name: site.name }]))
+    const contactId = search.get('contactId') ?? ''
+    const fallback = [{ id: 's1', contactId, type: 'COMMERCIAL', name: site.name, address: { city: site.city, line1: site.addressLine1 }, accessInstructions: null }]
+    await json(route, 200, page(api.sites[contactId] ?? fallback))
     return true
   }
   if (path.startsWith('/jobs') && method === 'GET' && !path.includes('/', 1)) {
@@ -248,6 +324,116 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
   }
   if (path.startsWith('/files') && method === 'POST') {
     await json(route, 201, { files: [{ id: 'f1' }] })
+    return true
+  }
+  // customer approvals on a work order (R4 API)
+  if ((m = path.match(/^\/jobs\/([^/]+)\/approvals(?:\/([^/]+)\/decision)?$/))) {
+    const list = (api.approvals[m[1]] ??= [])
+    const decided = (d: Record<string, unknown>) => ({ status: d.status, approverName: d.approverName, decidedAt: '2030-01-05T10:00:00Z' })
+    if (method === 'POST' && m[2]) {
+      const a = list.find((x) => x.id === m![2])
+      Object.assign(a ?? {}, decided(b))
+      await json(route, 200, a)
+    } else if (method === 'POST') {
+      const d = b.decision as Record<string, unknown> | undefined
+      const a = { id: `a${list.length + 1}`, kind: b.kind, notes: b.notes ?? null, createdAt: '2030-01-05T09:00:00Z', status: 'PENDING', approverName: null, decidedAt: null, ...(d ? decided(d) : {}) }
+      list.push(a)
+      await json(route, 201, a)
+    } else {
+      await json(route, 200, list)
+    }
+    return true
+  }
+  // maintenance plans and equipment (R6 API)
+  if (path === '/maintenance-plans/overdue') {
+    await json(route, 200, api.overdue)
+    return true
+  }
+  if (path === '/maintenance-plans' && method === 'POST') {
+    const plan = { id: `p${api.plans.length + 1}`, status: 'ACTIVE', nextDueDate: b.startDate, generatedCount: 0, intervalDays: null, ...b }
+    api.plans.push(plan)
+    await json(route, 201, plan)
+    return true
+  }
+  if (path === '/maintenance-plans') {
+    const status = search.get('status')
+    await json(route, 200, page(api.plans.filter((p) => !status || p.status === status)))
+    return true
+  }
+  if ((m = path.match(/^\/maintenance-plans\/([^/]+)$/)) && method === 'PATCH') {
+    const plan = api.plans.find((p) => p.id === m![1])
+    Object.assign(plan ?? {}, b)
+    await json(route, plan ? 200 : 404, plan ?? { code: 'NOT_FOUND' })
+    return true
+  }
+  if (path === '/equipment' && method === 'POST') {
+    const item = { id: `e${api.equipment.length + 1}`, status: 'ACTIVE', manufacturer: null, model: null, serialNumber: null, installedOn: null, ...b }
+    api.equipment.push(item)
+    await json(route, 201, item)
+    return true
+  }
+  if (path === '/equipment') {
+    const contactId = search.get('contactId')
+    const locationId = search.get('locationId')
+    await json(route, 200, page(api.equipment.filter((e) => (!contactId || e.contactId === contactId) && (!locationId || e.locationId === locationId))))
+    return true
+  }
+  if ((m = path.match(/^\/equipment\/([^/]+)$/))) {
+    const device = api.equipment.find((e) => e.id === m![1])
+    if (!device) {
+      await json(route, 404, { code: 'NOT_FOUND' })
+      return true
+    }
+    if (method === 'PATCH') Object.assign(device, b)
+    const serviceHistory = Object.entries(api.jobEquipment)
+      .filter(([, ids]) => ids.includes(device.id as string))
+      .map(([jobId]) => api.jobs.find((j) => j.id === jobId))
+      .filter(Boolean)
+      .map((j) => ({ jobId: j!.id, title: j!.title, type: j!.type, status: j!.status, startDate: null, completedAt: null }))
+    await json(route, 200, { notes: null, warranties: [], ...device, serviceHistory })
+    return true
+  }
+  if ((m = path.match(/^\/jobs\/([^/]+)\/equipment$/))) {
+    if (method === 'PUT') api.jobEquipment[m[1]] = (b.equipmentIds as string[]) ?? []
+    const ids = api.jobEquipment[m[1]] ?? []
+    await json(route, 200, api.equipment.filter((e) => ids.includes(e.id as string)))
+    return true
+  }
+  // visit record (R4 API): report, photos, materials
+  if ((m = path.match(/^\/visits\/([^/]+)\/report$/))) {
+    if (method === 'PUT') {
+      api.visitReports[m[1]] = { ...b, customerConfirmedAt: b.customerName ? '2030-01-05T10:00:00Z' : null, version: 1 }
+      await json(route, 200, api.visitReports[m[1]])
+    } else if (api.visitReports[m[1]]) {
+      await json(route, 200, api.visitReports[m[1]])
+    } else {
+      await route.fulfill({ status: 204 })
+    }
+    return true
+  }
+  if ((m = path.match(/^\/visits\/([^/]+)\/files$/))) {
+    const list = (api.visitFiles[m[1]] ??= [])
+    if (method === 'POST') {
+      const ids = (b.fileIds as string[]) ?? []
+      const purpose = api.requests.findLast((r) => r.path.startsWith('/files?'))?.path.match(/purpose=(\w+)/)?.[1] ?? null
+      ids.forEach((id) => list.push({ id: `${id}-${list.length}`, kind: 'IMAGE', name: 'photo.jpg', purpose, hasThumbnail: false }))
+    }
+    await json(route, 200, list)
+    return true
+  }
+  if ((m = path.match(/^\/jobs\/([^/]+)\/materials(?:\/([^/]+))?$/))) {
+    const list = (api.materials[m[1]] ??= [])
+    if (method === 'POST') {
+      const qty = String(b.quantity)
+      const cost = b.unitCost ? Number(b.unitCost).toFixed(2) : null
+      list.push({ id: `m${list.length + 1}`, visitId: b.visitId, name: b.name, quantity: qty, unit: b.unit ?? null, unitCost: cost, lineCost: cost ? (Number(cost) * Number(qty)).toFixed(2) : null })
+      await json(route, 201, list[list.length - 1])
+    } else if (method === 'DELETE') {
+      api.materials[m[1]] = list.filter((x) => x.id !== m![2])
+      await route.fulfill({ status: 204 })
+    } else {
+      await json(route, 200, { lines: list, totalCost: null })
+    }
     return true
   }
   return false

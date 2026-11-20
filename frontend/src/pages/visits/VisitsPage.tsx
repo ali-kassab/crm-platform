@@ -1,7 +1,9 @@
-import { CalendarClock, MapPin } from 'lucide-react'
+import { CalendarClock, CalendarDays, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { useAuth } from '@/auth/auth-context'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,17 +11,31 @@ import { formatDateTime } from '@/lib/format'
 import { useSubscription } from '@/lib/subscription'
 import { useMyVisits } from './api'
 import { VisitActions } from './VisitActions'
+import { VisitReportButton } from './VisitReportButton'
+import { VisitWorkButton } from './VisitWorkButton'
 
 /** The technician's day: upcoming and running visits, one card each (phone-first). */
 export function VisitsPage() {
   const { t } = useTranslation()
   const { data, isPending } = useMyVisits()
   const { data: subscription } = useSubscription()
+  const { can } = useAuth()
   const open = data?.content.filter((v) => v.status !== 'COMPLETED' && v.status !== 'CANCELLED' && v.status !== 'RESCHEDULED')
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t('visits.mine')}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold">{t('visits.mine')}</h1>
+        <div className="flex-1" />
+        {can('ops:read') ? (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/visits/calendar">
+              <CalendarDays />
+              {t('calendar.title')}
+            </Link>
+          </Button>
+        ) : null}
+      </div>
       {isPending ? (
         <Skeleton className="h-28 w-full" />
       ) : !open || open.length === 0 ? (
@@ -49,7 +65,11 @@ export function VisitsPage() {
             </CardHeader>
             <CardContent className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">{v.notes}</p>
-              <VisitActions visit={v} disabled={subscription?.readOnly} />
+              <div className="flex flex-wrap gap-2">
+                <VisitWorkButton visit={v} readOnly={subscription?.readOnly} />
+                <VisitReportButton visit={v} />
+                <VisitActions visit={v} disabled={subscription?.readOnly} />
+              </div>
             </CardContent>
           </Card>
         ))

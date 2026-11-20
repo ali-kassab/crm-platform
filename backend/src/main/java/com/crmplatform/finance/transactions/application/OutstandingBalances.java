@@ -22,6 +22,27 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OutstandingBalances {
 
+    /** Σ of every positive customer balance (dashboard); same rules as {@link #SQL}. */
+    private static final String TOTAL_SQL = """
+            with contract as (
+                select contact_id, sum(budget) as amount from projects
+                 where workspace_id = ? and deleted_at is null group by contact_id
+                union all
+                select contact_id, sum(budget) from jobs
+                 where workspace_id = ? and deleted_at is null and project_id is null group by contact_id
+            ), c as (
+                select contact_id, sum(amount) as contract from contract group by contact_id
+            ), r as (
+                select contact_id, coalesce(sum(amount) filter (where type = 'RECEIVED'), 0) as received
+                  from transactions
+                 where workspace_id = ? and voided_at is null and deleted_at is null
+                 group by contact_id
+            )
+            select coalesce(sum(c.contract - coalesce(r.received, 0)), 0)
+              from c left join r on r.contact_id = c.contact_id
+             where c.contract - coalesce(r.received, 0) > 0
+            """;
+
     private static final String SQL = """
             with contract as (
                 select contact_id, sum(budget) as amount from projects
@@ -53,6 +74,12 @@ public class OutstandingBalances {
     public OutstandingBalances(JdbcTemplate jdbc, Contacts contacts) {
         this.jdbc = jdbc;
         this.contacts = contacts;
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal total() {
+        UUID ws = TenantContext.requireWorkspaceId();
+        return jdbc.queryForObject(TOTAL_SQL, BigDecimal.class, ws, ws, ws);
     }
 
     @Transactional(readOnly = true)

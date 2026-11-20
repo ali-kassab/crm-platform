@@ -1,11 +1,17 @@
+import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { Settings2 } from 'lucide-react'
 import { useAuth } from '@/auth/auth-context'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSubscription } from '@/lib/subscription'
+
+// loaded only for users who may see it (reports:read), keeping it out of everyone else's bundle
+const DashboardPanel = lazy(() => import('@/pages/dashboard/DashboardPanel'))
 
 export function HomePage() {
   const { t, i18n } = useTranslation()
@@ -19,6 +25,18 @@ export function HomePage() {
         <h1 className="text-2xl font-semibold">{t('home.welcome', { name: session?.user.firstName })}</h1>
         <p className="text-muted-foreground">{t('home.quickStart')}</p>
       </div>
+      {can('workspace:manage') && !session?.workspace.sector && (
+        <Alert>
+          <Settings2 aria-hidden />
+          <AlertTitle>{t('setup.promptTitle')}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            {t('setup.promptHint')}
+            <Button asChild size="sm">
+              <Link to="/setup">{t('setup.start')}</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
@@ -55,6 +73,11 @@ export function HomePage() {
           </Card>
         )}
       </div>
+      {can('reports:read') && (
+        <Suspense fallback={<Skeleton className="h-48" />}>
+          <DashboardPanel />
+        </Suspense>
+      )}
     </div>
   )
 }

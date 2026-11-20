@@ -1,6 +1,7 @@
 import { Search, Users } from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -84,7 +85,11 @@ export function CustomersPage() {
               <TableBody>
                 {data.content.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.fullName}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link to={`/customers/${c.id}`} className="rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                        {c.fullName}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{t(`customers.${c.kind}`)}</Badge>
                     </TableCell>

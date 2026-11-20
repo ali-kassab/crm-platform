@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { useAuth } from '@/auth/auth-context'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { applyServerErrors } from '@/lib/forms'
+import { NewSiteDialog } from '@/pages/customers/NewSiteDialog'
+import { defaultJobType } from '@/pages/setup/sectors'
 import { JOB_TYPES, PRIORITIES, useCreateJob, useCustomerOptions, useSiteOptions } from './api'
 
 const FIELDS = ['contactId', 'locationId', 'title', 'type', 'priority', 'reportedIssue', 'budget'] as const
@@ -32,6 +35,7 @@ export function NewJobDialog({ disabled }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const create = useCreateJob()
+  const { session } = useAuth()
   const required = t('common.required')
   const schema = z.object({
     contactId: z.string().min(1, required),
@@ -45,7 +49,7 @@ export function NewJobDialog({ disabled }: { disabled?: boolean }) {
   type Values = z.infer<typeof schema>
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { contactId: '', locationId: '', title: '', type: 'CORRECTIVE_REPAIR', priority: 'NORMAL', reportedIssue: '', budget: '' },
+    defaultValues: { contactId: '', locationId: '', title: '', type: defaultJobType(session?.workspace.sector), priority: 'NORMAL', reportedIssue: '', budget: '' },
   })
   const contactId = useWatch({ control: form.control, name: 'contactId' })
   const customers = useCustomerOptions()
@@ -135,6 +139,16 @@ export function NewJobDialog({ disabled }: { disabled?: boolean }) {
               (sites.data?.content ?? []).map((s) => ({ value: s.id, label: s.name })),
               t('jobs.pickSite'),
             )}
+            {contactId && sites.data && sites.data.content.length === 0 ? (
+              <div className="-mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>{t('sites.noneForCustomer')}</span>
+                <NewSiteDialog
+                  contactId={contactId}
+                  size="sm"
+                  onCreated={(site) => form.setValue('locationId', site.id, { shouldValidate: true })}
+                />
+              </div>
+            ) : null}
             <Controller
               name="title"
               control={form.control}

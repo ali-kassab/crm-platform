@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router'
+import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
 import { AppShell } from '@/components/layout/AppShell'
+import { PageErrorBoundary } from '@/components/layout/PageErrorBoundary'
 import { Spinner } from '@/components/ui/spinner'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { HomePage } from '@/pages/HomePage'
@@ -10,6 +11,13 @@ import { HomePage } from '@/pages/HomePage'
 // screens beyond the first paint load on demand (bundle budget)
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const CustomersPage = lazy(() => import('@/pages/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })))
+const CustomerDetailPage = lazy(() => import('@/pages/customers/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
+const MaintenancePage = lazy(() => import('@/pages/maintenance/MaintenancePage').then((m) => ({ default: m.MaintenancePage })))
+const WeekCalendarPage = lazy(() => import('@/pages/visits/WeekCalendarPage').then((m) => ({ default: m.WeekCalendarPage })))
+const SetupPage = lazy(() => import('@/pages/setup/SetupPage').then((m) => ({ default: m.SetupPage })))
+// the platform-admin area is its own lazy chunk with its own session (never the workspace one)
+const AdminApp = lazy(() => import('@/admin/AdminApp'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const JobsPage = lazy(() => import('@/pages/jobs/JobsPage').then((m) => ({ default: m.JobsPage })))
 const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage').then((m) => ({ default: m.JobDetailPage })))
@@ -36,8 +44,22 @@ function RequireSession() {
 
 function GuestOnly() {
   const { session, ready } = useAuth()
+  const location = useLocation()
   if (!ready) return <FullPageSpinner />
-  return session ? <Navigate to="/" replace /> : <Outlet />
+  // this redirect wins over the page's own navigate(): a new owner goes straight to the setup
+  const target = location.pathname === '/register' ? '/setup' : '/'
+  return session ? <Navigate to={target} replace /> : <Outlet />
+}
+
+/** A malformed work-order payload must not blank the whole app: contain it to this screen. */
+function JobDetailRoute() {
+  const { t } = useTranslation()
+  const { id = '' } = useParams()
+  return (
+    <PageErrorBoundary backTo="/jobs" backLabel={t('jobs.title')} retryQueryKey={['job', id]}>
+      <JobDetailPage />
+    </PageErrorBoundary>
+  )
 }
 
 function NotFound() {
@@ -49,6 +71,7 @@ export default function App() {
   return (
     <Suspense fallback={<FullPageSpinner />}>
     <Routes>
+      <Route path="/admin/*" element={<AdminApp />} />
       <Route element={<GuestOnly />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -57,11 +80,16 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="jobs" element={<JobsPage />} />
-          <Route path="jobs/:id" element={<JobDetailPage />} />
+          <Route path="jobs/:id" element={<JobDetailRoute />} />
           <Route path="visits" element={<VisitsPage />} />
+          <Route path="visits/calendar" element={<WeekCalendarPage />} />
+          <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="finance" element={<FinancePage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="setup" element={<SetupPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>

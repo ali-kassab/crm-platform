@@ -54,6 +54,13 @@ class CustomersIT {
                 .andExpect(jsonPath("$.content[*].fullName").value(contains("شركة الدلتا للتكييف")));
         mvc.perform(get("/api/v1/contacts?kind=INDIVIDUAL").with(s.auth())).andExpect(jsonPath("$.totalElements").value(2));
         mvc.perform(get("/api/v1/contacts?kind=TEAM").with(s.auth())).andExpect(status().isBadRequest());
+        // "field,direction" in one sort parameter, exactly as the web client sends it (R13 live-run bug)
+        mvc.perform(get("/api/v1/contacts?kind=INDIVIDUAL&sort=createdAt,desc").with(s.auth()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].fullName").value(contains("منى سعيد", "حسن")));
+        mvc.perform(get("/api/v1/contacts?kind=INDIVIDUAL&sort=createdAt,asc").with(s.auth()))
+                .andExpect(jsonPath("$.content[*].fullName").value(contains("حسن", "منى سعيد")));
+        mvc.perform(get("/api/v1/contacts?sort=desc").with(s.auth())).andExpect(status().isBadRequest());
     }
 
     @Test

@@ -12,6 +12,10 @@ export function formatDate(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat(locale(), { dateStyle: 'medium' }).format(new Date(iso))
 }
 
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat(locale()).format(value)
+}
+
 /** Money arrives as a decimal string ("1500.00"); shown in the workspace currency. */
 export function formatMoney(amount: string | null | undefined, currency = 'EGP'): string {
   if (amount == null) return ''

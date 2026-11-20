@@ -87,6 +87,13 @@ management:
   health:
     mail:
       enabled: false
+  # OTLP metrics push is off unless a collector is configured (otherwise it retries localhost:4318
+  # every minute and fills the log with warnings — seen in the R13 container run).
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTLP_METRICS_ENABLED:false}
+        url: ${OTLP_METRICS_URL:http://localhost:4318/v1/metrics}
 
 springdoc:
   api-docs:

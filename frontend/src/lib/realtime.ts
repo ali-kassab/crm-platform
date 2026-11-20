@@ -34,6 +34,9 @@ export function keysFor(e: Changed): QueryKey[] {
   const keys: QueryKey[] = [['jobs'], ['visits'], ['outstanding']]
   if (e.jobId) keys.push(['job', e.jobId])
   if (e.entityType === 'JOB' && e.entityId && e.entityId !== e.jobId) keys.push(['job', e.entityId])
+  // R13 screens: maintenance plans (and their generated jobs) and the equipment register
+  if (e.entityType === 'MAINTENANCE_PLAN' || e.entityType === 'JOB') keys.push(['maintenance'])
+  if (e.entityType === 'EQUIPMENT') keys.push(['equipment'])
   return keys
 }
 

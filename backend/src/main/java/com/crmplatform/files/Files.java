@@ -36,6 +36,16 @@ public interface Files {
      */
     String downloadUrlOfOwned(UUID fileId, String ownerType, UUID ownerId);
 
+    /**
+     * Stored content of a file that belongs to the given owner, for callers that already authorized
+     * the reader (e.g. a visit report PDF). Empty unless the file exists in the active workspace and
+     * belongs to that owner. Images are the sanitized WebP stored at upload.
+     */
+    java.util.Optional<StoredContent> contentOfOwned(UUID fileId, String ownerType, UUID ownerId);
+
+    record StoredContent(FileKind kind, String contentType, byte[] bytes) {
+    }
+
     /** Bytes stored by the active workspace (all live files). */
     long usedBytes();
 

@@ -2,13 +2,60 @@
 
 > Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
 >
-> Last updated: 2026-11-20 (R11 realtime completed and committed after the owner approved ADR-0015).
+> Last updated: 2026-11-20 (**R13 complete and the deferred platform-admin UI done**; last commit `5ff273e` = work-order error boundary; next steps in `SESSION_HANDOFF.md` §7).
 
 ## 0. Active repository — read before anything else
 - **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
 - `D:\Workspace\Java CRM` is the **old folder**. It is NOT a repository for this product and must never be used for development, Git or tests. It holds historical/governing documentation only.
 - Authorized documents in the old folder (read-only, documentation only): `D:\Workspace\Java CRM\PRODUCT_AUDIT.md` (Phase 1–2 audit, roadmap R0–R13 in §15, decisions D1–D16 in §16), and for history only `D:\Workspace\Java CRM\PROJECT_PROGRESS.md` (pre-pivot, outdated), `VERSION_MATRIX.md`, `improved plan.md`. The old `D:\Workspace\Java CRM\SESSION_HANDOFF.md` is **superseded** by `D:\Workspace\crm-platform\SESSION_HANDOFF.md`.
 - **Never read** legacy application source code: `D:\Workspace\Java CRM\crm\` and `D:\Workspace\Java CRM\analysis\` (clean-room rule; also blocked in `D:\Workspace\Java CRM\.claude\settings.json`).
+
+## 0b. Installed Skills and Mandatory Usage Policy
+Permanent rule set by the owner on 2026-11-20. **This file is the source of truth for the policy**; `SESSION_HANDOFF.md` summarizes it and must stay consistent with it.
+
+1. **Globally installed Claude Code skills** (in `C:\Users\MediaTech\.claude\skills\`): `frontend-design`, `webapp-testing`, `vercel-react-best-practices`, `spring-data-jpa`, `flyway-migrations`, `multi-tenancy`.
+2. **At the start of every new Claude Code session:** discover which skills the session actually lists; verify each relevant skill can be loaded and read (invoke it with the Skill tool); read its instructions **before** starting work in its area.
+3. **Mandatory skill per task type:**
+
+   | Task | Skill |
+   |---|---|
+   | Frontend UI/UX (design, layout, usability, responsive behaviour, visual consistency) | `frontend-design` |
+   | React implementation and optimization (architecture, rendering, bundle, performance) | `vercel-react-best-practices` |
+   | Browser and end-to-end testing of real user workflows | `webapp-testing` |
+   | JPA entities, repositories, relationships, queries, persistence performance | `spring-data-jpa` |
+   | Database schema changes and Flyway migrations | `flyway-migrations` |
+   | Tenant isolation and tenant-aware persistence/access | `multi-tenancy` |
+
+4. **Skills are guidance; the project wins.** This project's architecture, security requirements, approved decisions (D1–D16, ADRs incl. ADR-0015) and existing conventions (§12) always take priority over a skill's generic advice. Examples of known conflicts, resolved in favour of the project: the project uses Node/TypeScript Playwright (`frontend/e2e`, `pnpm test:e2e`), not the Python Playwright scripts `webapp-testing` suggests; entities follow the existing `TenantEntity`/constructor-injection/ArchUnit conventions rather than the skill's Lombok template; tenancy is the existing shared-schema `TenantContext`/`TenantWork` fail-closed model; Flyway migrations stay additive and sequential (next `V18`).
+5. **Never claim a skill was used unless its instructions were actually discovered and read in that session.**
+6. **If a relevant skill is unavailable** (not listed, fails to load), report it to the owner and continue cautiously using the documented project conventions.
+7. **Do not install, update or replace skills** automatically — only with the owner's explicit permission.
+
+Verification log: 2026-11-20 — all six skills discovered and read in-session. Note: `webapp-testing`'s helper scripts need Python Playwright, which is **not installed** (`py` = Python 3.13.7 without the `playwright` package); its method was applied with the project's existing TypeScript Playwright instead (no new dependency).
+
+## 0c. Reuse-First Policy for Future Components
+Permanent rule set by the owner on 2026-11-20. **This file is the source of truth**; `SESSION_HANDOFF.md` summarizes it and must stay consistent.
+
+**Scope — forward only.** Applies only to NEW components and features built from **R12 onwards**. Do **not** modify, refactor, replace or reorganize existing components to apply it; do **not** revisit completed R0–R11 work; do **not** change existing functionality unless the current task explicitly requires it.
+
+**Rules for every new frontend component (and new standard functionality: charts, tables, forms, dialogs, date pickers, PDF generation, etc.):**
+1. First check whether an already-installed library provides it.
+2. Prefer ready-made, free, open-source components over custom implementations.
+3. Compose existing library components rather than writing from scratch.
+4. Customize them to the project's design system, Arabic RTL, English LTR and responsive requirements.
+5. Do not add a dependency if an installed library can do the job.
+6. If nothing suitable exists, implement only the missing piece, not a whole new component.
+7. Before adding any dependency, verify compatibility (React 19, Vite 8, TypeScript ~5.9, Tailwind 4), active maintenance, a permissive licence (MIT/Apache-2.0/BSD/ISC — no GPL/AGPL/commercial), accessibility (keyboard, ARIA, RTL) and bundle-size impact (the `pnpm build` budget: each chunk ≤ 200 kB gzip, total ≤ 350 kB; lazy-load heavy pieces). Record the check in the commit message or the phase notes.
+
+**Lookup order (frontend):**
+1. Components already in `frontend/src/components/ui/` (2026-11-20: alert, avatar, badge, button, card, checkbox, dialog, direction, dropdown-menu, empty, field, input, label, radio-group, select, separator, sheet, sidebar, skeleton, sonner, spinner, table, tabs, textarea, tooltip).
+2. Other shadcn/ui registry components, added **only** with `pnpm dlx shadcn@latest add <name>` (existing rule, §12; `components.json` has `rtl: true`). Some pull in a vetted dependency (e.g. chart → recharts, calendar/date picker → react-day-picker, data table → @tanstack/react-table); rule 7 still applies to that dependency.
+3. Primitives from installed libraries: `radix-ui`, `react-hook-form` + `zod` (forms), `@tanstack/react-query` (data), `lucide-react` (icons), `sonner` (toasts), `i18next` (text).
+4. Only then a new, vetted open-source dependency (rule 7), or a minimal custom piece (rule 6).
+
+**Backend / other standard functionality:** same principle — reuse Spring Boot / existing libraries first. Arabic PDF in R12 uses the already-approved D15 stack (OpenHTMLtoPDF + ICU4J + an embedded open-licence Arabic font); no other PDF engine without the owner's approval.
+
+**Skills:** apply `frontend-design` (visual consistency, RTL/LTR, responsive) and `vercel-react-best-practices` (bundle/dynamic imports, re-renders) to every new component, per §0b. Project conventions override generic skill advice.
 
 ## 1. Identity & directives
 - Product: Arabic-first (RTL, English secondary) multi-tenant SaaS for **Fit-Out & Contracting**, **CCTV/Security/Access Control**, **Maintenance & Field Service** — Egypt first; must serve an independent technician (one-user workspace) up to companies.
@@ -21,7 +68,7 @@
 ## 2. Repository
 - Path: `D:\Workspace\crm-platform` · remote `origin` = `https://github.com/ali-kassab/crm-platform.git` (private, owned by the user).
 - Working branch: **`feature/saas-foundation`** (created from `main` @ `163d49c`).
-- **`main` status (verified 2026-11-19 via `git fetch`):** the owner merged **PR #3** (`feature/saas-foundation` → `main`) on GitHub → `origin/main` = `7ae560a` ("Merge pull request #3"), which contains every commit up to `dc393ca`. The **local** `main` ref is stale at `163d49c` (31 commits behind `origin/main`). Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
+- **`main` status (verified 2026-11-20 via `git fetch`):** the owner merged **PR #3** (R0–R10, `7ae560a`) and later **PR #4** → `origin/main` = `50f9437`, which contains every commit up to `fac6486` (R11). R12 and R13 are only on the feature branch. The **local** `main` ref is stale. Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
 - Author/committer: `ali-kassab <alikassab155@gmail.com>` (local git config, verified). **No Claude co-author trailer or Claude/Anthropic attribution** in commits or PR text.
 - Push: verified commits → `origin feature/saas-foundation` automatically. Never `main`, never force-push, never rewrite history, never delete branches, never open a PR (opening and merging PRs is the owner's decision).
 
@@ -41,10 +88,11 @@
 | R9 Frontend foundation | ✅ complete (2026-11-19, `a06072d`) |
 | R10 Frontend workflows | ✅ core done (2026-11-19, `14bf98c`) — see 4k for what is left |
 | R11 NestJS realtime | ✅ complete (2026-11-20, `0c4f936`) — see 4l; live end-to-end run still blocked (§7) |
-| R12 Reports & Arabic PDF | ⚪ not started |
-| R13 Performance & production readiness (+ R10 leftovers) | ⚪ not started |
+| R12 Reports & Arabic PDF | ✅ complete (2026-11-20, `c27961a`) — see 4m |
+| R13 Performance & production readiness (+ R10 leftovers) | ✅ complete (2026-11-20, `39c38bc` … `602c22c`) — see 4n |
+| Final stage: platform-admin UI | ✅ complete (2026-11-20, `0d85543`) — see 4o |
 
-Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 is only on the feature branch).
+Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 and R12 are only on the feature branch).
 
 ## 4. Completed — R0 Security & foundations
 1. **Tenant isolation is fail-closed** (audit S1, critical) — commit `17f1fff`.
@@ -163,18 +211,46 @@ Design: `docs/adr/0015-realtime-nestjs-redis-tickets.md`, **approved by the owne
 - **realtime-service/** (NestJS 12, socket.io 4, ioredis, TS 5.9) — see `realtime-service/README.md`. Socket path `/realtime/socket.io`; ticket consumed with atomic `GETDEL` (format-checked before Redis is queried; claims must be UUIDs); rooms `ws:<workspaceId>` and `user:<userId>:<workspaceId>` only; every message from the channel is shape-validated and anything else dropped; `GET /health`. Env `PORT` (3001), `REDIS_URL`, `REALTIME_CHANNEL`, `ALLOWED_ORIGINS`.
 - **Frontend** — `src/lib/realtime.ts` `useRealtime(userId, workspaceId)`, called from `AppShell`: fetches a ticket first and only then lazy-loads `socket.io-client` (separate `realtime` chunk, not on the critical path); every (re)connect uses a fresh ticket; ticket/socket failures retry with backoff 5 s → 5 min, the app stays on plain REST; on `notification` invalidates `['notifications']`; on `changed` invalidates (batched 250 ms) `['jobs']`, `['visits']`, `['outstanding']`, `['job', jobId]` (and `['job', entityId]` for JOB), or `['board', boardId]` for BOARD; **after every reconnect invalidates all queries** to catch up on missed hints; socket closed on sign-out / workspace change. `/realtime` ws dev proxy in `vite.config.ts`.
 - R11 acceptance (from `PRODUCT_AUDIT.md`): live job/visit/notification updates ✅; board updates ✅ relayed (no board screen exists in the frontend yet — the `['board', id]` key is the convention for when it does); cross-tenant isolation ✅ (`gateway.spec.ts` room isolation incl. same user in two workspaces; `RealtimeIT` workspace id in each hint); dedup on redelivery — **not applicable** (pub/sub, approved); switch-off ✅ (`REALTIME_ENABLED=false` stops publishing; frontend works without the service — e2e runs with the ticket endpoint returning 404).
-- Tests: `realtime/RealtimeIT` (3: id-only job/notification hints, rejected change publishes nothing; ticket random/TTL/claims, 401 without auth; board hint has board id + type, no title); `realtime-service` `pnpm test` (6: ticket rejection + single use, room isolation, garbage dropped, health; Redis ticket store: single use, malformed tickets never reach Redis, non-UUID claims rejected).
+- Tests: `realtime/RealtimeIT` (3: id-only job/notification hints, rejected change publishes nothing; ticket random/TTL/claims, 401 without auth; board hint has board id + type, no title); `realtime-service` `pnpm test` (6: ticket rejection + single use, room isolation, garbage dropped, health; Redis ticket store: single use, malformed tickets never reach Redis, non-UUID claims rejected); browser tests `frontend/e2e/realtime.spec.ts` (3 × desktop + mobile, fake Socket.IO server via `page.routeWebSocket`: ticket only in the handshake auth and never in the URL, a JOB hint refetches the work-order list, a BOARD hint does not, a dropped connection reconnects with a NEW ticket and refetches the screen; no realtime service → no socket and the app works; sign-out closes the socket). Mutation-checked: disabling the `changed` handler makes the hint test fail.
 - **Not done:** no live run of browser + Java + Redis + NestJS together (local DB password issue, §7); Dockerfile/docker-compose entry for `realtime-service` (R13); no frontend notifications list/badge yet (the `['notifications']` key is ready); a socket that is already open is not closed when the user is removed from the workspace elsewhere (it only receives ids; accepted, documented in the README).
 
+## 4m. Completed — R12 Reports & Arabic PDF — commit `c27961a`
+Audit R12 scope: "dashboards, visit report PDF in Arabic; real Arabic PDF verified" — done. No Flyway migration was needed (next is still `V18`).
+- **Libraries (D15, owner-approved; licence accepted 2026-11-20):** `io.github.openhtmltopdf:openhtmltopdf-pdfbox` + `openhtmltopdf-rtl-support` **1.1.112** (maintained fork, **LGPL-2.1, used unmodified** as a Maven dependency), bringing PDFBox 3.0.8 (Apache-2.0) and ICU4J 77.1 (Unicode licence). Font: **IBM Plex Sans Arabic** Regular/Bold (OFL-1.1, Arabic + Latin, same typeface as the UI) in `backend/src/main/resources/fonts/` with its licence `IBMPlexSansArabic-OFL.txt`. Source: official npm package `@ibm/plex-sans-arabic` 1.1.0 (owner-approved download); that package has only WOFF/WOFF2, so the WOFF 1.0 files were decompressed to TTF (byte-identical font tables — an unmodified copy under the OFL). Thymeleaf (already a dependency) renders the HTML.
+- **Visit report PDF** — `GET /api/v1/reports/visits/{visitId}/pdf?lang=ar|en` (`ops:read` or `ops:assigned`): `reporting/application/{PdfRenderer, VisitReportPdf}`, `reporting/web/ReportsController`, template `templates/reports/visit-report.html`, labels `report.visit.*`, `jobType.*`, `priority.*`, `visitStatus.*`, `outcome.*`, `purpose.*` in `i18n/messages(_ar).properties`. Contents: workspace, customer, phone, site/address, work order, type, priority, scheduled/actual time, status/outcome, technicians, reported issue, report sections (only those filled), materials (name/quantity/unit — **no costs**), up to 12 photos ordered BEFORE/DURING/AFTER/INSPECTION (re-encoded to JPEG ≤1000 px), customer confirmation + signature, page numbers. Language: `lang` param → request language → workspace default. Dates in the workspace time zone with the UI's `ar-EG` digits.
+  - Arabic: ICU bidi splitter/reorderer + Arabic shaping + ICU line breaker; layout uses direction-aware floats because the engine does **not** mirror table columns in RTL; user-entered text gets its own direction from its first strong character (`VisitReportPdf.Directions`, like `dir="auto"`), so Arabic with numbers stays correct inside an English PDF and vice versa.
+  - Security: data from the new operations API `VisitReports` (`document`, `image`) implemented by `operations/visits/application/VisitReportDocuments` through `VisitService.get` → same access rule as the visit (technicians only their visits, 404 otherwise; tenant filter). Images via new `Files.contentOfOwned(fileId, ownerType, ownerId)` (owner + tenant checked; `FileStorage.get`). The renderer may load **only `data:` URIs** (no server-side fetching). All user text escaped by Thymeleaf. Internal notes and material costs never printed. Rate limit 30 PDFs/user/minute (`RateLimiter`), `Cache-Control: no-store`, `Content-Disposition: attachment; filename="visit-report-<date>.pdf"`.
+- **Dashboard** — `GET /api/v1/reports/dashboard?period=WEEK|MONTH|QUARTER|YEAR|ALL` (default MONTH; **`reports:read`** = Owner/Admin/Finance, as in the API spec): open jobs (+ by status), SLA-breached open jobs, jobs created/completed in period, visits today/overdue/completed/missed, overdue maintenance, warranties ending within 30 days; with `finance:read` also received/paid in period and total outstanding. Periods are the workspace's calendar days (its time zone). New public APIs: `operations.OperationsOverview` (`operations/overview/application/OperationsOverviewService`, JPQL aggregates only → Hibernate tenant filter), `finance.Accounting.periodSummary` (`TransactionRepository.sumInPeriod`; `OutstandingBalances.total()` native SQL with explicit workspace filter), `identity.WorkspaceMembers.currentWorkspace()`.
+- **Frontend** — `src/pages/dashboard/{DashboardPanel, api}` lazy-loaded on the home page only with `reports:read` (shadcn Tabs/Card/Skeleton/Alert, no new dependency; alert counts highlighted only when > 0; tiles link to jobs/visits/finance); `src/pages/visits/VisitReportButton` next to visit actions in the job detail and the technician's visits page; `lib/api.ts` `download()` (Bearer download, server file name; `send()` now keeps an explicit `Accept`); `lib/format.ts` `formatNumber`; i18n `dashboard.*`, `visits.downloadReport` (ar/en). Bundle 256.8 kB gzip (dashboard chunk 1.4 kB, lazy).
+- Tests: `reporting/ReportsIT` (2: real Arabic PDF — embedded Plex font, ≥ 3 images, Arabic text in logical order after NFKC, no internal note/cost, English variant; 404 for an unassigned technician and another workspace, 401 without session; dashboard counts only the caller's workspace, money only with finance:read, 403 for technician/member, invalid period 400), `reporting/application/VisitReportPdfTest` (2: direction rule, image bounding/broken image skipped), `frontend/e2e/reports.spec.ts` (4 × desktop/mobile). Rendered pages were inspected visually (`backend/target/reports-it/*.png`, generated by `ReportsIT`, not committed).
+- **Not done / limits:** no live run against the real backend (local DB password, §7); charts were not added (KPI tiles only — a chart would need `recharts` via the shadcn chart component, decide in a later phase under the reuse-first policy); no visit-report editing UI or photo upload UI (R10 leftovers, R13); PDF rendering is synchronous on the request thread (bounded by 12 photos and the rate limit).
+
+## 4n. Completed — R13 Performance, production readiness and R10 leftovers — commits `39c38bc` … `602c22c`
+Audit R13 scope: "baselines, load test, Dockerfiles, CI, backups, deployment config; measured p95 targets; clean-env setup". No Flyway migration (next is still `V18`).
+- **Ops (configuration only, nothing deployed):** `39c38bc` API sort fix (`?sort=field,desc` on all list endpoints, `shared/web/Pagination`), OTLP metrics push off unless `OTLP_METRICS_ENABLED=true`, test JVM pinned to UTC in `backend/pom.xml`. `1fab3fa` Dockerfiles (backend Temurin 17 JRE non-root, realtime-service, frontend nginx with `/api` + `/realtime` proxy, CSP and security headers), compose `--profile app`, `docker-compose.prod.yml`, `.github/workflows/ci.yml`, Linux screenshot baselines, `ops/backup/{backup,restore}.sh` (restore only into a NEW db / empty volume), `frontend/e2e-live` + `pnpm test:live`, `ops/perf/baseline.js` (k6), runbook `docs/operations/`.
+- **Measured:** k6 20 VUs / 60 s → 22,491 requests, 0 errors, every p95 ≤ 105 ms (`docs/operations/performance-baseline.md`); backup → restore round trip with identical row counts.
+- **R10 leftovers (frontend, shadcn only, no new npm dependency):** customer page with sites (`94b7ca0`), notifications bell + `/notifications` (`edcce25`), visit record sheet (`9b2e97d`), `/maintenance` + equipment section (`6bfa41c`), customer approvals card (`9260925`), `/visits/calendar` week agenda (`1300a8c`), **sector onboarding wizard** `/setup` (`eb84b4b`: sector → name/default language/currency/time zone via `PATCH /workspace` → sector-specific first-steps checklist; new owners land there after sign-up; home prompt while no sector; Settings link; the sector suggests the new work-order type; shadcn `radio-group` added), **device card + devices on the work order** (`602c22c`: sheet with details, status, service history and warranties from `GET /equipment/{id}`; work-order "Devices" card linking site devices via `PUT /jobs/{id}/equipment`).
+- **Frontend conventions added:** `AuthState.updateWorkspace(partial)` merges saved workspace settings into the in-memory session; `GuestOnly` sends a just-registered user to `/setup` (its redirect wins over the page's own `navigate`); sector defaults live in `src/pages/setup/sectors.ts` (suggestions only, never feature switches).
+- **Tests:** backend 134/0/0/0; realtime-service 6/6; frontend lint 0 errors, build 290.3 kB gzip, e2e 70 passed / 2 skipped, `pnpm test:live` 1 passed on the throwaway `crm-r13-smoke` stack (register → setup wizard → customer → site → device → maintenance plan → work order → device link + service history → approval → visit → report + photo → materials → complete → Arabic PDF, realtime socket connected).
+- **Not done / limits:** CI never ran on GitHub (triggers: PR, push to main, manual); no deployment; sector seeding of tags/board or milestone templates was not added (no screen uses them; the wizard covers sector choice, regional defaults, first steps and the work-order type suggestion); no signature capture; platform-admin UI deferred to the final stage (done, 4o). `JobDetailPage` error boundary added later in `5ff273e` (`components/layout/PageErrorBoundary`, reusable per route).
+
+## 4o. Completed — Platform-admin UI (final stage) — commit `0d85543`
+- `frontend/src/admin/` — lazy `/admin/*` area on top of the 4h admin APIs: sign-in, payment-request review (receipt, approve, reject with reason), workspaces (list, detail, extend / suspend / reactivate / change plan), plans, payment methods, the admin's own email and password. No backend change, no new dependency.
+- **Permanent rule:** the admin session never shares anything with the workspace session — separate in-memory token (`src/admin/session.ts`), `credentials: 'omit'` (no refresh cookie), no refresh, query keys under `['admin', …]` dropped on sign-out; a reload ends it (access-token-only by design, 4 R0 item 3).
+- Tests: `e2e/admin.spec.ts`, `e2e-live/admin.spec.ts` (env-gated). Details: `SESSION_HANDOFF.md` §6d.
+
 ## 5. Current phase & next steps
-R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: OpenHTMLtoPDF + ICU4J shaping + embedded Arabic font; verify a real Arabic PDF renders correctly). Next Flyway migration is `V18`. Then R13 (performance baselines, CI incl. Linux Playwright baselines, Dockerfiles for backend/frontend/realtime-service, backups, readiness + R10 leftovers in 4k).
+Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Exact next steps: `SESSION_HANDOFF.md` §7.
 
 **Exact next steps for a new session (in order):**
 1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
-2. Start R12 per `PRODUCT_AUDIT.md` §15; continuous execution rules in §12 apply.
-3. After R12: tests → commit → push → update both handoff files; then R13.
+2. Follow §0b (skills) and §0c (reuse-first).
+3. Follow `SESSION_HANDOFF.md` §7 (live smoke re-run, then ask the owner for the next scope).
 
 ## 6. Tests (actual results)
+- 2026-11-20, R13 close-out at `602c22c`: backend `./mvnw test` **134 tests, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **6/6**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK **290.3 kB gzip**, `pnpm test:e2e` **70 passed, 2 skipped**, `pnpm test:live` **1 passed** against the throwaway `crm-r13-smoke` stack.
+- 2026-11-20, R12 final tree (committed as `c27961a`): backend `./mvnw test` with `-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"` → **131 tests, 0 failures, 0 errors, 0 skipped** (incl. `ReportsIT` 2/2, `VisitReportPdfTest` 2/2, `ModularityTests`, `LayeringRulesTest`, `TenantIsolationIT`, `ErrorTextsCoverageTest`); `realtime-service` `pnpm test` **6/6**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK (**256.8 kB gzip**, limit 350), `pnpm test:e2e` **36 passed, 2 skipped** (incl. 8 in `e2e/reports.spec.ts`; home screenshot baselines unchanged).
+- 2026-11-20, R11 browser tests added on top of `fac6486`: frontend `pnpm lint` 0 errors, `pnpm build` OK (254.3 kB gzip), `pnpm test:e2e` **28 passed, 2 skipped** (22 earlier + 6 in `e2e/realtime.spec.ts`); `realtime-service` `pnpm test` **6/6**; backend (`-Duser.timezone=UTC`) `RealtimeIT` 3/3, `TenantIsolationIT` 4/4, `ModularityTests` 2/2, `LayeringRulesTest` 5/5 — all green (full suite not re-run: no backend change since the 127-test run). Committed as `40e5da3`. No backend or realtime-service source changed.
 - 2026-11-20, R11 final tree (committed as `0c4f936`): `./mvnw test` **127 tests, 0 failures, 0 errors, 0 skipped with the JVM on UTC (`-DargLine="-Djdk.net.unixdomain.tmpdir=target -Duser.timezone=UTC"`); the same run in the default zone right after local midnight had 2 date-boundary failures (`BillingIT.trialThenManualPaymentApprovedByThePlatformAdmin`, `OperationsIT.expiryFlipsOnlyActiveWarrantiesPastTheirEnd`) unrelated to R11 — see §7**; `RealtimeIT` alone **3/3 passed**; `realtime-service` `pnpm test` **6/6 passed**; frontend `pnpm lint` 0 errors (pre-existing warnings only), `pnpm build` OK (**254.3 kB gzip** total, limit 350; `realtime` chunk 12.5 kB, lazy, not preloaded), `pnpm test:e2e` **22 passed, 2 skipped**.
 - 2026-11-19 (audit pass), R11 uncommitted tree on top of `dc393ca`: `./mvnw test` **126 tests, 0 failures, 0 errors, 0 skipped**; `realtime-service` `pnpm test` **3/3 passed**; frontend `pnpm lint` 0 errors, `pnpm build` OK (241.1 kB gzip), `pnpm test:e2e` **22 passed, 2 skipped**.
 - 2026-11-19, R11 (uncommitted tree, earlier): `RealtimeIT` alone **2/2 passed**; `realtime-service` `pnpm test` **3/3 passed**.
@@ -195,7 +271,7 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 - **Never run against the real backend end to end.** Local Postgres volume was initialized with a different password than the current `.env` (`password authentication failed for user "crm"`). Fix requires the owner: reset the local dev DB volume (destroys local dev data) or align `.env`. Not done.
 - Platform admin sessions are access-token only (10 min default); re-login on expiry is by design.
 - `PlatformAdminIT` needs a fresh database (it skips otherwise).
-- Scheduler dates (maintenance, warranties, subscriptions) use the server clock (UTC), not the workspace time zone. **Test flake from this:** some ITs compute dates with `LocalDate.now()` in the JVM zone (Cairo, +02:00) while the server uses UTC, so between 00:00 and 02:00 local time `BillingIT` and `OperationsIT` fail (seen 2026-11-20 00:11; both pass with `-Duser.timezone=UTC`). Fix in R13: pin the test JVM to UTC (surefire `argLine`) or inject the clock in those tests.
+- Scheduler dates (maintenance, warranties, subscriptions) use the server clock (UTC), not the workspace time zone. **Test flake from this:** some ITs compute dates with `LocalDate.now()` in the JVM zone (Cairo, +02:00) while the server uses UTC, so between 00:00 and 02:00 local time `BillingIT` and `OperationsIT` fail (seen 2026-11-20 00:11; both pass with `-Duser.timezone=UTC`). **Fixed in R13 (`39c38bc`):** the test JVM is pinned to UTC in the `backend/pom.xml` `argLine`, so plain `./mvnw test` is enough now.
 - No notification retention/cleanup; no e-mail delivery for billing/maintenance notices (in-app only).
 - Playwright screenshot baselines are Windows-only (`*-win32.png`); Linux CI needs its own baselines.
 - Seeded plan prices are placeholders (§4h).
@@ -203,6 +279,7 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 ## 8. Decisions
 - Approved (2026-11-19): D1 visits as a separate entity; D2 standalone jobs; D3 defer the automation engine; D4 NestJS realtime; D5 7-day grace → read-only, never delete; D6 14-day trial; D7 configurable limits; D8 TECHNICIAN + FINANCE roles; D9 hide flowcharts; D10 customer kind + optional email; D11 ar-EG / EGP / Africa/Cairo defaults; D12 materials as job cost lines; D13 branch `feature/saas-foundation`; D14 staff-recorded approvals; D15 Arabic PDF libraries (OpenHTMLtoPDF + ICU4J + embedded Arabic font) when R12 starts; D16 roadmap order. Commercial values are provisional and configurable. The user is the first Platform Admin; the platform-admin dashboard UI is deferred to the final stage.
 - **Approved 2026-11-20 — D4 realtime deviation (ADR-0015):** keep Redis pub/sub (no Redis Streams, no outbox), keep one-time WebSocket connection tickets, Java stays the source of truth, no RS256 migration solely for realtime; lost events are accepted and the frontend recovers by refetching authoritative state after reconnect/refresh; realtime is never relied on for critical business operations or persistence. "Dedup on redelivery" from the audit's R11 acceptance therefore does not apply. Use the simplest, lowest-cost implementation.
+- **Approved 2026-11-20 — R12 PDF licences and font:** OpenHTMLtoPDF (LGPL-2.1, unmodified dependency) accepted as D15 specified; IBM Plex Sans Arabic (OFL-1.1) downloaded from the official `@ibm/plex-sans-arabic` npm package and committed as TTF.
 - **Waiting for the owner's approval:**
   1. Real plan prices (seeded SOLO/TEAM/BUSINESS values are placeholders).
   2. Local dev DB: reset the Postgres volume or align `.env` (needed for any live end-to-end run).
@@ -247,12 +324,25 @@ R11 is complete and pushed. **Next phase: R12 — Reports & Arabic PDF** (D15: O
 | `dc393ca` | docs: update handoff - R10 core screens complete |
 | `7ae560a` | (on `origin/main` only) Merge pull request #3 — merged by the owner on GitHub |
 | `0c4f936` | feat(realtime): live hints via NestJS, Redis pub/sub and one-time socket tickets |
-| (next) | docs: update handoff - R11 realtime complete (**HEAD**, pushed) — adds this file's update and `SESSION_HANDOFF.md` |
+| `fac6486` | docs: update handoff - R11 realtime complete |
+| `40e5da3` | test(frontend): browser tests for the realtime hook against a fake Socket.IO server |
+| `c2ce290` | docs: skills usage policy and R11 browser test results in handoffs |
+| `e1ad62b` | docs: reuse-first policy for future components |
+| `c27961a` | feat(reporting): Arabic visit report PDF and workspace dashboard |
+| (next) | docs: update handoff - R12 reports and Arabic PDF complete |
+| `39c38bc` … `1300a8c` | R13 ops/infra and R10 leftovers (see 4n; docs commits `ef25092`, `b385fdc`, `c14091c` in between) |
+| `eb84b4b` | feat(frontend): sector onboarding wizard for new workspaces |
+| `602c22c` | feat(frontend): device card with service history, devices on the work order |
+| `5f47e92` | docs: update handoff - R13 performance and production readiness complete |
+| `0d85543` | feat(frontend): platform-admin area for manual payments, workspaces, plans |
+| `2f00113` | docs: handoff safe shutdown - platform-admin UI done |
+| `5ff273e` | fix(frontend): contain render failures on the work-order screen |
+| (next) | docs: update handoff - work-order error boundary (**HEAD**) |
 
 ## 11. Working tree (2026-11-20)
-- Branch `feature/saas-foundation`; after the R11 feature commit and the handoff docs commit, everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `7ae560a` (PR #3; does not contain R11); local `main` stale at `163d49c` — leave it alone.
+- Branch `feature/saas-foundation`; after the R13 docs commit everything is committed and pushed to `origin/feature/saas-foundation` (verify with `git status -sb`). `origin/main` = `50f9437` (PR #4; contains up to `fac6486` = R11, not R12/R13); local `main` is stale — leave it alone.
 - Ignored, not committed: `node_modules/`, `dist/`, `backend/target/`, Playwright reports.
-- Local Docker: `docker compose` containers are stopped; the local Postgres volume password mismatch blocks running the backend against `.env` (§7).
+- Local Docker: the owner's `crm-platform` dev containers are stopped (Postgres volume password mismatch with `.env`, §7). The throwaway `crm-r13-smoke` stack (own volumes) is used for live runs — see `SESSION_HANDOFF.md` §6c.
 
 ## 12. Permanent constraints (summary of the Master Directive, Implementation Authorization and approved decisions)
 These must not be violated. The original directive texts are not available as files (§1); this list and `PRODUCT_AUDIT.md` are the reference.
