@@ -16,6 +16,8 @@ export interface AuthState {
   login: (email: string, password: string) => Promise<void>
   register: (input: RegisterInput) => Promise<void>
   logout: () => Promise<void>
+  /** merges workspace settings saved elsewhere (e.g. the setup wizard) into the session */
+  updateWorkspace: (workspace: Partial<AuthSession['workspace']>) => void
   can: (permission: string) => boolean
 }
 

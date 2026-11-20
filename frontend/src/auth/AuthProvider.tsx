@@ -58,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [adopt, queryClient])
 
+  const updateWorkspace = useCallback((workspace: Partial<AuthSession['workspace']>) => {
+    setSession((s) => (s ? { ...s, workspace: { ...s.workspace, ...workspace } } : s))
+  }, [])
+
   const value = useMemo<AuthState>(
     () => ({
       session,
@@ -65,9 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      updateWorkspace,
       can: (permission) => session?.permissions.includes(permission) ?? false,
     }),
-    [session, ready, login, register, logout],
+    [session, ready, login, register, logout, updateWorkspace],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

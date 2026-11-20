@@ -455,5 +455,66 @@
     "thisWeek": "This week",
     "today": "today",
     "free": "No visits"
+  },
+  "setup": {
+    "title": "Workspace setup",
+    "subtitle": "Three short steps to fit the app to the way you work. You can change them later in Settings.",
+    "progress": "Setup steps",
+    "stages": {
+      "sector": "Your field",
+      "details": "Workspace details",
+      "firstSteps": "First steps"
+    },
+    "sectorQuestion": "Which field do you work in?",
+    "chooseSector": "Choose your field",
+    "sectorHints": {
+      "FIT_OUT": "Fit-out and contracting projects: work orders, site visits and handover follow-up.",
+      "SECURITY_SYSTEMS": "CCTV, alarm and access control installs: devices and warranties for every site.",
+      "MAINTENANCE": "Maintenance and field service: preventive maintenance contracts, fault reports and technician visits."
+    },
+    "defaultLanguage": "Workspace default language",
+    "defaultLanguageHint": "Used for reports and messages to members who have not picked a language.",
+    "currency": "Currency",
+    "currencyInvalid": "Enter a three-letter currency code such as EGP",
+    "timeZone": "Time zone",
+    "timeZoneInvalid": "Enter a valid time zone such as Africa/Cairo",
+    "saveAndContinue": "Save and continue",
+    "saved": "Workspace settings saved",
+    "firstStepsTitle": "First steps in {{sector}}",
+    "firstStepsHint": "Work through these in order. A check mark appears next to each step you have done.",
+    "done": "Done",
+    "steps": {
+      "customer": {
+        "title": "Add your first customer",
+        "hint": "A person or a company, then at least one site.",
+        "action": "Customers"
+      },
+      "equipment": {
+        "title": "Register the customer’s devices",
+        "hint": "On the customer page: cameras and devices at each site, with serial numbers.",
+        "action": "Customers"
+      },
+      "plan": {
+        "title": "Create a preventive maintenance plan",
+        "hint": "Set how often and when it starts; work orders are then created automatically.",
+        "action": "Maintenance"
+      },
+      "job": {
+        "title": "Create your first work order",
+        "hint": "Pick the customer, site, type of work and priority.",
+        "action": "Work orders"
+      },
+      "visit": {
+        "title": "Schedule the first visit",
+        "hint": "On the work order page: pick the time and the technicians.",
+        "action": "Work orders"
+      }
+    },
+    "finish": "Go to home",
+    "promptTitle": "Finish setting up your workspace",
+    "promptHint": "Choose your field and check the language, currency and time zone.",
+    "start": "Start setup",
+    "edit": "Change setup",
+    "currentSector": "Current field: {{sector}}"
   }
 }

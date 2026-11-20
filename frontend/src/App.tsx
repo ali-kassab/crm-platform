@@ -14,6 +14,7 @@ const CustomerDetailPage = lazy(() => import('@/pages/customers/CustomerDetailPa
 const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const MaintenancePage = lazy(() => import('@/pages/maintenance/MaintenancePage').then((m) => ({ default: m.MaintenancePage })))
 const WeekCalendarPage = lazy(() => import('@/pages/visits/WeekCalendarPage').then((m) => ({ default: m.WeekCalendarPage })))
+const SetupPage = lazy(() => import('@/pages/setup/SetupPage').then((m) => ({ default: m.SetupPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const JobsPage = lazy(() => import('@/pages/jobs/JobsPage').then((m) => ({ default: m.JobsPage })))
 const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage').then((m) => ({ default: m.JobDetailPage })))
@@ -40,8 +41,11 @@ function RequireSession() {
 
 function GuestOnly() {
   const { session, ready } = useAuth()
+  const location = useLocation()
   if (!ready) return <FullPageSpinner />
-  return session ? <Navigate to="/" replace /> : <Outlet />
+  // this redirect wins over the page's own navigate(): a new owner goes straight to the setup
+  const target = location.pathname === '/register' ? '/setup' : '/'
+  return session ? <Navigate to={target} replace /> : <Outlet />
 }
 
 function NotFound() {
@@ -70,6 +74,7 @@ export default function App() {
           <Route path="finance" element={<FinancePage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="setup" element={<SetupPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>

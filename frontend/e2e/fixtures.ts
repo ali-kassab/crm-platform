@@ -17,6 +17,8 @@ export interface FakeApi {
   overdue: Record<string, unknown>[]
   equipment: Record<string, unknown>[]
   approvals: Record<string, Record<string, unknown>[]>
+  /** workspace settings behind GET/PATCH /workspace; the session's workspace mirrors them */
+  workspace: { name: string; defaultLanguage: string; locale: string; currency: string; timeZone: string; sector: string | null }
   /** sites per customer id; a customer missing here has the default site s1 */
   sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
@@ -29,6 +31,11 @@ export const session = {
   role: 'OWNER',
   permissions: ['crm:read', 'crm:write', 'ops:read', 'ops:write', 'finance:read', 'workspace:manage'],
   language: 'ar',
+}
+
+function sessionOf(api: FakeApi) {
+  const w = api.workspace
+  return { ...session, workspace: { ...session.workspace, name: w.name, defaultLanguage: w.defaultLanguage, currency: w.currency, sector: w.sector } }
 }
 
 function json(route: Route, status: number, body: unknown) {
@@ -50,7 +57,7 @@ async function install(page: Page, api: FakeApi) {
     const arabic = (request.headers()['accept-language'] ?? 'ar').startsWith('ar')
 
     if (path === '/auth/refresh') {
-      return api.signedIn ? json(route, 200, session) : json(route, 401, { code: 'UNAUTHENTICATED' })
+      return api.signedIn ? json(route, 200, sessionOf(api)) : json(route, 401, { code: 'UNAUTHENTICATED' })
     }
     if (path === '/auth/login') {
       const b = body as { email: string; password: string }
@@ -61,11 +68,21 @@ async function install(page: Page, api: FakeApi) {
         })
       }
       api.signedIn = true
-      return json(route, 200, session)
+      return json(route, 200, sessionOf(api))
+    }
+    if (path === '/auth/register') {
+      const b = body as { workspaceName: string; sector?: string }
+      Object.assign(api.workspace, { name: b.workspaceName, sector: b.sector ?? null })
+      api.signedIn = true
+      return json(route, 201, sessionOf(api))
     }
     if (path === '/auth/logout') {
       api.signedIn = false
       return route.fulfill({ status: 204 })
+    }
+    if (path === '/workspace') {
+      if (request.method() === 'PATCH') Object.assign(api.workspace, body)
+      return json(route, 200, { id: 'w1', slug: 'w1', ...api.workspace })
     }
     if (path === '/subscription') {
       return json(route, 200, {
@@ -127,6 +144,7 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       overdue: [],
       equipment: [],
       approvals: {},
+      workspace: { name: session.workspace.name, defaultLanguage: 'ar', locale: 'ar-EG', currency: 'EGP', timeZone: 'Africa/Cairo', sector: session.workspace.sector },
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {

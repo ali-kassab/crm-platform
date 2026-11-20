@@ -15,7 +15,16 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   await page.getByLabel('البريد الإلكتروني').fill(`live-${stamp}@smoke.test`)
   await page.getByLabel('كلمة المرور').fill(`Kz7-${Math.random().toString(36).slice(2, 10)}-Wq`)
   await page.getByRole('button', { name: 'إنشاء حساب' }).click()
+  // a new owner lands on the workspace setup: field, regional settings, then the first steps
+  await expect(page).toHaveURL(/\/setup$/)
+  await page.getByRole('radio', { name: /صيانة وخدمات ميدانية/ }).click()
+  await page.getByRole('button', { name: 'التالي' }).click()
+  await expect(page.getByLabel('المنطقة الزمنية')).toHaveValue('Africa/Cairo')
+  await page.getByRole('button', { name: 'حفظ ومتابعة' }).click()
+  await expect(page.getByText('أول خطوات في صيانة وخدمات ميدانية')).toBeVisible()
+  await page.getByRole('link', { name: 'الذهاب إلى الرئيسية' }).click()
   await expect(page.getByText('أهلاً سارة')).toBeVisible()
+  await expect(page.getByText('أكمل إعداد مساحة العمل')).toHaveCount(0)
 
   await page.goto('/customers')
   await page.getByRole('button', { name: 'إضافة عميل' }).click()

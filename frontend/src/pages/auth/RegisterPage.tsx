@@ -41,7 +41,8 @@ export function RegisterPage() {
     setFormError(null)
     try {
       await register(values)
-      void navigate('/', { replace: true })
+      // a new owner finishes the workspace setup first (sector, language, currency, time zone)
+      void navigate('/setup', { replace: true })
     } catch (e) {
       setFormError(applyServerErrors(e, form.setError, FIELDS, t('errors.generic')))
     }
