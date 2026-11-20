@@ -61,9 +61,12 @@ free Postgres expires after 30 days; Render free Key Value loses data on restart
    (`eu-central-1`), TLS, eviction off (all keys have TTLs; avoids dropping token-denylist entries).
    User `default` + password. Values (`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`) are in the local
    git-ignored `.env.upstash`; TLS PING/SET/GET/INCR/EXPIRE verified, plaintext refused.
-3. ⚑ **Backblaze B2** (choose the EU region at sign-up): create a **private** bucket and an
-   application key with read/write access to that bucket only. Note bucket, keyID, applicationKey,
-   S3 endpoint.
+3. ⚑ **Backblaze B2** ✅ done 2026-11-20: private bucket `crm-staging-files-bf1e36` in
+   `eu-central-003` (endpoint `https://s3.eu-central-003.backblazeb2.com`), SSE-B2 encryption,
+   Object Lock off, lifecycle "keep only the last version" (deleted files stop counting toward 10 GB),
+   no CORS rules (the browser only follows presigned links). Account caps all $0. Application key
+   `crm-staging-api`: read/write, this bucket only, cannot list other buckets. All `S3_*` values are
+   in the local git-ignored `.env.b2`; put/get/presigned GET/delete verified, unsigned access refused.
 4. ⚑ **Render**: sign in with GitHub, allow access to this repository, *New → Blueprint*, branch
    `feature/saas-foundation`, confirm the **Free** plan, and fill the prompted values (`sync: false`).
    `CLIENT_BASE_URL`/`CORS_ALLOWED_ORIGINS` = the Vercel URL from step 5 (edit later if needed).
