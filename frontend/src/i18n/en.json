@@ -538,5 +538,159 @@
     "chooseHint": "Pick the devices at this site that the work order serves; they then show in each device’s service history.",
     "noneAtSite": "No devices are registered at this site. Register them on the customer page.",
     "saved": "Work order devices saved"
+  },
+  "admin": {
+    "title": "Platform admin",
+    "loginTitle": "Platform admin sign-in",
+    "loginSubtitle": "A short session for managing subscriptions, plans and payment methods",
+    "sessionEnded": "Your admin session ended. Sign in again.",
+    "edit": "Edit",
+    "statusChange": "{{from}} to {{to}}",
+    "nav": {
+      "requests": "Payment requests",
+      "workspaces": "Workspaces",
+      "plans": "Plans",
+      "methods": "Payment methods",
+      "account": "My account"
+    },
+    "requests": {
+      "title": "Payment requests",
+      "empty": "No requests",
+      "plan": "Plan",
+      "amount": "Amount",
+      "note": "Note",
+      "reviewNote": "Review note",
+      "receipt": "View receipt",
+      "noReceipt": "No receipt",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Request approved and subscription activated",
+      "rejected": "Request rejected",
+      "approveTitle": "Approve payment request",
+      "approveHint": "Check that the money has arrived first. The subscription is activated or renewed right away.",
+      "rejectTitle": "Reject payment request",
+      "rejectHint": "The workspace owner sees the reason on their subscription page.",
+      "reason": "Reason for rejecting",
+      "reasonRequired": "Write the reason for rejecting"
+    },
+    "workspaces": {
+      "title": "Workspaces",
+      "workspace": "Workspace",
+      "search": "Search by name",
+      "status": "Subscription status",
+      "allStatuses": "All statuses",
+      "empty": "No matching workspaces",
+      "deleted": "Deleted",
+      "readOnly": "Read-only",
+      "members_one": "{{count}} member",
+      "members_other": "{{count}} members",
+      "periodEnds": "Period ends {{date}}",
+      "graceEnds": "grace ends {{date}}",
+      "created": "Created {{date}}",
+      "subscription": "Subscription",
+      "requests": "Payment requests",
+      "history": "Subscription history"
+    },
+    "actions": {
+      "days": "Days",
+      "daysInvalid": "Between 1 and 366 days",
+      "reason": "Reason (required)",
+      "EXTEND": {
+        "label": "Extend",
+        "hint": "Adds days to the end of the current period and lifts read-only mode if needed.",
+        "done": "Subscription extended"
+      },
+      "SUSPEND": {
+        "label": "Suspend",
+        "hint": "The workspace becomes read-only right away. No data is deleted.",
+        "done": "Subscription suspended"
+      },
+      "REACTIVATE": {
+        "label": "Reactivate",
+        "hint": "Lifts the suspension; the status then follows the period end date.",
+        "done": "Subscription reactivated"
+      },
+      "CHANGE_PLAN": {
+        "label": "Change plan",
+        "hint": "The new plan's limits apply right away; the end date stays the same.",
+        "done": "Plan changed"
+      }
+    },
+    "events": {
+      "TRIAL_STARTED": "Trial started",
+      "REQUEST_SUBMITTED": "Payment request submitted",
+      "REQUEST_CANCELLED": "Payment request cancelled",
+      "PAYMENT_APPROVED": "Payment approved",
+      "PAYMENT_REJECTED": "Payment rejected",
+      "STATUS_CHANGED": "Status changed",
+      "EXTEND": "Extended",
+      "SUSPEND": "Suspended",
+      "REACTIVATE": "Reactivated",
+      "CHANGE_PLAN": "Plan changed"
+    },
+    "actors": {
+      "SYSTEM": "Automatic",
+      "ADMIN": "Platform admin",
+      "TENANT": "Workspace owner"
+    },
+    "plans": {
+      "title": "Plans",
+      "hint": "Customers see these prices and limits when they renew.",
+      "add": "New plan",
+      "edit": "Edit plan",
+      "saved": "Plan saved",
+      "inactive": "Inactive",
+      "active": "Active and offered to customers",
+      "code": "Code",
+      "codeInvalid": "2 to 30 Latin letters, digits or _",
+      "nameAr": "Name in Arabic",
+      "nameEn": "Name in English",
+      "descriptionAr": "Description in Arabic",
+      "descriptionEn": "Description in English",
+      "priceMonthly": "Monthly price",
+      "priceYearly": "Yearly price",
+      "limitsHint": "Leave a limit empty for unlimited.",
+      "maxUsers": "Users",
+      "maxActiveProjects": "Active projects",
+      "maxJobsPerMonth": "Work orders per month",
+      "maxStorageMb": "Storage (MB)",
+      "sortOrder": "Order"
+    },
+    "methods": {
+      "title": "Payment methods",
+      "hint": "Customers see these on their subscription page with the account number and instructions.",
+      "add": "New payment method",
+      "edit": "Edit payment method",
+      "saved": "Payment method saved",
+      "empty": "No payment methods yet",
+      "kind": "Type",
+      "kinds": {
+        "VODAFONE_CASH": "Vodafone Cash",
+        "INSTAPAY": "InstaPay",
+        "BANK_TRANSFER": "Bank transfer",
+        "OTHER": "Other"
+      },
+      "labelAr": "Name in Arabic",
+      "labelEn": "Name in English",
+      "account": "Wallet or account number",
+      "instructionsAr": "Instructions in Arabic",
+      "instructionsEn": "Instructions in English",
+      "sortOrder": "Order",
+      "active": "Active and offered to customers"
+    },
+    "account": {
+      "email": "Sign-in email",
+      "newEmail": "New email",
+      "currentPassword": "Current password",
+      "changeEmail": "Change email",
+      "emailChanged": "Email changed",
+      "password": "Password",
+      "newPassword": "New password",
+      "confirm": "Confirm new password",
+      "passwordRule": "At least 14 characters with letters and digits",
+      "mismatch": "The passwords do not match",
+      "changePassword": "Change password",
+      "passwordChanged": "Password changed"
+    }
   }
 }

@@ -15,6 +15,8 @@ const NotificationsPage = lazy(() => import('@/pages/notifications/Notifications
 const MaintenancePage = lazy(() => import('@/pages/maintenance/MaintenancePage').then((m) => ({ default: m.MaintenancePage })))
 const WeekCalendarPage = lazy(() => import('@/pages/visits/WeekCalendarPage').then((m) => ({ default: m.WeekCalendarPage })))
 const SetupPage = lazy(() => import('@/pages/setup/SetupPage').then((m) => ({ default: m.SetupPage })))
+// the platform-admin area is its own lazy chunk with its own session (never the workspace one)
+const AdminApp = lazy(() => import('@/admin/AdminApp'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const JobsPage = lazy(() => import('@/pages/jobs/JobsPage').then((m) => ({ default: m.JobsPage })))
 const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage').then((m) => ({ default: m.JobDetailPage })))
@@ -57,6 +59,7 @@ export default function App() {
   return (
     <Suspense fallback={<FullPageSpinner />}>
     <Routes>
+      <Route path="/admin/*" element={<AdminApp />} />
       <Route element={<GuestOnly />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
