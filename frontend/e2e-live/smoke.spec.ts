@@ -79,6 +79,20 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   await jobDialog.getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByRole('heading', { name: 'التكييف لا يبرد' })).toBeVisible()
 
+  // customer approval: quotation requested, then approved by the customer
+  await page.getByRole('button', { name: 'تسجيل موافقة' }).click()
+  const approvalDialog = page.getByRole('dialog')
+  await approvalDialog.getByLabel('ملاحظات').fill('عرض سعر تغيير المكثف')
+  await approvalDialog.getByRole('button', { name: 'حفظ' }).click()
+  await expect(approvalDialog).toBeHidden()
+  await expect(page.getByText('بانتظار القرار')).toBeVisible()
+  await page.getByRole('button', { name: 'موافقة', exact: true }).click()
+  const decideDialog = page.getByRole('dialog')
+  await decideDialog.getByLabel('اسم من اتخذ القرار').fill('محمود حسن')
+  await decideDialog.getByRole('button', { name: 'موافقة' }).click()
+  await expect(decideDialog).toBeHidden()
+  await expect(page.getByText('موافَق عليها')).toBeVisible()
+
   await page.getByRole('button', { name: 'جدولة زيارة' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByText('تمت جدولة الزيارة')).toBeVisible()

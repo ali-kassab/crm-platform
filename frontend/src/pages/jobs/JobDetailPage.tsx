@@ -26,6 +26,7 @@ import { ApiError } from '@/lib/api'
 import { formatDateTime, formatMoney, fromLocalInput, toLocalInput } from '@/lib/format'
 import { useSubscription } from '@/lib/subscription'
 import { VisitActions } from '@/pages/visits/VisitActions'
+import { ApprovalsCard } from './ApprovalsCard'
 import { VisitReportButton } from '@/pages/visits/VisitReportButton'
 import { VisitWorkButton } from '@/pages/visits/VisitWorkButton'
 import { JOB_STATUSES, useChangeJobStatus, useJob, useJobVisits, useScheduleVisit, type JobStatus } from './api'
@@ -133,6 +134,12 @@ export function JobDetailPage() {
             ))}
           </CardContent>
         </Card>
+
+        <ApprovalsCard
+          jobId={id}
+          canEdit={(can('ops:write') || can('ops:assigned')) && !readOnly}
+          showActions={can('ops:write') || can('ops:assigned')}
+        />
       </div>
     </div>
   )

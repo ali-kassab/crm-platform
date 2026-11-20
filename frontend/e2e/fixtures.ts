@@ -16,6 +16,7 @@ export interface FakeApi {
   plans: Record<string, unknown>[]
   overdue: Record<string, unknown>[]
   equipment: Record<string, unknown>[]
+  approvals: Record<string, Record<string, unknown>[]>
   /** sites per customer id; a customer missing here has the default site s1 */
   sites: Record<string, { id: string; contactId: string; type: string; name: string; address: { city?: string | null; line1?: string | null } | null; accessInstructions: string | null }[]>
 }
@@ -125,6 +126,7 @@ export const test = base.extend<{ api: FakeApi; language: 'ar' | 'en' }>({
       plans: [],
       overdue: [],
       equipment: [],
+      approvals: {},
     }
     // seed the language once per test; later reloads keep whatever the user picked
     await page.addInitScript((lang) => {
@@ -301,6 +303,24 @@ async function r10(route: Route, api: FakeApi, path: string, method: string, bod
   }
   if (path.startsWith('/files') && method === 'POST') {
     await json(route, 201, { files: [{ id: 'f1' }] })
+    return true
+  }
+  // customer approvals on a work order (R4 API)
+  if ((m = path.match(/^\/jobs\/([^/]+)\/approvals(?:\/([^/]+)\/decision)?$/))) {
+    const list = (api.approvals[m[1]] ??= [])
+    const decided = (d: Record<string, unknown>) => ({ status: d.status, approverName: d.approverName, decidedAt: '2030-01-05T10:00:00Z' })
+    if (method === 'POST' && m[2]) {
+      const a = list.find((x) => x.id === m![2])
+      Object.assign(a ?? {}, decided(b))
+      await json(route, 200, a)
+    } else if (method === 'POST') {
+      const d = b.decision as Record<string, unknown> | undefined
+      const a = { id: `a${list.length + 1}`, kind: b.kind, notes: b.notes ?? null, createdAt: '2030-01-05T09:00:00Z', status: 'PENDING', approverName: null, decidedAt: null, ...(d ? decided(d) : {}) }
+      list.push(a)
+      await json(route, 201, a)
+    } else {
+      await json(route, 200, list)
+    }
     return true
   }
   // maintenance plans and equipment (R6 API)

@@ -418,5 +418,34 @@
       "REPLACED": "Replaced",
       "REMOVED": "Removed"
     }
+  },
+  "approvals": {
+    "title": "Customer approvals",
+    "record": "Record approval",
+    "recordHint": "Record a customer approval request for a quotation, starting or accepting the work, or their decision on site",
+    "kind": "Approval for",
+    "kinds": {
+      "QUOTATION": "Quotation",
+      "WORK": "Starting the work",
+      "COMPLETION": "Accepting the work"
+    },
+    "outcome": "Customer decision",
+    "statuses": {
+      "PENDING": "Awaiting decision",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "approverName": "Name of the person who decided",
+    "notes": "Notes",
+    "recorded": "Approval recorded",
+    "approve": "Approve",
+    "reject": "Reject",
+    "decided": {
+      "APPROVED": "Approval recorded",
+      "REJECTED": "Rejection recorded"
+    },
+    "decidedBy": "{{name}} — {{when}}",
+    "requestedAt": "Requested {{when}}",
+    "empty": "No approvals recorded"
   }
 }
