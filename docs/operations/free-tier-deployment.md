@@ -9,7 +9,7 @@ changed. Files: `render.yaml` (backend), `frontend/vercel.json` (frontend).
 | Part | Provider / plan | Card needed? | Main limits that matter here |
 |---|---|---|---|
 | Frontend (React build) | **Vercel Hobby** | no | non-commercial use only; ~100 GB/month bandwidth; proxied (rewrite) requests time out after ~120 s |
-| Java API | **Render Free web service** (Docker, Frankfurt) | no (card only changes overage handling) | 0.1 CPU, 512 MB; sleeps after 15 min idle; 750 instance-hours/month per workspace (one service 24/7 = 744 h); SMTP ports 25/465/587 blocked; ephemeral disk; Render may restart it any time; "not for production" |
+| Java API | **Render Free web service** (Docker, Frankfurt) | **yes** — verified 2026-11-20: creating a Blueprint *and* clicking "Deploy web service" on a Free instance both open "Add Card" (identity check, $1 temporary authorization) | 0.1 CPU, 512 MB; sleeps after 15 min idle; 750 instance-hours/month per workspace (one service 24/7 = 744 h); SMTP ports 25/465/587 blocked; ephemeral disk; Render may restart it any time; "not for production" |
 | PostgreSQL | **Neon Free** (AWS Frankfurt) | no | 1 GB storage per project; 100 CU-hours per project per month; compute scales to zero when idle (wakes in ~1 s) |
 | Redis | **Upstash Free** (Frankfurt, TLS) | no | 500 K commands/month; ~256 MB; 10 GB bandwidth |
 | File storage (S3 API) | **Backblaze B2** free 10 GB | no | 10 GB stored; free downloads limited (daily/3× storage — check the B2 caps page) |
@@ -67,7 +67,11 @@ free Postgres expires after 30 days; Render free Key Value loses data on restart
    no CORS rules (the browser only follows presigned links). Account caps all $0. Application key
    `crm-staging-api`: read/write, this bucket only, cannot list other buckets. All `S3_*` values are
    in the local git-ignored `.env.b2`; put/get/presigned GET/delete verified, unsigned access refused.
-4. ⚑ **Render**: sign in with GitHub, allow access to this repository, *New → Blueprint*, branch
+4. ⚑ **Render** ⏸ blocked 2026-11-20 on card verification (no card added; no service created).
+   Done so far: Render GitHub app limited to `crm-platform` only; a manual Free web service form was
+   fully configured (Docker, Frankfurt, `./backend/Dockerfile`, context `./backend`, health check,
+   build filter `backend/**`, 30 env vars) but not submitted. Secret values: git-ignored `.env.render`.
+   Original plan: sign in with GitHub, allow access to this repository, *New → Blueprint*, branch
    `feature/saas-foundation`, confirm the **Free** plan, and fill the prompted values (`sync: false`).
    `CLIENT_BASE_URL`/`CORS_ALLOWED_ORIGINS` = the Vercel URL from step 5 (edit later if needed).
    Set `PLATFORM_ADMIN_EMAIL`/`PLATFORM_ADMIN_PASSWORD` (≥ 14 chars, letters + digits) for the first
