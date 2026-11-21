@@ -149,7 +149,7 @@ function RequestRow({ item, workspace, plan, method }: { item: AdminRequest; wor
   return (
     <li className="flex flex-col gap-3 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Link to={`/admin/workspaces/${item.workspaceId}`} className="font-medium underline-offset-4 hover:underline">
+        <Link to={`/admin/companies/${item.workspaceId}`} className="font-medium underline-offset-4 hover:underline">
           {workspace ?? item.workspaceId}
         </Link>
         <Badge variant={r.status === 'PENDING' ? 'default' : r.status === 'APPROVED' ? 'secondary' : 'outline'}>

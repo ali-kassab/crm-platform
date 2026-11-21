@@ -28,7 +28,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  *       re-use if the account is later removed.</li>
  *   <li>It refuses to promote an existing account with the same email (someone could have
  *       registered that address first).</li>
- *   <li>The password must pass the normal password policy, is stored hashed, and is never logged.</li>
+ *   <li>The password must meet the platform-admin rule (at least 14 characters, then the normal
+ *       password policy), is stored hashed, and is never logged. There is no default or generated
+ *       password in any environment: production must set both variables explicitly.</li>
  * </ul>
  */
 @Component
@@ -85,6 +87,10 @@ class PlatformAdminBootstrap implements ApplicationRunner {
             return Outcome.EMAIL_TAKEN;
         }
         try {
+            // the same rule as every later admin password change (at least 14 characters, then the policy)
+            if (config.password().length() < PlatformAdminService.MIN_ADMIN_PASSWORD_LENGTH) {
+                throw new IllegalArgumentException("too short");
+            }
             passwordPolicy.validate(config.password(), email);
         } catch (RuntimeException e) {
             log.error("Platform admin bootstrap refused: the configured password does not meet the password policy.");

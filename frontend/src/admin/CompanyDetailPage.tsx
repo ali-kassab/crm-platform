@@ -24,26 +24,31 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError } from '@/lib/api'
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format'
-import { statusVariant, usePlans, useWorkspace, useWorkspaceAction, useWorkspaces, type SubscriptionView } from './api'
+import { formatBytes, statusVariant, useCompany, usePlans, useUsers, useWorkspace, useWorkspaceAction, type SubscriptionView } from './api'
+import { Stat } from './parts'
+import { UserAccessButton } from './UsersPage'
 
 type Action = 'EXTEND' | 'SUSPEND' | 'REACTIVATE' | 'CHANGE_PLAN'
 
-export function WorkspaceDetailPage() {
+export function CompanyDetailPage() {
   const { id = '' } = useParams()
   const { t, i18n } = useTranslation()
   const ar = i18n.language === 'ar'
   const detail = useWorkspace(id)
-  const row = useWorkspaces('', '').data?.find((w) => w.id === id)
+  const company = useCompany(id)
+  const users = useUsers({ workspaceId: id, page: 0, size: 50, sort: 'createdAt,asc' })
 
-  if (detail.isPending) return <Skeleton className="h-64 w-full" />
-  if (detail.isError) {
+  if (detail.isPending || company.isPending) return <Skeleton className="h-64 w-full" />
+  if (detail.isError || company.isError) {
+    const error = detail.error ?? company.error
     return (
       <Alert variant="destructive">
-        <AlertDescription>{detail.error instanceof ApiError ? detail.error.message : t('errors.generic')}</AlertDescription>
+        <AlertDescription>{error instanceof ApiError ? error.message : t('errors.generic')}</AlertDescription>
       </Alert>
     )
   }
   const { subscription: s, history, requests } = detail.data
+  const c = company.data
   const usage = [
     [t('subscriptionPage.users'), s.usage.users, s.plan.limits.maxUsers],
     [t('subscriptionPage.jobsThisMonth'), s.usage.jobsThisMonth, s.plan.limits.maxJobsPerMonth],
@@ -52,20 +57,29 @@ export function WorkspaceDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/admin/workspaces" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link to="/admin/companies" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
-        {t('admin.workspaces.title')}
+        {t('admin.companies.title')}
       </Link>
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold">{row?.name ?? t('admin.workspaces.workspace')}</h1>
+        <h1 className="text-2xl font-semibold">{c.name}</h1>
         <Badge variant={statusVariant(s.status)}>{t(`subscription.status.${s.status}`)}</Badge>
         {s.readOnly ? <Badge variant="destructive">{t('admin.workspaces.readOnly')}</Badge> : null}
+        {c.deletedAt ? <Badge variant="destructive">{t('admin.workspaces.deleted')}</Badge> : null}
       </div>
-      {row?.ownerEmail ? (
-        <p className="-mt-2 text-sm text-muted-foreground">
-          <span dir="ltr">{row.ownerEmail}</span>
-        </p>
-      ) : null}
+      <p className="-mt-2 flex flex-wrap gap-x-3 text-sm text-muted-foreground">
+        {c.ownerEmail ? <span dir="ltr">{c.ownerEmail}</span> : null}
+        <span>{t('admin.workspaces.created', { date: formatDate(c.createdAt) })}</span>
+      </p>
+
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label={t('admin.usage.title')}>
+        <Stat label={t('admin.usage.users')} value={c.usage.activeUsers} hint={t('admin.usage.membersTotal', { count: c.usage.members })} />
+        <Stat label={t('admin.usage.customers')} value={c.usage.customers} />
+        <Stat label={t('admin.usage.projects')} value={c.usage.projects} />
+        <Stat label={t('admin.usage.workOrders')} value={c.usage.workOrders} hint={t('admin.usage.thisMonth', { count: c.usage.workOrdersThisMonth })} />
+        <Stat label={t('admin.usage.storage')} value={formatBytes(c.usage.storageBytes)} hint={t('admin.usage.filesCount', { count: c.usage.files })} />
+        <Stat label={t('admin.usage.apiRequests')} value={c.usage.apiRequests30d} />
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -122,6 +136,47 @@ export function WorkspaceDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('admin.companies.users')}</CardTitle>
+          <CardDescription>{t('admin.companies.usersHint')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {users.isPending ? (
+            <Skeleton className="h-16 w-full" />
+          ) : users.isError ? (
+            <p className="text-sm text-destructive">{t('errors.generic')}</p>
+          ) : users.data.content.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('common.empty')}</p>
+          ) : (
+            <ul className="flex flex-col divide-y text-sm">
+              {users.data.content.map((u) => {
+                const membership = u.companies.find((m) => m.id === id)
+                return (
+                  <li key={u.id} className="flex flex-wrap items-center gap-2 py-2">
+                    <span className="font-medium">
+                      {u.firstName} {u.lastName}
+                    </span>
+                    <span className="text-muted-foreground" dir="ltr">
+                      {u.email}
+                    </span>
+                    {membership ? <Badge variant="outline">{t(`admin.roles.${membership.role}`, { defaultValue: membership.role })}</Badge> : null}
+                    {!u.active ? <Badge variant="destructive">{t('admin.users.inactive')}</Badge> : null}
+                    {membership && !membership.active ? <Badge variant="outline">{t('admin.users.membershipEnded')}</Badge> : null}
+                    <span className="ms-auto">
+                      <UserAccessButton user={u} />
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          {users.data && users.data.totalElements > users.data.content.length ? (
+            <p className="pt-2 text-xs text-muted-foreground">{t('admin.results', { count: users.data.totalElements })}</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
