@@ -64,7 +64,8 @@ async function send(path: string, { body, retry = true, headers, ...init }: Opti
 export function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
-      const r = await send('/auth/refresh', { method: 'POST', retry: false })
+      // bounded: a hung API (wrong proxy port, stalled backend) must not leave the app on its splash spinner
+      const r = await send('/auth/refresh', { method: 'POST', retry: false, signal: AbortSignal.timeout(10_000) })
       if (!r.ok) return false
       const session = (await r.json()) as { accessToken: string }
       accessToken = session.accessToken

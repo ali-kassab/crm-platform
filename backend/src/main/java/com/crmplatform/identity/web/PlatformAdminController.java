@@ -14,6 +14,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,6 +61,16 @@ public class PlatformAdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordRequest body) {
         admins.changePassword(CurrentUser.id(), body.currentPassword(), body.newPassword());
+    }
+
+    @PatchMapping("/account")
+    @PreAuthorize("hasAuthority('platform:admin')")
+    public UserSummary updateAccount(@Valid @RequestBody UpdateAccountRequest body) {
+        return UserSummary.of(admins.updateName(CurrentUser.id(), body.firstName(), body.lastName()));
+    }
+
+    public record UpdateAccountRequest(@NotBlank @Size(max = 60) String firstName,
+            @NotBlank @Size(max = 60) String lastName) {
     }
 
     public record AdminLoginRequest(@NotBlank @Email @Size(max = 254) String email,

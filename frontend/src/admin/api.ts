@@ -196,3 +196,218 @@ export const useSaveMethod = (id?: string) =>
   )
 
 export const receiptUrl = (id: string) => adminApi<{ url: string }>(`/subscription-requests/${id}/receipt-url`)
+
+// ------------------------------------------------------------------ console (dashboard, companies, usage, health, audit, users)
+
+/** Counts only; `apiRequests30d` is null when the counter store could not be read. */
+export interface CompanyUsage {
+  members: number
+  activeUsers: number
+  customers: number
+  projects: number
+  workOrders: number
+  workOrdersThisMonth: number
+  files: number
+  storageBytes: number
+  apiRequests30d: number | null
+}
+
+export interface CompanyRow {
+  id: string
+  name: string
+  slug: string
+  createdAt: string
+  deletedAt: string | null
+  status: string | null
+  planCode: string | null
+  planNameEn: string | null
+  planNameAr: string | null
+  billingPeriod: string | null
+  currentPeriodEnd: string | null
+  ownerEmail: string | null
+  usage: CompanyUsage
+}
+
+export interface Activity {
+  type: string
+  fromStatus: string | null
+  toStatus: string | null
+  actorKind: string
+  actorEmail: string | null
+  companyId: string | null
+  companyName: string | null
+  entityType: string
+  entityId: string | null
+  occurredAt: string
+}
+
+export interface Dashboard {
+  generatedAt: string
+  companies: {
+    total: number
+    operational: number
+    trial: number
+    paid: number
+    grace: number
+    expired: number
+    suspended: number
+    deleted: number
+    newLast30Days: number
+    endingWithin7Days: number
+  }
+  users: { total: number; active: number; inactive: number; platformAdmins: number; newLast30Days: number; signedInLast30Days: number }
+  usage: { customers: number; projects: number; workOrders: number; files: number; storageBytes: number; apiRequests30d: number | null }
+  payments: { pending: number; approved: number; rejected: number; revenue: { currency: string; total: string; last30Days: string; payments: number }[] }
+  recentActivity: Activity[]
+}
+
+export interface UsageReport {
+  generatedAt: string
+  totals: CompanyUsage
+  metrics: { key: string; available: boolean; description: string }[]
+  companies: Page<CompanyRow>
+}
+
+export type HealthStatus = 'UP' | 'DOWN' | 'DEGRADED' | 'NOT_CHECKED'
+
+export interface HealthReport {
+  checkedAt: string
+  overall: HealthStatus
+  components: { name: string; status: HealthStatus; latencyMs: number | null; note: string | null }[]
+  runtime: { startedAt: string; uptimeSeconds: number; heapUsedBytes: number; heapMaxBytes: number | null; threads: number; processors: number }
+  requests: { total: number; clientErrors: number; serverErrors: number }
+  database: { schemaVersion: string | null; pendingEvents: number; connections: number } | null
+}
+
+export interface AuditRow {
+  id: string
+  action: string
+  entityType: string
+  entityId: string | null
+  actorUserId: string | null
+  actorLabel: string | null
+  actorEmail: string | null
+  changes: Record<string, unknown> | null
+  occurredAt: string
+}
+
+export interface PlatformUser {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  active: boolean
+  platformAdmin: boolean
+  createdAt: string
+  lastLoginAt: string | null
+  companies: { id: string; name: string; role: string; active: boolean }[]
+}
+
+/** Builds a query string, dropping empty values. */
+export function query(params: Record<string, string | number | null | undefined>) {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) if (v !== '' && v != null) p.set(k, String(v))
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
+export function useDashboard() {
+  return useQuery({ queryKey: ['admin', 'dashboard'], queryFn: () => adminApi<Dashboard>('/dashboard') })
+}
+
+export interface CompanyQuery {
+  q?: string
+  status?: string
+  endingWithinDays?: number
+  page: number
+  size?: number
+  sort?: string
+}
+
+export function useCompanies(params: CompanyQuery) {
+  return useQuery({
+    queryKey: ['admin', 'companies', params],
+    queryFn: () => adminApi<Page<CompanyRow>>(`/companies${query({ size: 20, ...params })}`),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useCompany(id: string) {
+  return useQuery({ queryKey: ['admin', 'company', id], queryFn: () => adminApi<CompanyRow>(`/companies/${id}`) })
+}
+
+export function useUsage(params: { q?: string; page: number; sort: string }) {
+  return useQuery({
+    queryKey: ['admin', 'usage', params],
+    queryFn: () => adminApi<UsageReport>(`/usage${query({ size: 20, ...params })}`),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useHealth() {
+  return useQuery({ queryKey: ['admin', 'health'], queryFn: () => adminApi<HealthReport>('/health'), refetchInterval: 30_000 })
+}
+
+export function useActivity(limit: number) {
+  return useQuery({ queryKey: ['admin', 'activity', limit], queryFn: () => adminApi<Activity[]>(`/activity?limit=${limit}`) })
+}
+
+export interface AuditQuery {
+  action?: string
+  entityType?: string
+  entityId?: string
+  from?: string
+  to?: string
+  page: number
+}
+
+export function useAuditLog(params: AuditQuery) {
+  return useQuery({
+    queryKey: ['admin', 'audit', params],
+    queryFn: () => adminApi<Page<AuditRow>>(`/audit-log${query({ size: 25, ...params })}`),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useAuditActions() {
+  return useQuery({ queryKey: ['admin', 'audit-actions'], queryFn: () => adminApi<string[]>('/audit-log/actions') })
+}
+
+export interface UserQuery {
+  q?: string
+  status?: string
+  kind?: string
+  workspaceId?: string
+  page: number
+  size?: number
+  sort?: string
+}
+
+export function useUsers(params: UserQuery) {
+  return useQuery({
+    queryKey: ['admin', 'users', params],
+    queryFn: () => adminApi<Page<PlatformUser>>(`/users${query({ size: 20, ...params })}`),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export const useUserAccess = (id: string) =>
+  useAdminMutation(({ active, reason }: { active: boolean; reason?: string }) =>
+    adminApi<PlatformUser>(`/users/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'POST', body: { reason } }),
+  )
+
+export const useUpdateAccount = () =>
+  useAdminMutation((body: { firstName: string; lastName: string }) => adminApi<AdminUser>('/account', { method: 'PATCH', body }))
+
+/** Bytes as a short human size (B, KB, MB, GB). */
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let v = bytes / 1024
+  let i = 0
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`
+}

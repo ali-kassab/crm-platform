@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { LogOut, ShieldCheck } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router'
+import { Navigate, NavLink, Outlet, Route, Routes, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { Button } from '@/components/ui/button'
@@ -13,12 +13,24 @@ import { AdminContext, useAdmin } from './admin-context'
 import { AdminLoginPage } from './AdminLoginPage'
 import { adminApi, adminToken } from './session'
 
+const DashboardPage = lazy(() => import('./DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const RequestsPage = lazy(() => import('./RequestsPage').then((m) => ({ default: m.RequestsPage })))
-const WorkspacesPage = lazy(() => import('./WorkspacesPage').then((m) => ({ default: m.WorkspacesPage })))
-const WorkspaceDetailPage = lazy(() => import('./WorkspaceDetailPage').then((m) => ({ default: m.WorkspaceDetailPage })))
+const CompaniesPage = lazy(() => import('./CompaniesPage').then((m) => ({ default: m.CompaniesPage })))
+const CompanyDetailPage = lazy(() => import('./CompanyDetailPage').then((m) => ({ default: m.CompanyDetailPage })))
+const UsersPage = lazy(() => import('./UsersPage').then((m) => ({ default: m.UsersPage })))
+const SubscriptionsPage = lazy(() => import('./SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
 const PlansPage = lazy(() => import('./PlansPage').then((m) => ({ default: m.PlansPage })))
 const MethodsPage = lazy(() => import('./MethodsPage').then((m) => ({ default: m.MethodsPage })))
+const UsagePage = lazy(() => import('./UsagePage').then((m) => ({ default: m.UsagePage })))
+const HealthPage = lazy(() => import('./HealthPage').then((m) => ({ default: m.HealthPage })))
+const AuditPage = lazy(() => import('./AuditPage').then((m) => ({ default: m.AuditPage })))
 const AccountPage = lazy(() => import('./AccountPage').then((m) => ({ default: m.AccountPage })))
+
+/** Old links (/admin/workspaces/…) keep working. */
+function LegacyWorkspace() {
+  const { id } = useParams()
+  return <Navigate to={id ? `/admin/companies/${id}` : '/admin/companies'} replace />
+}
 
 /** Platform-admin area (/admin/*): its own sign-in and session, never the workspace session. */
 export default function AdminApp() {
@@ -71,16 +83,24 @@ export default function AdminApp() {
   return (
     <AdminContext.Provider value={value}>
       <Routes>
-        <Route path="login" element={admin ? <Navigate to="/admin/requests" replace /> : <AdminLoginPage />} />
+        <Route path="login" element={admin ? <Navigate to="/admin/dashboard" replace /> : <AdminLoginPage />} />
         <Route element={admin ? <AdminShell /> : <Navigate to="/admin/login" replace />}>
-          <Route index element={<Navigate to="requests" replace />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="companies" element={<CompaniesPage />} />
+          <Route path="companies/:id" element={<CompanyDetailPage />} />
+          <Route path="workspaces" element={<LegacyWorkspace />} />
+          <Route path="workspaces/:id" element={<LegacyWorkspace />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="subscriptions" element={<SubscriptionsPage />} />
           <Route path="requests" element={<RequestsPage />} />
-          <Route path="workspaces" element={<WorkspacesPage />} />
-          <Route path="workspaces/:id" element={<WorkspaceDetailPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="payment-methods" element={<MethodsPage />} />
+          <Route path="usage" element={<UsagePage />} />
+          <Route path="health" element={<HealthPage />} />
+          <Route path="audit" element={<AuditPage />} />
           <Route path="account" element={<AccountPage />} />
-          <Route path="*" element={<Navigate to="requests" replace />} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
       </Routes>
     </AdminContext.Provider>
@@ -88,10 +108,16 @@ export default function AdminApp() {
 }
 
 const NAV = [
+  ['dashboard', 'admin.nav.dashboard'],
+  ['companies', 'admin.nav.companies'],
+  ['users', 'admin.nav.users'],
+  ['subscriptions', 'admin.nav.subscriptions'],
   ['requests', 'admin.nav.requests'],
-  ['workspaces', 'admin.nav.workspaces'],
   ['plans', 'admin.nav.plans'],
   ['payment-methods', 'admin.nav.methods'],
+  ['usage', 'admin.nav.usage'],
+  ['health', 'admin.nav.health'],
+  ['audit', 'admin.nav.audit'],
   ['account', 'admin.nav.account'],
 ] as const
 

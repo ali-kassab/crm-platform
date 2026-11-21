@@ -162,7 +162,12 @@ test('full field flow on the real stack: workspace, customer, site, work order, 
   const bytes = await (await file.createReadStream()).toArray()
   expect(Buffer.concat(bytes).subarray(0, 5).toString()).toBe('%PDF-')
 
-  await expect.poll(() => sockets.some((u) => u.includes('/realtime/socket.io/'))).toBe(true)
+  // LIVE_REALTIME=off: a deployment without the optional realtime service (the app must not open a socket)
+  if (process.env.LIVE_REALTIME === 'off') {
+    expect(sockets).toEqual([])
+  } else {
+    await expect.poll(() => sockets.some((u) => u.includes('/realtime/socket.io/'))).toBe(true)
+  }
   expect(sockets.every((u) => !u.includes('ticket'))).toBe(true)
   expect(errors.filter((e) => /Content Security Policy/i.test(e))).toEqual([])
 })
