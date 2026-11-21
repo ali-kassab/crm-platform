@@ -113,6 +113,25 @@ public class PlatformAdminService {
         audit.platform("ADMIN_PASSWORD_CHANGED", "PLATFORM_ADMIN", adminId, adminId, null, Map.of());
     }
 
+    /** The admin's display name (the sign-in email and password have their own, password-checked flows). */
+    @Transactional
+    public User updateName(UUID adminId, String firstName, String lastName) {
+        User admin = requireAdmin(adminId);
+        String first = firstName == null ? "" : firstName.trim();
+        String last = lastName == null ? "" : lastName.trim();
+        if (first.isEmpty() || last.isEmpty() || first.length() > 60 || last.length() > 60) {
+            throw ApiException.badRequest("VALIDATION_ERROR", "First and last name are required (at most 60 characters)");
+        }
+        Map<String, Object> before = Map.of("firstName", admin.getFirstName(), "lastName", admin.getLastName());
+        admin.updateProfile(first, last, admin.getJobTitle(), admin.getPhone(), admin.getAvatarFileId());
+        users.saveAndFlush(admin);
+        Map<String, Object> changes = AuditTrail.diff(before, Map.of("firstName", first, "lastName", last));
+        if (!changes.isEmpty()) {
+            audit.platform("ADMIN_PROFILE_UPDATED", "PLATFORM_ADMIN", adminId, adminId, null, changes);
+        }
+        return admin;
+    }
+
     /** Called by the e-mailed reset flow for admin accounts: stronger rule plus a platform audit row. */
     void onPasswordReset(User admin, String newPassword) {
         validateAdminPassword(newPassword, admin.getEmail());

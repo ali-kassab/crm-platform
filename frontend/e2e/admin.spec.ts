@@ -29,6 +29,21 @@ function fakeAdmin(page: Page) {
     status: 'GRACE', readOnly: false, plan: state.plans[0].plan, billingPeriod: 'MONTHLY', currentPeriodEnd: '2030-01-02T00:00:00Z',
     graceEndsAt: '2030-01-09T00:00:00Z', daysLeft: 0, usage: { users: 3, activeProjects: 0, jobsThisMonth: 12, storageMb: 40 }, pendingRequest: null,
   }
+  const company = {
+    id: 'w7', name: 'ورشة الأمان', slug: 'w7', createdAt: '2029-12-20T08:00:00Z', deletedAt: null, status: 'GRACE', planCode: 'TEAM', planNameEn: 'Team', planNameAr: 'فريق',
+    billingPeriod: 'MONTHLY', currentPeriodEnd: '2030-01-02T00:00:00Z', ownerEmail: 'owner@amaan.test',
+    usage: { members: 3, activeUsers: 3, customers: 41, projects: 2, workOrders: 57, workOrdersThisMonth: 12, files: 9, storageBytes: 41_943_040, apiRequests30d: 1830 },
+  }
+  const dashboard = {
+    generatedAt: '2030-01-03T09:00:00Z',
+    companies: { total: 1, operational: 1, trial: 0, paid: 0, grace: 1, expired: 0, suspended: 0, deleted: 0, newLast30Days: 1, endingWithin7Days: 0 },
+    users: { total: 3, active: 3, inactive: 0, platformAdmins: 1, newLast30Days: 3, signedInLast30Days: 2 },
+    usage: { customers: 41, projects: 2, workOrders: 57, files: 9, storageBytes: 41_943_040, apiRequests30d: 1830 },
+    payments: { pending: 1, approved: 0, rejected: 0, revenue: [] },
+    recentActivity: [{ type: 'COMPANY_REGISTERED', fromStatus: null, toStatus: null, actorKind: 'TENANT', actorEmail: null, companyId: 'w7', companyName: 'ورشة الأمان', entityType: 'WORKSPACE', entityId: 'w7', occurredAt: '2029-12-20T08:00:00Z' }],
+  }
+  const owner = { id: 'u7', email: 'owner@amaan.test', firstName: 'Amaan', lastName: 'Owner', active: true, platformAdmin: false, createdAt: '2029-12-20T08:00:00Z', lastLoginAt: null, companies: [{ id: 'w7', name: 'ورشة الأمان', role: 'OWNER', active: true }] }
+  const page1 = <T,>(content: T[]) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
   const json = (route: Route, status: number, body: unknown) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 
   return page.route('**/api/v1/admin/**', async (route) => {
@@ -51,6 +66,10 @@ function fakeAdmin(page: Page) {
         : json(route, 401, { code: 'INVALID_CREDENTIALS', detail: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' })
     }
     if (headers.authorization !== 'Bearer admin-token' || state.expireNext) return json(route, 401, { code: 'UNAUTHENTICATED' })
+    if (path === '/dashboard') return json(route, 200, dashboard)
+    if (path === '/companies') return json(route, 200, page1([company]))
+    if (path === '/companies/w7') return json(route, 200, company)
+    if (path === '/users') return json(route, 200, page1([owner]))
     if (path === '/plans' && req.method() === 'GET') return json(route, 200, state.plans)
     if (path === '/plans' && req.method() === 'POST') {
       const created = { plan: { id: 'p3', currency: 'EGP', descriptionAr: null, descriptionEn: null, ...b, limits: { maxUsers: b.maxUsers, maxActiveProjects: b.maxActiveProjects, maxJobsPerMonth: b.maxJobsPerMonth, maxStorageMb: b.maxStorageMb } }, active: b.active, sortOrder: b.sortOrder }
@@ -92,6 +111,12 @@ test('admin signs in on a separate session and reviews a manual payment', async 
   await page.getByLabel('كلمة المرور').fill('Admin-pass-2030x')
   await page.getByRole('button', { name: 'تسجيل الدخول' }).click()
 
+  // lands on the dashboard (live counts), then goes to the payment review queue
+  await expect(page).toHaveURL(/\/admin\/dashboard$/)
+  await expect(page.getByRole('heading', { name: 'لوحة المعلومات' })).toBeVisible()
+  await expect(page.getByText('مدفوعات بانتظار المراجعة')).toBeVisible()
+  await expect(page.getByText('تسجيل شركة')).toBeVisible()
+  await page.getByRole('link', { name: 'طلبات الدفع' }).click()
   await expect(page).toHaveURL(/\/admin\/requests$/)
   await expect(page.getByRole('link', { name: 'ورشة الأمان' })).toBeVisible()
   await expect(page.getByText('TX-5521')).toBeVisible()
@@ -127,10 +152,13 @@ test('admin extends and suspends a workspace, adds a plan, and is sent back to s
   await page.getByLabel('كلمة المرور').fill('Admin-pass-2030x')
   await page.getByRole('button', { name: 'تسجيل الدخول' }).click()
 
-  await page.getByRole('link', { name: 'مساحات العمل' }).click()
+  await page.getByRole('link', { name: 'الشركات' }).click()
   await expect(page.getByText('owner@amaan.test', { exact: false })).toBeVisible()
   await page.getByRole('link', { name: 'ورشة الأمان' }).click()
+  await expect(page).toHaveURL(/\/admin\/companies\/w7$/)
   await expect(page.getByRole('heading', { name: 'ورشة الأمان' })).toBeVisible()
+  await expect(page.getByText('مستخدمو الشركة')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'إيقاف الحساب' })).toBeVisible()
   await expect(page.getByText('بدء الفترة التجريبية')).toBeVisible()
 
   await page.getByRole('button', { name: 'تمديد' }).click()
@@ -142,11 +170,11 @@ test('admin extends and suspends a workspace, adds a plan, and is sent back to s
   await expect(page.getByText('تم تمديد الاشتراك')).toBeVisible()
   expect(admin.calls.find((c) => c.path === '/workspaces/w7/subscription')?.body).toEqual({ action: 'EXTEND', days: 45 })
 
-  await page.getByRole('button', { name: 'إيقاف' }).click()
+  await page.getByRole('button', { name: 'إيقاف', exact: true }).click()
   const suspend = page.getByRole('dialog')
-  await expect(suspend.getByRole('button', { name: 'إيقاف' })).toBeDisabled() // a reason is required
+  await expect(suspend.getByRole('button', { name: 'إيقاف', exact: true })).toBeDisabled() // a reason is required
   await suspend.getByLabel('السبب (مطلوب)').fill('إيصال مزور')
-  await suspend.getByRole('button', { name: 'إيقاف' }).click()
+  await suspend.getByRole('button', { name: 'إيقاف', exact: true }).click()
   await expect(page.getByText('تم إيقاف الاشتراك')).toBeVisible()
   expect(admin.calls.findLast((c) => c.path === '/workspaces/w7/subscription')?.body).toEqual({ action: 'SUSPEND', note: 'إيصال مزور' })
 

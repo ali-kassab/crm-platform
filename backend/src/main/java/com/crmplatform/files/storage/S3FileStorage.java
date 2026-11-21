@@ -60,6 +60,18 @@ class S3FileStorage implements FileStorage {
         this.presigner = presignerBuilder.build();
     }
 
+    @Override
+    public boolean reachable() {
+        try {
+            client.headBucket(HeadBucketRequest.builder().bucket(props.bucket())
+                    .overrideConfiguration(c -> c.apiCallTimeout(Duration.ofSeconds(3))).build());
+            return true;
+        } catch (RuntimeException e) {
+            log.debug("Storage health check failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
     @PostConstruct
     void ensureBucket() {
         if (!props.createBucket()) {

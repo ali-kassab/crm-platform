@@ -59,6 +59,8 @@ class PlatformAdminIT {
         assertThat(users.findByEmail(existing.email()).orElseThrow().isSuperAdmin()).isFalse(); // never promoted
         String adminEmail = Api.uniqueEmail();
         assertThat(bootstrap(adminEmail, "password1")).isEqualTo(PlatformAdminBootstrap.Outcome.WEAK_PASSWORD);
+        // the platform-admin rule (>= 14 characters) applies from the very first password
+        assertThat(bootstrap(adminEmail, "Qz7-kM2-wP9x")).isEqualTo(PlatformAdminBootstrap.Outcome.WEAK_PASSWORD);
 
         assertThat(bootstrap(adminEmail, ADMIN_PASSWORD)).isEqualTo(PlatformAdminBootstrap.Outcome.CREATED);
         assertThat(users.findByEmail(adminEmail).orElseThrow().isSuperAdmin()).isTrue();

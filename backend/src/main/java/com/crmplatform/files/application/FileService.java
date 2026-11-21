@@ -150,6 +150,11 @@ public class FileService implements Files {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean storageReachable() {
+        return storage.reachable();
+    }
+
+    @Override
     public long usedBytes() {
         return files.usedBytes();
     }

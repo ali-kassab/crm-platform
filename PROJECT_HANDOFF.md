@@ -2,7 +2,7 @@
 
 > Permanent project-level reference. Read this first in every new session, then `SESSION_HANDOFF.md` (same folder) for the exact continuation steps. The repository state always wins over this file; verify with `git status` / `git log` before resuming.
 >
-> Last updated: 2026-11-20 (**R13 complete and the deferred platform-admin UI done**; last commit `5ff273e` = work-order error boundary; next steps in `SESSION_HANDOFF.md` §7).
+> Last updated: 2026-11-21 (**Platform Admin Control Center added — 4p**; R13 and the platform-admin UI done before it; next steps in `SESSION_HANDOFF.md` §7).
 
 ## 0. Active repository — read before anything else
 - **The ONLY active development repository is `D:\Workspace\crm-platform`.** All development, Git operations, tests and future sessions happen here.
@@ -239,8 +239,13 @@ Audit R13 scope: "baselines, load test, Dockerfiles, CI, backups, deployment con
 - **Permanent rule:** the admin session never shares anything with the workspace session — separate in-memory token (`src/admin/session.ts`), `credentials: 'omit'` (no refresh cookie), no refresh, query keys under `['admin', …]` dropped on sign-out; a reload ends it (access-token-only by design, 4 R0 item 3).
 - Tests: `e2e/admin.spec.ts`, `e2e-live/admin.spec.ts` (env-gated). Details: `SESSION_HANDOFF.md` §6d.
 
+## 4p. Platform Admin Control Center (owner request 2026-11-21) — details `SESSION_HANDOFF.md` §6g
+- New Modulith module **`com.crmplatform.platform`** (read side only): `PlatformInsights` (dashboard, companies, usage, activity, platform audit log), `PlatformHealth` (live DB/Redis/object-storage probes + Micrometer request counts), `ApiUsageMeter` (per-workspace daily request counts in Redis `usage:api:yyyyMMdd`, 35-day TTL, count only). Endpoints under `/api/v1/admin/` (`dashboard`, `companies`, `companies/{id}`, `usage`, `activity`, `health`, `audit-log`, `audit-log/actions`), all `platform:admin`.
+- Identity additions: `PlatformUserService` / `PlatformUserController` (`GET /admin/users`, `POST /admin/users/{id}/deactivate|activate`; revokes refresh tokens + evicts the role cache; platform admins are protected), `PATCH /admin/account` (admin name). Files: `Files.storageReachable()` (bucket HEAD, 3 s timeout; deliberately **not** an actuator health indicator, so the container healthcheck is unchanged).
+- **Permanent rules:** platform-admin queries return aggregates and administrative metadata only (company name, owner email, plan, dates, counts, byte sums) — never tenant business columns; no impersonation / "view as company"; company suspension = existing subscription `SUSPENDED` (read-only, nothing deleted); every admin write is audited in the append-only `audit_entries` (no secrets); the first-admin bootstrap now enforces the admin rule (≥ 14 characters + password policy) — no default or generated password exists in any environment. No migration was added (next is still `V18`).
+
 ## 5. Current phase & next steps
-Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Exact next steps: `SESSION_HANDOFF.md` §7.
+Roadmap R0–R13 and the deferred platform-admin UI are complete (2026-11-20). No further approved scope is documented; ask the owner before starting anything new. Known backend gaps against `PRODUCT_AUDIT.md`, waiting for an owner decision: sector seed data (R10 "seeders", §8 #14) and project status/lifecycle + progress (§5 item 6, never scheduled in a phase). Exact next steps: `SESSION_HANDOFF.md` §7.
 
 **Exact next steps for a new session (in order):**
 1. Verify state (`git status` clean apart from ignored files, `git log -1`, branch = `feature/saas-foundation`, in sync with origin).
