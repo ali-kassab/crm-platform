@@ -11,12 +11,14 @@ test('platform admin on the real stack: sign in, open a workspace, extend it, se
   await page.getByLabel('البريد الإلكتروني').fill(email!)
   await page.getByLabel('كلمة المرور').fill(password!)
   await page.getByRole('button', { name: 'تسجيل الدخول' }).click()
-  await expect(page).toHaveURL(/\/admin\/requests$/)
+  await expect(page).toHaveURL(/\/admin\/dashboard$/)
+  await expect(page.getByRole('heading', { name: 'لوحة المعلومات' })).toBeVisible()
+  await page.getByRole('link', { name: 'طلبات الدفع' }).click()
   await expect(page.getByRole('heading', { name: 'طلبات الدفع' })).toBeVisible()
 
   // the newest workspace (registered by the smoke test) is first
-  await page.getByRole('link', { name: 'مساحات العمل' }).click()
-  const first = page.locator('main ul > li').first()
+  await page.getByRole('link', { name: 'الشركات' }).click()
+  const first = page.locator('main tbody tr').first()
   await expect(first).toBeVisible()
   const name = (await first.getByRole('link').textContent()) ?? ''
   await first.getByRole('link').click()

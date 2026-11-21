@@ -49,6 +49,9 @@ public interface Files {
     /** Bytes stored by the active workspace (all live files). */
     long usedBytes();
 
+    /** Whether object storage answers right now (platform health; reads no file). */
+    boolean storageReachable();
+
     /** {@code purpose} may be null; {@code hasThumbnail} is true for images (small WebP preview). */
     record FileSummary(UUID id, FileKind kind, String name, String contentType, long sizeBytes, FilePurpose purpose,
             boolean hasThumbnail) {

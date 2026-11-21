@@ -164,3 +164,10 @@ The workspace is not suspended	مساحة العمل غير موقوفة
 Unknown request status	حالة الطلب غير معروفة
 Unknown subscription action	إجراء الاشتراك غير معروف
 A transaction needs a job or a project	يجب ربط المعاملة بأمر عمل أو مشروع
+First and last name are required (at most 60 characters)	الاسم الأول واسم العائلة مطلوبان (60 حرفاً بحد أقصى)
+Platform admin accounts cannot be activated or deactivated here	لا يمكن تفعيل حسابات مسؤولي المنصة أو إيقافها من هنا
+A reason is required	السبب مطلوب
+status must be ACTIVE or INACTIVE	يجب أن تكون الحالة ACTIVE أو INACTIVE
+kind must be PLATFORM_ADMIN or TENANT	يجب أن يكون النوع PLATFORM_ADMIN أو TENANT
+Unknown company status	حالة الشركة غير معروفة
+endingWithinDays must be between 0 and 366	يجب أن تكون قيمة endingWithinDays بين 0 و366

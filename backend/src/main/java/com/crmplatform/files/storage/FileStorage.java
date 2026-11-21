@@ -14,4 +14,7 @@ public interface FileStorage {
 
     /** Short-lived download URL; {@code attachmentName} forces a download with that file name. */
     String presignGet(String key, Duration ttl, String attachmentName);
+
+    /** Whether the bucket answers a metadata request right now (no object is listed or read). */
+    boolean reachable();
 }
