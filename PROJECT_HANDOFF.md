@@ -68,7 +68,7 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 ## 2. Repository
 - Path: `D:\Workspace\crm-platform` · remote `origin` = `https://github.com/ali-kassab/crm-platform.git` (private, owned by the user).
 - Working branch: **`feature/saas-foundation`** (created from `main` @ `163d49c`).
-- **`main` status (verified 2026-11-20 via `git fetch`):** the owner merged **PR #3** (R0–R10, `7ae560a`) and later **PR #4** → `origin/main` = `50f9437`, which contains every commit up to `fac6486` (R11). R12 and R13 are only on the feature branch. The **local** `main` ref is stale. Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
+- **`main` status (verified 2026-11-22 via `git fetch`):** the owner merged PRs #3–#7 → `origin/main` = `efc9d48`, which contains every feature-branch commit up to `d3b4260` (R0–R13, admin UI, admin control center). The **local** `main` ref is stale. Claude never pushes to, merges into or updates `main`; leave the local `main` ref alone unless the owner asks.
 - Author/committer: `ali-kassab <alikassab155@gmail.com>` (local git config, verified). **No Claude co-author trailer or Claude/Anthropic attribution** in commits or PR text.
 - Push: verified commits → `origin feature/saas-foundation` automatically. Never `main`, never force-push, never rewrite history, never delete branches, never open a PR (opening and merging PRs is the owner's decision).
 
@@ -92,7 +92,7 @@ Permanent rule set by the owner on 2026-11-20. **This file is the source of trut
 | R13 Performance & production readiness (+ R10 leftovers) | ✅ complete (2026-11-20, `39c38bc` … `602c22c`) — see 4n |
 | Final stage: platform-admin UI | ✅ complete (2026-11-20, `0d85543`) — see 4o |
 
-Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); R0–R10 are also in `origin/main` via PR #3 (R11 and R12 are only on the feature branch).
+Evidence: each ✅ row has a feature commit on `feature/saas-foundation` (see §10) and a recorded full test run (see §6); all of them are also in `origin/main` (PRs #3–#7, verified 2026-11-22).
 
 ## 4. Completed — R0 Security & foundations
 1. **Tenant isolation is fail-closed** (audit S1, critical) — commit `17f1fff`.
